@@ -128,6 +128,7 @@
             return mMainStack.startActivityMayWait(caller, intent, resolvedType,
                 grantedUriPermissions, grantedMode, resultTo, resultWho,
                 requestCode, onlyIfNeeded, debug, null, null);
+            //这里只是简单地将操作转发给成员变量mMainStack的startActivityMayWait函数，这里的mMainStack的类型为ActivityStack。
         }
 
 
@@ -135,7 +136,6 @@
 
     }
 ```
-这里只是简单地将操作转发给成员变量mMainStack的startActivityMayWait函数，这里的mMainStack的类型为ActivityStack。
 
 ## frameworks/base/services/java/com/android/server/am/ActivityStack.java
 ```java
