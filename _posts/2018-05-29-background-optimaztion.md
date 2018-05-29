@@ -16,7 +16,7 @@
 &emsp;&emsp;对于Android 7.0(API level 24)的app,如果在manifest文件中注册了监听 CONNECTIVITY_ACTION 的receiver，也是不会收到 CONNECTIVITY_ACTION 广播的，这依赖于这种广播不会开启。对于需要监听网络变化或者执行批量网络活动的app，这将会产生一个问题。在Android framwork中围绕这个限制已经有一些解决办法。选择一个正确的方法取决于你希望你的应用程序完成什么功能。 
 注意，在程序中使用 Context.registerReceiver()注册的 BroadcastReceiver，在程序运行时仍可以接收这些广播。
 
-1. Scheduling Network Jobs on Unmetered Connections
+1. **Scheduling Network Jobs on Unmetered Connections**
 
 当使用JobInfo.Builder类来构建JobInfo对象时，使用setRequiredNetWorkType()方法并将JobInfo.NETWORK_TYPE_UNMETERED 作为参数传递给该方法。下面的示例代码展示当设备连接到一个非计费的网络并在充电时启动一个service。
 ```java
@@ -39,7 +39,7 @@ public static void scheduleJob(Context context) {
 
 使用GMSCore 服务，Android 5.0 (API level 21) 或者更低版本的应用程序，可以使用GcmNetworkManager并指定Task.NETWORK_STATE_UNMETERED.
 
-2. Monitoring Network Connectivity While the App is Running
+2. **Monitoring Network Connectivity While the App is Running**
 
 运行中的app仍可以接受 CONNECTIVITY_CHANGE。 ConnectivityManager API提供了更加健全的方法，当指定的网络条件满足时，会发生一个回调。
 
@@ -51,7 +51,7 @@ app会持续接受回调，直到app退出或者调用 unregisterNetworkCallback
 
 对于Android 7.0 (API level 24)，app不能发送或者接收 ACTION_NEW_PICTURE 和 ACTION_NEW_VIDEO 广播。当一些app必须被唤醒来处理新的图片和视频时，这种限制有利于缓解对性能和用户体验的影响。Android 7.0中扩展了JobInfo和JobParameters，提供一种可选择的解决方案。
 
-1. New JobInfo methods
+1. **New JobInfo methods**
 
 为了在content URI 改变时触发Job, Android 7.0 (API level 24) 扩展了JobInfo API ，下面是这些方法：
 
@@ -83,7 +83,7 @@ public static void scheduleJob(Context context) {
 ```
 当系统报出一个指定的content URI改变，你的app会接受一个回调并且JobParameters对象会被传递给MediaContentJob.class中的onStartJob()方法
 
-2. New JobParameter Methods
+2. **New JobParameter Methods**
 
 Android 7.0 (API level 24)也扩展了 JobParameters， 它允许你的app可以接受有用的信息， 这些信息是关于哪些authority和URI触发了job。
 
@@ -124,12 +124,13 @@ public boolean onStartJob(JobParameters params) {
 ```
 # 未来的优化
 
-优化你的app在低内存设备或者低内存条件下运行,可以改善性能和用户体验。删除掉后台的service以及静态隐性注册广播接收者能够使你的app在这些设备上更好的运行。Android 7.0 (API level 24) 正在逐渐减少这些问题。推荐优化你的app完全不要使用这些后台进程。
+&emsp;&emsp;优化你的app在低内存设备或者低内存条件下运行,可以改善性能和用户体验。删除掉后台的service以及静态隐性注册广播接收者能够使你的app在这些设备上更好的运行。Android 7.0 (API level 24) 正在逐渐减少这些问题。推荐优化你的app完全不要使用这些后台进程。
 
 Android 7.0 (API level 24) 有一些额外的 Android Debug Bridge (ADB) 命令，你可以使用这些命令在不使用后台进程情况下测试app的行为。 
 模拟隐性的广播和后台服务不可用，使用下面的命令：
 
     $ adb shell cmd appops set <package_name> RUN_IN_BACKGROUND ignore
+
 为了使隐性的广播和后台服务再次可用，使用下面的命令：
 
     $ adb shell cmd appops set <package_name> RUN_IN_BACKGROUND allow
