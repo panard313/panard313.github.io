@@ -1,3 +1,11 @@
+---
+layout: article
+title: Android background optimization 后台优化
+key: 20180529
+tags:
+  - background 优化
+lang: zh-Hans
+---
 # Android后台优化
 文章译自：https://developer.android.com/topic/performance/background-optimization.html#connectivity-action
 
