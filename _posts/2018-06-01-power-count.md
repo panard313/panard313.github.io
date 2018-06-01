@@ -25,6 +25,7 @@ Android如何启动电量统计服务？
 举一个例子，假定某个APK的使用了GPS，使用时间用 t 表示。GPS模块单位时间的耗电量用 w 表示，那么，这个APK使用GPS的耗电量就可以按照如下方式计算：
 
     耗电量 = 单位时间耗电量(w) × 使用时间(t)
+
 Android框架层通过一个名为batterystats的系统服务，实现了电量统计的功能。batterystats获取电量的使用信息有两种方式：
 - 被动(push)：有些硬件模块(wifi, 蓝牙)在发生状态改变时，通知batterystats记录状态变更的时间点
 - 主动(pull)：有些硬件模块(cpu)需要batterystats主动记录时间点，譬如记录Activity的启动和终止时间，就能计算出Activity使用CPU的时间
@@ -37,15 +38,18 @@ frameworks/base/core/java/android/os/BatteryStats.java
 frameworks/base/core/java/com/android/internal/os/BatteryStatsImpl.java
 frameworks/base/core/java/com/android/internal/os/BatteryStatsHelper.java
 frameworks/base/core/res/res/xml/power_profile.xml
+
 为了描述的简便，后文仅以短类名.方法名()表示代码片段所在的位置。
 
 ---
 ## 2. 电量统计服务的启动过程
 电量统计服务是一个系统服务，名字为batterystats，在Android系统启动的时候，这个服务就会被启动，其启动时序如下图所示：
 电量统计服务启动时序
+
 电量统计服务是间接由ActivityManagerService(后文简称AMS)来启动，AMS是Android系统最为基础的服务，进入Android系统后，最优先启动的，就是这类服务。
 
 在SystemServer.startBootstrapServices()这个方法中，将ActivityManagerService.Lifecycle传入SystemServiceManager.startService()这个方法，就实现了AMS的初始化。
+
 注：Android提供了系统服务的基础类SystemService，子类通过实现系统回调函数，来完成具体系统服务的生命周期。ActivityManagerService.Lifecycle就是SystemService的子类。
 ```java
 private void startBootstrapServices() {
@@ -118,11 +122,13 @@ Android如何计算耗电量？ 并不是直接跟踪电流消耗量，而是采
 
 ## 3. 电量统计服务的工作过程
 电量统计包含几个重要的功能：信息收集、信息存储和电量计算。
-信息收集是指在什么时间点采用什么方式收集电量使用数据
-信息存储按照什么格式存放，存放在什么位置
-电量计算是指根据已经收集的信息，如何计算出不同应用、服务、进程等的电量使用情况
+- 信息收集是指在什么时间点采用什么方式收集电量使用数据
+- 信息存储按照什么格式存放，存放在什么位置
+- 电量计算是指根据已经收集的信息，如何计算出不同应用、服务、进程等的电量使用情况
+
 在具体介绍电量统计服务的工作过程之前，先上工作原理图一张：
 电量统计服的工作过程
+
 ### 3.1 电量信息收集
 batterystats有主动和被动收集电量使用信息的方式，收集的信息基本都包含硬件模块的状态和被使用的时间两个维度。为什么仅仅是收集不同硬件模块的使用时间呢？ 前面我们说过，手机电压通常是恒定的，耗电量是通过 “单位时间电流量(I) × 使用时间(t)” 来计算，而单位时间电流量是由厂商给定的，定义在power_profile.xml中， 所以，只需要收集不同硬件模块的使用时间，就可以近似的计算出耗电量了
 
