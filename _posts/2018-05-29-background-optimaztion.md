@@ -3,7 +3,8 @@ layout: article
 title: Android background optimization 后台优化
 key: 20180529
 tags:
-  - background 优化 cx
+  - background 优化
+  - cx
 lang: zh-Hans
 ---
 # Android后台优化
@@ -21,7 +22,7 @@ lang: zh-Hans
 
 ## 关于CONNECTIVITY_ACTION的限制
 
-&emsp;&emsp;对于Android 7.0(API level 24)的app,如果在manifest文件中注册了监听 CONNECTIVITY_ACTION 的receiver，也是不会收到 CONNECTIVITY_ACTION 广播的，这依赖于这种广播不会开启。对于需要监听网络变化或者执行批量网络活动的app，这将会产生一个问题。在Android framwork中围绕这个限制已经有一些解决办法。选择一个正确的方法取决于你希望你的应用程序完成什么功能。 
+&emsp;&emsp;对于Android 7.0(API level 24)的app,如果在manifest文件中注册了监听 CONNECTIVITY_ACTION 的receiver，也是不会收到 CONNECTIVITY_ACTION 广播的，这依赖于这种广播不会开启。对于需要监听网络变化或者执行批量网络活动的app，这将会产生一个问题。在Android framwork中围绕这个限制已经有一些解决办法。选择一个正确的方法取决于你希望你的应用程序完成什么功能。
 注意，在程序中使用 Context.registerReceiver()注册的 BroadcastReceiver，在程序运行时仍可以接收这些广播。
 
 1. **Scheduling Network Jobs on Unmetered Connections**
@@ -41,7 +42,7 @@ public static void scheduleJob(Context context) {
       .build();
   js.schedule(job);
 }
-//权限android:permission="android.permission.BIND_JOB_SERVICE"  
+//权限android:permission="android.permission.BIND_JOB_SERVICE"
 ```
 当你的job条件满足时，你的app将会接收一个回调运行JobService.class类中的onStartJob()方法。
 
@@ -63,10 +64,10 @@ app会持续接受回调，直到app退出或者调用 unregisterNetworkCallback
 
 为了在content URI 改变时触发Job, Android 7.0 (API level 24) 扩展了JobInfo API ，下面是这些方法：
 
-- JobInfo.TriggerContentUri() 
+- JobInfo.TriggerContentUri()
 Encapsulates parameters required to trigger a job on content URI changes.
 
-- JobInfo.Builder.addTriggerContentUri() 
+- JobInfo.Builder.addTriggerContentUri()
 传递TriggerContentUri对象给JobInfo。一个contentobserver监听封装的content URI。如果有多个TriggercontentUri对象与一个job关联系，统将会提供一个回调。
 
 - 如果任何给定URI的继承者改变，增加 TriggerContentUri.FLAG_NOTIFY_FOR_DESCENDANTS标志，就会触发job,这种标志相当于给registerContentObserver()传递notifyForDescendants参数。
@@ -95,9 +96,9 @@ public static void scheduleJob(Context context) {
 
 Android 7.0 (API level 24)也扩展了 JobParameters， 它允许你的app可以接受有用的信息， 这些信息是关于哪些authority和URI触发了job。
 
-- Uri[] getTriggeredContentUris() 
+- Uri[] getTriggeredContentUris()
 返回触发job的URI数组。如果没有URI触发job这个方法将会返回null(例如job由于截止期限或者其他原因触发)，或者改变的URI超过50个也会返回null。
-- String[] getTriggeredContentAuthorities() 
+- String[] getTriggeredContentAuthorities()
 这个方法返回一个触发了job的content authority的字符串数字。如果返回的数组不是null,可以使用getTriggeredContentUris()来检索URI的改变的详细信息。
 下面的代码重写了 JobService.onStartJob()方法并记录了触发job的authority和URI。
 ```java
@@ -134,7 +135,7 @@ public boolean onStartJob(JobParameters params) {
 
 &emsp;&emsp;优化你的app在低内存设备或者低内存条件下运行,可以改善性能和用户体验。删除掉后台的service以及静态隐性注册广播接收者能够使你的app在这些设备上更好的运行。Android 7.0 (API level 24) 正在逐渐减少这些问题。推荐优化你的app完全不要使用这些后台进程。
 
-Android 7.0 (API level 24) 有一些额外的 Android Debug Bridge (ADB) 命令，你可以使用这些命令在不使用后台进程情况下测试app的行为。 
+Android 7.0 (API level 24) 有一些额外的 Android Debug Bridge (ADB) 命令，你可以使用这些命令在不使用后台进程情况下测试app的行为。
 模拟隐性的广播和后台服务不可用，使用下面的命令：
 
     $ adb shell cmd appops set <package_name> RUN_IN_BACKGROUND ignore
