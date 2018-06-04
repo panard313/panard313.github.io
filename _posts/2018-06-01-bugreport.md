@@ -3,7 +3,7 @@ layout: article
 title: Bugreport 分析
 key: 20180601
 tags:
-  - bugreport
+  - bugreport cx
 lang: zh-Hans
 ---
 

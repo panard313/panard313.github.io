@@ -3,7 +3,7 @@ layout: article
 title: Android background optimization 后台优化
 key: 20180529
 tags:
-  - background 优化
+  - background 优化 cx
 lang: zh-Hans
 ---
 # Android后台优化

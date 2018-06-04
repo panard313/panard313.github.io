@@ -3,7 +3,7 @@ layout: article
 title: Android 电量统计原理
 key: 20180601
 tags:
-  - power
+  - power cx
 lang: zh-Hans
 ---
 
