@@ -14,7 +14,7 @@ tags:
 
 Activity组件启动后，窗口并非马上显示，而是先显示starting window，作为Activity的预览窗口。
 
-[startActivity启动过程分析](http://gityuan.com/2016/03/12/start-activity/)介绍了Activity
+[startActivity启动过程分析](https://panard313.github.io/2016/03/12/start-activity/)介绍了Activity
 的启动过程，那么本文将从window角度再来说说这个过程。
 
 ## 二. 启动startingWindow

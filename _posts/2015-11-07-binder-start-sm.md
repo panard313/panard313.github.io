@@ -39,7 +39,7 @@ ServiceManager本身工作相对简单，其功能：查询和注册服务。 �
 
 ## 二. 启动过程
 
-ServiceManager是由[init进程](http://gityuan.com/2016/02/05/android-init/)通过解析init.rc文件而创建的，其所对应的可执行程序/system/bin/servicemanager，所对应的源文件是service_manager.c，进程名为/system/bin/servicemanager。
+ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-init/)通过解析init.rc文件而创建的，其所对应的可执行程序/system/bin/servicemanager，所对应的源文件是service_manager.c，进程名为/system/bin/servicemanager。
 
     service servicemanager /system/bin/servicemanager
         class core
@@ -132,9 +132,9 @@ ServiceManager是由[init进程](http://gityuan.com/2016/02/05/android-init/)通
 
 打开binder驱动相关操作:
 
-先调用open()打开binder设备，open()方法经过系统调用，进入Binder驱动，然后调用方法[binder_open()](http://gityuan.com/2015/11/01/binder-driver/#binderopen)，该方法会在Binder驱动层创建一个`binder_proc`对象，再将`binder_proc`对象赋值给fd->private_data，同时放入全局链表`binder_procs`。再通过ioctl()检验当前binder版本与Binder驱动层的版本是否一致。
+先调用open()打开binder设备，open()方法经过系统调用，进入Binder驱动，然后调用方法[binder_open()](https://panard313.github.io/2015/11/01/binder-driver/#binderopen)，该方法会在Binder驱动层创建一个`binder_proc`对象，再将`binder_proc`对象赋值给fd->private_data，同时放入全局链表`binder_procs`。再通过ioctl()检验当前binder版本与Binder驱动层的版本是否一致。
 
-调用mmap()进行内存映射，同理mmap()方法经过系统调用，对应于Binder驱动层的[binder_mmap()](http://gityuan.com/2015/11/01/binder-driver/#bindermmap)方法，该方法会在Binder驱动层创建`Binder_buffer`对象，并放入当前binder_proc的`proc->buffers`链表。
+调用mmap()进行内存映射，同理mmap()方法经过系统调用，对应于Binder驱动层的[binder_mmap()](https://panard313.github.io/2015/11/01/binder-driver/#bindermmap)方法，该方法会在Binder驱动层创建`Binder_buffer`对象，并放入当前binder_proc的`proc->buffers`链表。
 
 #### 2.2.1 binder_state
 [-> servicemanager/binder.c]
@@ -156,7 +156,7 @@ ServiceManager是由[init进程](http://gityuan.com/2016/02/05/android-init/)通
     }
 
 成为上下文的管理者，整个系统中只有一个这样的管理者。
-通过ioctl()方法经过系统调用，对应于Binder驱动层的[binder_ioctl()](http://gityuan.com/2015/11/01/binder-driver/#binderioctl)方法.
+通过ioctl()方法经过系统调用，对应于Binder驱动层的[binder_ioctl()](https://panard313.github.io/2015/11/01/binder-driver/#binderioctl)方法.
 
 #### 2.3.1 binder_ioctl
 [-> kernel/drivers/android/binder.c]
@@ -260,7 +260,7 @@ ServiceManager是由[init进程](http://gityuan.com/2016/02/05/android-init/)通
         return node;
     }
 
-在Binder驱动层创建[binder_node结构体](http://gityuan.com/2015/11/01/binder-driver/#bindernode)对象，并将当前binder_proc加入到`binder_node`的`node->proc`。并创建binder_node的async_todo和binder_work两个队列。
+在Binder驱动层创建[binder_node结构体](https://panard313.github.io/2015/11/01/binder-driver/#bindernode)对象，并将当前binder_proc加入到`binder_node`的`node->proc`。并创建binder_node的async_todo和binder_work两个队列。
 
 ### 2.4 binder_loop
 [-> servicemanager/binder.c]
@@ -302,8 +302,8 @@ ServiceManager是由[init进程](http://gityuan.com/2016/02/05/android-init/)通
 
 进入循环读写操作，由main()方法传递过来的参数func指向svcmgr_handler。
 
-`binder_write`通过ioctl()将BC_ENTER_LOOPER命令发送给binder驱动，此时bwr只有write_buffer有数据，进入[binder_thread_write()](http://gityuan.com/2015/11/02/binder-driver-2//#section-1)方法。
-接下来进入for循环，执行ioctl()，此时bwr只有read_buffer有数据，那么进入[binder_thread_read()](http://gityuan.com/2015/11/02/binder-driver-2//#section-4)方法。
+`binder_write`通过ioctl()将BC_ENTER_LOOPER命令发送给binder驱动，此时bwr只有write_buffer有数据，进入[binder_thread_write()](https://panard313.github.io/2015/11/02/binder-driver-2//#section-1)方法。
+接下来进入for循环，执行ioctl()，此时bwr只有read_buffer有数据，那么进入[binder_thread_read()](https://panard313.github.io/2015/11/02/binder-driver-2//#section-4)方法。
 
 #### 2.4.1 binder_write
 [-> servicemanager/binder.c]

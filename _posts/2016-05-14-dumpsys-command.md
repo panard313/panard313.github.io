@@ -73,7 +73,7 @@ tags:
 
 ## 二、Activity场景
 
-`dumpsys activity`，用于查询AMS服务相关信息，可跟不同的参数，更多信息见文章[AMS之dumpsys篇](http://www.gityuan.com/2017/07/04/ams_dumpsys/)
+`dumpsys activity`，用于查询AMS服务相关信息，可跟不同的参数，更多信息见文章[AMS之dumpsys篇](https://panard313.github.io/2017/07/04/ams_dumpsys/)
 
 下面以新浪微博App作为实例，由于输出结果较多，每个场景截图只挑选部分重要的信息。
 

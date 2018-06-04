@@ -1179,7 +1179,7 @@ binder_deferred_release的主要工作有：
 
 ![linktodeath.jpg](/images/binder/linktodeath.jpg)
 
-图解：[点击查看大图](http://www.gityuan.com/images/binder/linktodeath.jpg)
+图解：[点击查看大图](https://panard313.github.io/images/binder/linktodeath.jpg)
 
 **linkToDeath过程**
 

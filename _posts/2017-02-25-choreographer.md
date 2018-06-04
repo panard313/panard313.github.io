@@ -167,7 +167,7 @@ DisplayEventReceiver对象的全局引用。
         return OK;
     }
 
-此处跟文章[SurfaceFlinger原理(一)](http://gityuan.com/2017/02/11/surface_flinger/)的【小节2.8】的监听原理一样。
+此处跟文章[SurfaceFlinger原理(一)](https://panard313.github.io/2017/02/11/surface_flinger/)的【小节2.8】的监听原理一样。
 监听mReceiver的所获取的文件句柄，一旦有数据到来，则回调this(此处NativeDisplayEventReceiver)中所复写LooperCallback对象的
 handleEvent。
 

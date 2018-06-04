@@ -29,7 +29,7 @@ tags:
 
 ## 一、概述
 
-[Android系统启动-SystemServer篇(二)](http://gityuan.com/2016/02/20/android-system-server-2/)中有讲到AMS，本文以AMS为主线，讲述system_server进程中AMS服务的启动过程，以startBootstrapServices()方法为起点，紧跟着startCoreServices(), startOtherServices()共3个方法。
+[Android系统启动-SystemServer篇(二)](https://panard313.github.io/2016/02/20/android-system-server-2/)中有讲到AMS，本文以AMS为主线，讲述system_server进程中AMS服务的启动过程，以startBootstrapServices()方法为起点，紧跟着startCoreServices(), startOtherServices()共3个方法。
 
 
 ## 二. AMS启动过程

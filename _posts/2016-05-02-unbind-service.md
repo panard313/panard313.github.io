@@ -17,7 +17,7 @@ tags:
 
 ## 一. unbind
 
-文章[bindService启动过程分析](http://gityuan.com/2016/05/01/bind-service/)，介绍了
+文章[bindService启动过程分析](https://panard313.github.io/2016/05/01/bind-service/)，介绍了
 bindService的过程，本文介绍其对应的另一个操作unbind。
 
 **unbind调用链:**

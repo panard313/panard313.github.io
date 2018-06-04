@@ -20,7 +20,7 @@ Android系统中最为重要的服务便是AMS, AMS管理着framework层面四�
 ## 二. Service数据结构
 
 先以一幅图来展示AMS管理Service所涉及的相关数据结构：
-[点击查看大图](http://www.gityuan.com/images/ams/service_record.jpg)
+[点击查看大图](https://panard313.github.io/images/ams/service_record.jpg)
 
 ![service_record](/images/ams/service_record.jpg)
 
@@ -156,26 +156,26 @@ Service的启动方式主要有startService和bindService的方式.
 ### 3.2 生命周期
 
 #### 3.2.1 startService
-[startService](http://gityuan.com/2016/03/06/start-service/)的生命周期:
+[startService](https://panard313.github.io/2016/03/06/start-service/)的生命周期:
 
 - onCreate
 - onStartCommand
 - onDestroy
 
-启动流程图, [点击查看大图](http://www.gityuan.com/images/ams/service_lifeline.jpg)
+启动流程图, [点击查看大图](https://panard313.github.io/images/ams/service_lifeline.jpg)
 
 ![service_lifeline](/images/ams/service_lifeline.jpg)
 
 #### 3.2.2 bindService
 
-[bindService](http://gityuan.com/2016/05/01/bind-service/)的生命周期:
+[bindService](https://panard313.github.io/2016/05/01/bind-service/)的生命周期:
 
 - onCreate
 - onBind
 - onUnbind
 - onDestroy
 
-启动流程图, [点击查看大图](http://www.gityuan.com/images/ams/bind_service.jpg)
+启动流程图, [点击查看大图](https://panard313.github.io/images/ams/bind_service.jpg)
 
 ![bind_service](/images/ams/bind_service.jpg)
 
@@ -204,4 +204,4 @@ Service的启动方式主要有startService和bindService的方式.
 
 作为前台service，必须要有一个status bar的通知，并且通知不会消失直到service停止或许主动移除前台优先级。
 
-更多源码详细过程，见[startService启动过程分析](http://gityuan.com/2016/03/06/start-service/)
+更多源码详细过程，见[startService启动过程分析](https://panard313.github.io/2016/03/06/start-service/)

@@ -13,7 +13,7 @@ tags:
 
 ## 一、概述
 
-上一篇文章[startActivity启动过程分析](http://gityuan.com/2016/03/12/start-activity/)，介绍了startActivity是如何一步步创建的，再来看看生命周期的控制。先来一张官方的Activity状态转换图：
+上一篇文章[startActivity启动过程分析](https://panard313.github.io/2016/03/12/start-activity/)，介绍了startActivity是如何一步步创建的，再来看看生命周期的控制。先来一张官方的Activity状态转换图：
 
 ![activity_lifecycle](/images/activity/activity_lifecycle.jpg)
 

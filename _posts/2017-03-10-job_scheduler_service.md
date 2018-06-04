@@ -1116,7 +1116,7 @@ JobSchedulerService通过成员遍历mJobs指向JobStore对象;JobStore的mJobSe
 JobStatus通过job指向JobInfo对象; JobInfo对象里面记录着jobId, 组件名以及各种触发scheduler的限制条件信息.
 
 
-再来看看整个jobscheduler的执行过程:[点击查看大图](http://www.gityuan.com/images/jobscheduler/job_scheduler_sequence.jpg)
+再来看看整个jobscheduler的执行过程:[点击查看大图](https://panard313.github.io/images/jobscheduler/job_scheduler_sequence.jpg)
 
 ![job_scheduler_sequence](/images/jobscheduler/job_scheduler_sequence.jpg)
 

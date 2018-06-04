@@ -24,7 +24,7 @@ tags:
 
 ![binder_arch](/images/binder/java_binder/java_binder.jpg)
 
-Binder在整个Android系统中有这举足轻重的地位，在Native层有一套完整的binder通信的C/S架构(图中的蓝色)，Bpinder作为客户端，BBinder作为服务端。基于naive层的Binder框架，Java也有一套镜像功能的binder C/S架构，通过JNI技术，与native层的binder对应，Java层的binder功能最终都是交给native的binder来完成。从kernel到native，jni，framework层的架构所涉及的所有有关类和方法见[Binder类图](http://gityuan.com/2015/11/21/binder-framework/#binder-1)。
+Binder在整个Android系统中有这举足轻重的地位，在Native层有一套完整的binder通信的C/S架构(图中的蓝色)，Bpinder作为客户端，BBinder作为服务端。基于naive层的Binder框架，Java也有一套镜像功能的binder C/S架构，通过JNI技术，与native层的binder对应，Java层的binder功能最终都是交给native的binder来完成。从kernel到native，jni，framework层的架构所涉及的所有有关类和方法见[Binder类图](https://panard313.github.io/2015/11/21/binder-framework/#binder-1)。
 
 
 ### 3. Binder进程与线程

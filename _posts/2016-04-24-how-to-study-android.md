@@ -109,9 +109,9 @@ Android基本书籍，只需一两本即可，没有必要看太多基础书籍�
 5. Make：Android源码采用Make系统编译，源码系统中会看到很多Android.mk之类的文件；
 6. Source Insight：这绝对是看源码的神器；可以在Java、C++、C代码之间无缝衔接；
 7. Android Studio：这是Google官方支持的App开发环境，另外，能方便地阅读framework Java层面的系统源码。
-8. Atom: 是Github推出的开源文本编辑器，支持linux、window等多平台，可能不是最好用的，但我已习惯[Atom](http://gityuan.com/2016/06/09/atom/).
-9. Google Drawings：这是画图工具，Gityuan博客中的文章都是采用Google Drawing完成，比如[Binder开篇](http://gityuan.com/2015/10/31/binder-prepare/#binder-1)文中的图。
-10. StarUML：这是类图，Gityuan博客文章的类图和流程图都是采用StarUML完成，比如[理解Android进程创建流程](http://gityuan.com/2016/03/26/app-process-create/#forkandspecialize-1)文中时序图。
+8. Atom: 是Github推出的开源文本编辑器，支持linux、window等多平台，可能不是最好用的，但我已习惯[Atom](https://panard313.github.io/2016/06/09/atom/).
+9. Google Drawings：这是画图工具，Gityuan博客中的文章都是采用Google Drawing完成，比如[Binder开篇](https://panard313.github.io/2015/10/31/binder-prepare/#binder-1)文中的图。
+10. StarUML：这是类图，Gityuan博客文章的类图和流程图都是采用StarUML完成，比如[理解Android进程创建流程](https://panard313.github.io/2016/03/26/app-process-create/#forkandspecialize-1)文中时序图。
 
 ### 3.3 阅读源码的姿态
 
@@ -119,9 +119,9 @@ Android基本书籍，只需一两本即可，没有必要看太多基础书籍�
 
 **阅读Android源码：**
 
-如下以Android系统启动为主线，展开一系列的文章[Android开篇](http://gityuan.com/android/)中的流程图，在公司内部分享时我曾多次以下图为流程，来阐述Android架构，如下图：
+如下以Android系统启动为主线，展开一系列的文章[Android开篇](https://panard313.github.io/android/)中的流程图，在公司内部分享时我曾多次以下图为流程，来阐述Android架构，如下图：
 
-点击查看[大图](http://gityuan.com/images/android-process/android-boot.jpg)
+点击查看[大图](https://panard313.github.io/images/android-process/android-boot.jpg)
 
 ![process_status](/images/android-process/android-boot.jpg)
 
@@ -151,7 +151,7 @@ Android基本书籍，只需一两本即可，没有必要看太多基础书籍�
 - [老罗的Android之旅](http://blog.csdn.net/luoshengyang/article/details/8923485)
     - 罗升阳前辈所写博客，从各个层面介绍Android系统；
     - 《Android系统源代码情景分析 》
-- [Gityuan源码分析](http://gityuan.com/android/)
+- [Gityuan源码分析](https://panard313.github.io/android/)
     - 对于邓凡平和罗升阳两位前辈的博客基于Android 2.x或4.x，目前Android已发展到Android 6.0。不管Android如何变化，其核心思维变化并没有很大，所以两位前辈的博客还是很有值得学习和参考的地方。话又说回来，Android经过了几个大版本的迭代，无论是从代码结构还是整体逻辑仍有不少变化。故博主计划写一关于Android 6.0源码系列的博文。
     - Gityuan作为Android界新秀，能力尚不及很多前辈，但有一颗乐于分享的心，有一份痴于Android的品质，有一种坚持的态度，已经并一直还在努力奋斗的道路上...
 

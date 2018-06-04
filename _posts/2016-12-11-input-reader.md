@@ -12,7 +12,7 @@ tags:
 
 ## 一. InputReader起点
 
-上一篇文章[Input系统—启动篇](http://gityuan.com/2016/12/10/input-manager/)，介绍IMS服务的启动过程会创建两个native线程，分别是InputReader,InputDispatcher.
+上一篇文章[Input系统—启动篇](https://panard313.github.io/2016/12/10/input-manager/)，介绍IMS服务的启动过程会创建两个native线程，分别是InputReader,InputDispatcher.
 接下来从InputReader线程的执行过程从threadLoop为起点开始分析。
 
 #### 1.1 threadLoop
@@ -918,7 +918,7 @@ InputReader线程不断循环地执行InputReader.loopOnce(), 每次处理完生
 
 ### 5.2 流程图
 
-点击查看[大图](http://www.gityuan.com/images/input/input_reader_seq.jpg):
+点击查看[大图](https://panard313.github.io/images/input/input_reader_seq.jpg):
 
 ![input_reader_seq](/images/input/input_reader_seq.jpg)
 

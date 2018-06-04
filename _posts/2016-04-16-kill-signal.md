@@ -27,7 +27,7 @@ tags:
 
 ### 概述
 
-文章[理解Android进程创建流程](http://gityuan.com/2016/03/26/app-process-create)，介绍了Android进程创建过程是如何从framework一步步走到虚拟机。本文正好相反则是说说进程是如何被kill的过程。简单说，kill进程其实是通过**发送signal**信号的方式来完成的。创建进程从Process.start开始说起，那么杀进程则相应从Process.killProcess开始讲起。
+文章[理解Android进程创建流程](https://panard313.github.io/2016/03/26/app-process-create)，介绍了Android进程创建过程是如何从framework一步步走到虚拟机。本文正好相反则是说说进程是如何被kill的过程。简单说，kill进程其实是通过**发送signal**信号的方式来完成的。创建进程从Process.start开始说起，那么杀进程则相应从Process.killProcess开始讲起。
 
 ## 一、用户态Kill
 
@@ -48,7 +48,7 @@ tags:
     }
 
 
-其中`SIGNAL_KILL = 9`，这里的`sendSignal`是一个Native方法。在Android系统启动过程中，虚拟机会注册各种framework所需的JNI方法，很多时候查询Java层的native方法所对应的native方法，可在路径`/framework/base/core/jni`中找到，在[Zygote篇](http://gityuan.com/2016/02/13/android-zygote/#jnistartreg)有介绍JNI方法查看方法。
+其中`SIGNAL_KILL = 9`，这里的`sendSignal`是一个Native方法。在Android系统启动过程中，虚拟机会注册各种framework所需的JNI方法，很多时候查询Java层的native方法所对应的native方法，可在路径`/framework/base/core/jni`中找到，在[Zygote篇](https://panard313.github.io/2016/02/13/android-zygote/#jnistartreg)有介绍JNI方法查看方法。
 
 这里的`sendSignal`所对应的JNI方法在android_util_Process.cpp文件的`android_os_Process_SendSignal`方法，接下来进入见流程2.
 
@@ -220,7 +220,7 @@ tags:
 
 `SYSCALL_DEFINE2`是系统调用的宏定义，方法在此处经层层展开，等价于`asmlinkage long sys_kill(int pid, int sig)`。关于宏展开细节就不多说了，就说一点`SYSCALL_DEFINE2`中的2是指sys_kill方法有两个参数。
 
-关于系统调用流程比较复杂，还涉及汇编语言，**只需要知道** 用户空间的`kill()`最终调用到内核空间signal.c的`kill_something_info()`方法就可以。如果有兴趣，想进一步了解，可查看[Linux系统调用原理](http://gityuan.com/2016/05/21/syscall/)。
+关于系统调用流程比较复杂，还涉及汇编语言，**只需要知道** 用户空间的`kill()`最终调用到内核空间signal.c的`kill_something_info()`方法就可以。如果有兴趣，想进一步了解，可查看[Linux系统调用原理](https://panard313.github.io/2016/05/21/syscall/)。
 
 ### 2.2 kill_something_info
 
@@ -497,7 +497,7 @@ tags:
 - `kill -3 <pid>`：该pid所在进程的SignalCatcher接收到信号SIGNAL_QUIT，则挂起进程中的所有线程并dump所有线程的状态。
 - `kill -10 <pid>`： 该pid所在进程的SignalCatcher接收到信号SIGNAL_USR1，则触发进程强制执行GC操作。
 
-信号SIGNAL_QUIT、SIGNAL_USR1的发送流程由上一节已介绍，对于信号捕获则是由SignalCatcher线程来捕获完成相应操作的。在上一篇文章[理解Android进程创建流程](http://gityuan.com/2016/03/26/app-process-create/#nativeforkandspecialize)的【Step 6-2-1】中的`ForkAndSpecializeCommon`有涉及到signal相关的操作，接下来说说应用进程在创建过程为信号处理做了哪些准备呢？
+信号SIGNAL_QUIT、SIGNAL_USR1的发送流程由上一节已介绍，对于信号捕获则是由SignalCatcher线程来捕获完成相应操作的。在上一篇文章[理解Android进程创建流程](https://panard313.github.io/2016/03/26/app-process-create/#nativeforkandspecialize)的【Step 6-2-1】中的`ForkAndSpecializeCommon`有涉及到signal相关的操作，接下来说说应用进程在创建过程为信号处理做了哪些准备呢？
 
 ### 3.1 ForkAndSpecializeCommon
 
@@ -557,7 +557,7 @@ SIGCHLD=17，代表子进程退出时所相应的操作动作为`SigChldHandler`
 
 ### 3.4 DidForkFromZygote
 
-在文章[理解Android进程创建流程](http://gityuan.com/2016/03/26/app-process-create/#nativeforkandspecialize)已详细地说明了此过程，并在小节【Step 6-2-2-1-1-1】中说过后续会单独讲讲信号处理过程，那本文便是补充这个过程
+在文章[理解Android进程创建流程](https://panard313.github.io/2016/03/26/app-process-create/#nativeforkandspecialize)已详细地说明了此过程，并在小节【Step 6-2-2-1-1-1】中说过后续会单独讲讲信号处理过程，那本文便是补充这个过程
 
 [-> Runtime.cc]
 
@@ -739,4 +739,4 @@ Android系统中，由Zygote孵化而来的子进程，包含system_server进程
 ### 4.4 小结
 
 -  对于`kill -3`和`kill -10`流程由前面介绍的信号发送和信号处理两个过程，过程中由Art虚拟机来对信号进行相应的处理。
-- 对于` kill -9`则不同，是由linux底层来完成杀进程的过程，也就是执行到前面讲到第一节中的[complete_signal()](http://gityuan.com/2016/04/16/kill-signal/#completesignal)方法后，判断是SIGKILL信号，则由内核直接处理，Art虚拟机压根没机会来处理。
+- 对于` kill -9`则不同，是由linux底层来完成杀进程的过程，也就是执行到前面讲到第一节中的[complete_signal()](https://panard313.github.io/2016/04/16/kill-signal/#completesignal)方法后，判断是SIGKILL信号，则由内核直接处理，Art虚拟机压根没机会来处理。

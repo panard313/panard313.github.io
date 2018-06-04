@@ -17,7 +17,7 @@ tags:
 
 ## 一. 概述
 
-文章[startService启动过程分析](http://gityuan.com/2016/03/06/start-service/)，介绍了
+文章[startService启动过程分析](https://panard313.github.io/2016/03/06/start-service/)，介绍了
 startService的过程，本文介绍另一种通过bind方式来启动服务。
 
 ### 1.1 实例
@@ -1111,7 +1111,7 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
 
 ## 八. 总结
 
-整体调用流程图：[大图](http://www.gityuan.com/images/ams/bind_service.jpg)
+整体调用流程图：[大图](https://panard313.github.io/images/ams/bind_service.jpg)
 
 ![bind_service](/images/ams/bind_service.jpg)
 

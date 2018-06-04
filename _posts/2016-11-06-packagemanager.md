@@ -34,7 +34,7 @@ PKMS服务也是通过binder进行通信，IPackageManager.aidl由工具转换�
 - Binder客户端：ApplicationPackageManager(简称APM)的成员变量`mPM`继承于IPackageManager.Stub.Proxy;
 本身APM是继承于PackageManager对象。
 
-Android系统启动过程中，一路启动到[SystemServer](http://gityuan.com/2016/02/20/android-system-server-2/)后，便可以启动framework的各大服务，本文将介绍PKMS的启动过程。
+Android系统启动过程中，一路启动到[SystemServer](https://panard313.github.io/2016/02/20/android-system-server-2/)后，便可以启动framework的各大服务，本文将介绍PKMS的启动过程。
 
 ### PKMS启动
 

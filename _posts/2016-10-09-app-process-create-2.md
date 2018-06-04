@@ -13,7 +13,7 @@ tags:
 
 Android系统将进程做得很友好的封装,对于上层app开发者来说进程几乎是透明的. 了解Android的朋友,一定知道Android四大组件,但对于进程可能会相对较陌生. 一个进程里面可以跑多个app(通过share uid的方式), 一个app也可以跑在多个进程里(通过配置Android:process属性).
 
-再进一步进程是如何创建的, 可能很多人不知道fork的存在. 在我的文章[理解Android进程创建流程](http://gityuan.com/2016/03/26/app-process-create/) 集中一点详细介绍了`Process.start`的过程是如何一步步创建进程.
+再进一步进程是如何创建的, 可能很多人不知道fork的存在. 在我的文章[理解Android进程创建流程](https://panard313.github.io/2016/03/26/app-process-create/) 集中一点详细介绍了`Process.start`的过程是如何一步步创建进程.
 
  进程承载着整个系统,"进程之于Android犹如水之于鱼", 进程对于Android系统非常重要, 对于android来说承载着Android四大组件,承载着系统的正常运转. 本文则跟大家聊一聊进程的,是从另个角度来全局性讲解android进程启动全过程所涉及的根脉, 先来看看AMS.startProcessLocked方法.
 
@@ -27,7 +27,7 @@ Activity, Service, ContentProvider, BroadcastReceiver这四大组件,在启动�
 
 #### 2.1.1 Activity
 
-启动Activity过程: 调用startActivity,该方法经过层层调用,最终会调用ActivityStackSupervisor.java中的`startSpecificActivityLocked`,当activity所属进程还没启动的情况下,则需要创建相应的进程.更多关于Activity, 见[startActivity启动过程分析](http://gityuan.com/2016/03/12/start-activity/)
+启动Activity过程: 调用startActivity,该方法经过层层调用,最终会调用ActivityStackSupervisor.java中的`startSpecificActivityLocked`,当activity所属进程还没启动的情况下,则需要创建相应的进程.更多关于Activity, 见[startActivity启动过程分析](https://panard313.github.io/2016/03/12/start-activity/)
 
 [-> ActivityStackSupervisor.java]
 
@@ -44,7 +44,7 @@ Activity, Service, ContentProvider, BroadcastReceiver这四大组件,在启动�
 
 #### 2.1.2 Service
 
-启动服务过程: 调用startService,该方法经过层层调用,最终会调用ActiveServices.java中的`bringUpServiceLocked`,当Service进程没有启动的情况(app==null), 则需要创建相应的进程. 更多关于Service, 见[startService启动过程分析](http://gityuan.com/2016/03/06/start-service/)
+启动服务过程: 调用startService,该方法经过层层调用,最终会调用ActiveServices.java中的`bringUpServiceLocked`,当Service进程没有启动的情况(app==null), 则需要创建相应的进程. 更多关于Service, 见[startService启动过程分析](https://panard313.github.io/2016/03/06/start-service/)
 
 [-> ActiveServices.java]
 
@@ -63,7 +63,7 @@ Activity, Service, ContentProvider, BroadcastReceiver这四大组件,在启动�
 
 #### 2.1.3 ContentProvider
 
-ContentProvider处理过程: 调用ContentResolver.query该方法经过层层调用, 最终会调用到AMS.java中的`getContentProviderImpl`,当ContentProvider所对应进程不存在,则需要创建新进程. 更多关于ContentProvider,见[理解ContentProvider原理(一)](http://gityuan.com/2016/07/30/content-provider/)
+ContentProvider处理过程: 调用ContentResolver.query该方法经过层层调用, 最终会调用到AMS.java中的`getContentProviderImpl`,当ContentProvider所对应进程不存在,则需要创建新进程. 更多关于ContentProvider,见[理解ContentProvider原理(一)](https://panard313.github.io/2016/07/30/content-provider/)
 
 [-> AMS.java]
 
@@ -85,7 +85,7 @@ ContentProvider处理过程: 调用ContentResolver.query该方法经过层层调
 
 #### 2.1.4 Broadcast
 
-广播处理过程: 调用sendBroadcast,该方法经过层层调用, 最终会调用到BroadcastQueue.java中的`processNextBroadcast`,当BroadcastReceiver所对应的进程尚未启动，则创建相应进程. 更多关于broadcast, 见[Android Broadcast广播机制分析](http://gityuan.com/2016/06/04/broadcast-receiver/).
+广播处理过程: 调用sendBroadcast,该方法经过层层调用, 最终会调用到BroadcastQueue.java中的`processNextBroadcast`,当BroadcastReceiver所对应的进程尚未启动，则创建相应进程. 更多关于broadcast, 见[Android Broadcast广播机制分析](https://panard313.github.io/2016/06/04/broadcast-receiver/).
 
 [-> BroadcastQueue.java]
 
@@ -466,7 +466,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
 - 调用Process.start来创建新进程;
 - 重置ProcessRecord的成员变量, 一般情况下超时10s后发送PROC_START_TIMEOUT_MSG的handler消息;
 
-关于Process.start()是通过socket通信告知Zygote创建fork子进程，创建新进程后将ActivityThread类加载到新进程，并调用ActivityThread.main()方法。详细过程见[理解Android进程创建流程](http://gityuan.com/2016/03/26/app-process-create/),接下来进入AT.main方法.
+关于Process.start()是通过socket通信告知Zygote创建fork子进程，创建新进程后将ActivityThread类加载到新进程，并调用ActivityThread.main()方法。详细过程见[理解Android进程创建流程](https://panard313.github.io/2016/03/26/app-process-create/),接下来进入AT.main方法.
 
 ### 3.3 ActivityThread.main
 

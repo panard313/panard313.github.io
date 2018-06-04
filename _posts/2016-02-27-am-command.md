@@ -23,7 +23,7 @@ tags:
 
 (2) 打开网站`www.gityuan.com`
 
-    adb shell am start -a android.intent.action.VIEW -d  http://gityuan.com
+    adb shell am start -a android.intent.action.VIEW -d  https://panard313.github.io
 
 
 (3) 启动Activity： 启动包名为`com.yuanhh.app`，主Activity为`.MainActivity`，且extra数据以"website"为key, "yuanh.com"为value。通过java代码要完成该功能虽然不复杂，但至少需要一个android环境，而通过adb的方式，只需要在adb窗口，输入如下命令便可完成:
@@ -57,7 +57,7 @@ am命令还可以启动Service、Broadcast，杀进程，监控等功能，这�
 |am send-trim-memory  `<pid`> `<level`>|收紧进程的内存|setProcessMemoryTrimLevel|
 |am monitor|监控|MyActivityController.run|
 
-am命令实的实现方式在Am.java，最终几乎都是调用`ActivityManagerService`相应的方法来完成的，`am monitor`除外。比如前面概述中介绍的命令`am start -a android.intent.action.VIEW -d  http://gityuan.com`， 启动Acitivty最终调用的是ActivityManagerService类的startActivityAsUser()方法来完成的。再比如`am kill-all`命令，最终的实现工作是由ActivityManagerService的killBackgroundProcesses()方法完成的。
+am命令实的实现方式在Am.java，最终几乎都是调用`ActivityManagerService`相应的方法来完成的，`am monitor`除外。比如前面概述中介绍的命令`am start -a android.intent.action.VIEW -d  https://panard313.github.io`， 启动Acitivty最终调用的是ActivityManagerService类的startActivityAsUser()方法来完成的。再比如`am kill-all`命令，最终的实现工作是由ActivityManagerService的killBackgroundProcesses()方法完成的。
 
 
 接下来，说说`[options`]和 `<INTENT`>参数的意义以及如何正确取值。

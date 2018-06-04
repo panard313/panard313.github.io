@@ -1010,7 +1010,7 @@ mCondition.broadcast能够唤醒处理waitForEvent()过程的EventThread【见�
 - 线程"EventControl"： EventControlThread
 - 线程"DispSync"：DispSyncThread
 
-Vsync处理流程图：点击查看[大图](http://gityuan.com/images/surfaceFlinger/vsync.jpg)
+Vsync处理流程图：点击查看[大图](https://panard313.github.io/images/surfaceFlinger/vsync.jpg)
 
 ![vsync](/images/surfaceFlinger/vsync.jpg)
 

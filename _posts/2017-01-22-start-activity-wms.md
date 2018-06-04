@@ -13,13 +13,13 @@ tags:
 
 ## 一. 概述
 
-前面的文章[startActivity启动过程分析](http://gityuan.com/2016/03/12/start-activity/)，已从AMS的角度讲述了Activity启动过程，那么本文从WMS的角度说一说这个过程。
+前面的文章[startActivity启动过程分析](https://panard313.github.io/2016/03/12/start-activity/)，已从AMS的角度讲述了Activity启动过程，那么本文从WMS的角度说一说这个过程。
 
-先用上一篇文章的流程图来简单回顾一下：点击查看[大图](http://gityuan.com/images/activity/start_activity.jpg)
+先用上一篇文章的流程图来简单回顾一下：点击查看[大图](https://panard313.github.io/images/activity/start_activity.jpg)
 
 ![start_activity](/images/activity/start_activity.jpg)
 
-接下来，从文章[startActivity启动过程分析](http://gityuan.com/2016/03/12/start-activity/)的小节[2.10] AS.startActivityLocked()开始说起。
+接下来，从文章[startActivity启动过程分析](https://panard313.github.io/2016/03/12/start-activity/)的小节[2.10] AS.startActivityLocked()开始说起。
 
 ## 二. Window处理流程
 

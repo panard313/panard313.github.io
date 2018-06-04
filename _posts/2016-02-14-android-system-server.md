@@ -28,7 +28,7 @@ tags:
 ### 启动流程
 
 SystemServer的在Android体系中所处的地位，SystemServer由Zygote fork生成的，进程名为`system_server`，该进程承载着framework的核心服务。
-[Android系统启动-zygote篇](http://gityuan.com/22016/02/13/android-zygote/)中讲到Zygote启动过程中会调用startSystemServer()，可知`startSystemServer()`函数是system_server启动流程的起点，
+[Android系统启动-zygote篇](https://panard313.github.io/22016/02/13/android-zygote/)中讲到Zygote启动过程中会调用startSystemServer()，可知`startSystemServer()`函数是system_server启动流程的起点，
 启动流程图如下：
 
 ![system_server_boot_process](/images/boot/systemServer/system_server.jpg)
@@ -190,7 +190,7 @@ nativeForkSystemServer()方法在AndroidRuntime.cpp中注册的，调用com_andr
       return pid;
     }
 
-fork()创建新进程，采用copy on write方式，这是linux创建进程的标准方法，会有两次return,对于pid==0为子进程的返回，对于pid>0为父进程的返回。  到此system_server进程已完成了创建的所有工作，接下来开始了system_server进程的真正工作。在前面startSystemServer()方法中，zygote进程执行完forkSystemServer()后，新创建出来的system_server进程便进入handleSystemServerProcess()方法。关于fork()，可查看另一个文章[理解Android进程创建流程](http://gityuan.com/2016/03/26/app-process-create/#nativeforkandspecialize)。
+fork()创建新进程，采用copy on write方式，这是linux创建进程的标准方法，会有两次return,对于pid==0为子进程的返回，对于pid>0为父进程的返回。  到此system_server进程已完成了创建的所有工作，接下来开始了system_server进程的真正工作。在前面startSystemServer()方法中，zygote进程执行完forkSystemServer()后，新创建出来的system_server进程便进入handleSystemServerProcess()方法。关于fork()，可查看另一个文章[理解Android进程创建流程](https://panard313.github.io/2016/03/26/app-process-create/#nativeforkandspecialize)。
 
 ### 5. handleSystemServerProcess
 
@@ -344,7 +344,7 @@ nativeZygoteInit()方法在AndroidRuntime.cpp中，进行了jni映射，对应�
         proc->startThreadPool(); //启动新binder线程
     }
 
-ProcessState::self()是单例模式，主要工作是调用open()打开/dev/binder驱动设备，再利用mmap()映射内核的地址空间，将Binder驱动的fd赋值ProcessState对象中的变量mDriverFD，用于交互操作。startThreadPool()是创建一个新的binder线程，不断进行talkWithDriver()，在binder系列文章中的[注册服务(addService)](http://gityuan.com/2015/11/14/binder-add-service/)详细这两个方法的执行原理。
+ProcessState::self()是单例模式，主要工作是调用open()打开/dev/binder驱动设备，再利用mmap()映射内核的地址空间，将Binder驱动的fd赋值ProcessState对象中的变量mDriverFD，用于交互操作。startThreadPool()是创建一个新的binder线程，不断进行talkWithDriver()，在binder系列文章中的[注册服务(addService)](https://panard313.github.io/2015/11/14/binder-add-service/)详细这两个方法的执行原理。
 
 
 ### 10. applicationInit
@@ -405,7 +405,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
 
 ### 12. MethodAndArgsCaller
 
-在[Android系统启动-zygote篇](http://gityuan.com/2016/02/13/android-zygote/#zygoteinit)中遗留了一个问题没有讲解，如下：
+在[Android系统启动-zygote篇](https://panard313.github.io/2016/02/13/android-zygote/#zygoteinit)中遗留了一个问题没有讲解，如下：
 
 [-->ZygoteInit.java]
 
@@ -446,4 +446,4 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
         }
     }
 
-到此，总算是进入到了SystemServer类的main()方法， 在文章[Android系统启动-SystemServer下篇](http://gityuan.com/2016/02/20/android-system-server-2/)中会紧接着这里开始讲述。
+到此，总算是进入到了SystemServer类的main()方法， 在文章[Android系统启动-SystemServer下篇](https://panard313.github.io/2016/02/20/android-system-server-2/)中会紧接着这里开始讲述。

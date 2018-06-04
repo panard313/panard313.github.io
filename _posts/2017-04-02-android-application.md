@@ -586,14 +586,14 @@ system_server收到attach操作, 然后再向新创建的进程执行handleBindA
 
 ## 四. 总结
 
-(一)system_server进程 [查看大图](http://www.gityuan.com/images/application/system_application.jpg)
+(一)system_server进程 [查看大图](https://panard313.github.io/images/application/system_application.jpg)
 
 其application创建过程都创建对象有ActivityThread，Instrumentation, ContextImpl，LoadedApk，Application。
 流程图如下：
 
 ![system_application](/images/application/system_application.jpg)
 
-(二) app进程 [查看大图](http://www.gityuan.com/images/application/app_application.jpg)
+(二) app进程 [查看大图](https://panard313.github.io/images/application/app_application.jpg)
 
 其application创建过程都创建对象有ActivityThread，ContextImpl，LoadedApk，Application。
 流程图如下：

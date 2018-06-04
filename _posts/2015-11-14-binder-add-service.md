@@ -54,16 +54,16 @@ media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
 
 过程说明:
 
-1. [获取ServiceManager](http://gityuan.com/2015/11/08/binder-get-sm/#defaultservicemanager):
+1. [获取ServiceManager](https://panard313.github.io/2015/11/08/binder-get-sm/#defaultservicemanager):
 讲解了defaultServiceManager()返回的是BpServiceManager对象， 用于跟servicemanager进程通信;
-2. [理解Binder线程池的管理](http://gityuan.com/2016/10/29/binder-thread-pool/), 讲解了startThreadPool和joinThreadPool过程.
+2. [理解Binder线程池的管理](https://panard313.github.io/2016/10/29/binder-thread-pool/), 讲解了startThreadPool和joinThreadPool过程.
 
 本文的重点就是讲解Native层服务注册的过程.
 
 #### 1.2 类图
 
 在Native层的服务以media服务为例，来说一说服务注册过程，先来看看media的整个的类关系图。
-点击查看[大图](http://gityuan.com/images/binder/addService/add_media_player_service.png)
+点击查看[大图](https://panard313.github.io/images/binder/addService/add_media_player_service.png)
 
 ![add_media_player_service](/images/binder/addService/add_media_player_service.png)
 
@@ -71,14 +71,14 @@ media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
 
 - 蓝色代表的是注册MediaPlayerService服务所涉及的类
 - 绿色代表的是Binder架构中与Binder驱动通信过程中的最为核心的两个类；
-- 紫色代表的是注册服务和[获取服务](http://gityuan.com/2015/11/15/binder-get-service/)的公共接口/父类；
+- 紫色代表的是注册服务和[获取服务](https://panard313.github.io/2015/11/15/binder-get-service/)的公共接口/父类；
 
 
 #### 1.3 时序图
 
 先通过一幅图来说说，media服务启动过程是如何向servicemanager注册服务的。
 
-点击查看[大图](http://gityuan.com/images/binder/addService/addService.jpg)
+点击查看[大图](https://panard313.github.io/images/binder/addService/addService.jpg)
 
 ![addService](/images/binder/addService/addService.jpg)
 
@@ -164,7 +164,7 @@ media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
         return fd;
     }
 
-open_driver作用是打开/dev/binder设备，设定binder支持的最大线程数。关于binder驱动的相应方法，见文章[Binder Driver初探](http://gityuan.com/2015/11/01/binder-driver/)。
+open_driver作用是打开/dev/binder设备，设定binder支持的最大线程数。关于binder驱动的相应方法，见文章[Binder Driver初探](https://panard313.github.io/2015/11/01/binder-driver/)。
 
 ProcessState采用单例模式，保证每一个进程都只打开一次Binder Driver。
 
@@ -184,7 +184,7 @@ ProcessState采用单例模式，保证每一个进程都只打开一次Binder D
 - fd: 代表mmap所关联的文件描述符，此处为mDriverFD；
 - offset：偏移量，此处为0。
 
-mmap()经过系统调用，执行[binder_mmap](http://gityuan.com/2015/11/01/binder-driver/)过程。
+mmap()经过系统调用，执行[binder_mmap](https://panard313.github.io/2015/11/01/binder-driver/)过程。
 
 ## 三. 服务注册
 
@@ -196,7 +196,7 @@ mmap()经过系统调用，执行[binder_mmap](http://gityuan.com/2015/11/01/bin
         defaultServiceManager()->addService(String16("media.player"), new MediaPlayerService());
     }
 
-注册服务MediaPlayerService：由[defaultServiceManager()](http://gityuan.com/2015/11/08/binder-get-sm/)返回的是BpServiceManager，同时会创建ProcessState对象和BpBinder对象。
+注册服务MediaPlayerService：由[defaultServiceManager()](https://panard313.github.io/2015/11/08/binder-get-sm/)返回的是BpServiceManager，同时会创建ProcessState对象和BpBinder对象。
 故此处等价于调用BpServiceManager->addService。其中MediaPlayerService位于libmediaplayerservice库.
 
 ### 3.2 BpSM.addService
@@ -423,7 +423,7 @@ IPCThreadState进行transact事务处理分3部分：
     }
 
 
-其中handle的值用来标识目的端，注册服务过程的目的端为service manager，此处handle=0所对应的是binder_context_mgr_node对象，正是service manager所对应的binder实体对象。[binder_transaction_data结构体](http://gityuan.com/2015/11/01/binder-driver/#bindertransactiondata)是binder驱动通信的数据结构，该过程最终是把Binder请求码BC_TRANSACTION和binder_transaction_data结构体写入到`mOut`。
+其中handle的值用来标识目的端，注册服务过程的目的端为service manager，此处handle=0所对应的是binder_context_mgr_node对象，正是service manager所对应的binder实体对象。[binder_transaction_data结构体](https://panard313.github.io/2015/11/01/binder-driver/#bindertransactiondata)是binder驱动通信的数据结构，该过程最终是把Binder请求码BC_TRANSACTION和binder_transaction_data结构体写入到`mOut`。
 
 transact过程，先写完binder_transaction_data数据，其中Parcel data的重要成员变量：
 
@@ -507,7 +507,7 @@ transact过程，先写完binder_transaction_data数据，其中Parcel data的�
     }
 
 
-[binder_write_read结构体](http://gityuan.com/2015/11/01/binder-driver/#binderwriteread)用来与Binder设备交换数据的结构, 通过ioctl与mDriverFD通信，是真正与Binder驱动进行数据读写交互的过程。 主要是操作mOut和mIn变量。
+[binder_write_read结构体](https://panard313.github.io/2015/11/01/binder-driver/#binderwriteread)用来与Binder设备交换数据的结构, 通过ioctl与mDriverFD通信，是真正与Binder驱动进行数据读写交互的过程。 主要是操作mOut和mIn变量。
 
 ioctl()经过系统调用后进入Binder Driver.
 
@@ -841,7 +841,7 @@ handle值计算方法规律：
 
 ## 五. ServiceManager
 
-由[Binder系列3—启动ServiceManager](http://gityuan.com/2015/11/07/binder-start-sm/)已介绍其原理，循环在binder_loop()过程，
+由[Binder系列3—启动ServiceManager](https://panard313.github.io/2015/11/07/binder-start-sm/)已介绍其原理，循环在binder_loop()过程，
 会调用binder_parse()方法。
 
 ### 5.1 binder_parse
@@ -1036,4 +1036,4 @@ Media服务注册的过程涉及到MediaPlayerService(作为Client进程)和Serv
 4. Binder驱动收到该Binder应答请求，生成`BR_REPLY`命令，T2->to_parent = T1，T2->to_thread = thread1, thread1->transaction_stack = T2。 在MediaPlayerService收到该命令后，知道服务注册完成便可以正常使用。
 
 整个过程中，BC_TRANSACTION和BR_TRANSACTION过程是一个完整的事务过程；BC_REPLY和BR_REPLY是一个完整的事务过程。
-到此，其他进行便可以获取该服务，使用服务提供的方法，下一篇文章将会讲述[如何获取服务](http://gityuan.com/2015/11/15/binder-get-service/)。
+到此，其他进行便可以获取该服务，使用服务提供的方法，下一篇文章将会讲述[如何获取服务](https://panard313.github.io/2015/11/15/binder-get-service/)。

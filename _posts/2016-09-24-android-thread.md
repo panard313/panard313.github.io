@@ -283,7 +283,7 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
             threadPriority, threadStackSize, threadId);
     }
 
-此处`gCreateThreadFn`默认指向androidCreateRawThreadEtc函数。 文章[Android系统启动-zygote篇](http://gityuan.com/2016/02/13/android-zygote/)的小节[3.3.1]已介绍
+此处`gCreateThreadFn`默认指向androidCreateRawThreadEtc函数。 文章[Android系统启动-zygote篇](https://panard313.github.io/2016/02/13/android-zygote/)的小节[3.3.1]已介绍
 通过androidSetCreateThreadFunc()方法，gCreateThreadFn指向javaCreateThreadEtc函数。
   
 ### 4.3 javaCreateThreadEtc

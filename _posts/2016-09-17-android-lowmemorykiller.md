@@ -44,7 +44,7 @@ Android基于Linux的系统，其实Linux有类似的内存管理策略——OOM
 - 当AMS.cleanUpApplicationRecordLocked()或者handleAppDiedLocked()过程,则会将某个进程从lmkd策略中移除.
 
 
-在前面文章[Android进程调度之adj算法](http://gityuan.com/2016/08/07/android-adj/)中有讲到`AMS.applyOomAdjLocked`，接下来以这个过程为主线开始分析,说说设置某个进程adj的整个过程.
+在前面文章[Android进程调度之adj算法](https://panard313.github.io/2016/08/07/android-adj/)中有讲到`AMS.applyOomAdjLocked`，接下来以这个过程为主线开始分析,说说设置某个进程adj的整个过程.
 
 
 ## 二. framework层

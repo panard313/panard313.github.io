@@ -52,7 +52,7 @@ tags:
 采用了单例模式获取ServiceManager  getIServiceManager()返回的是ServiceManagerProxy(简称SMP)对象.
 
 其中BinderInternal.getContextObject(), 等价于new BpBinder(0), handle=0意味着指向的是远程进程/system/bin/servicemanager中的
-[ServiceManager服务](http://gityuan.com/2015/11/08/binder-get-sm/).
+[ServiceManager服务](https://panard313.github.io/2015/11/08/binder-get-sm/).
 
 
 #### 2.2.1 asInterface
@@ -107,7 +107,7 @@ tags:
         data.recycle();
     }
 
-通过mRemote向将ADD_SERVICE_TRANSACTION的事件发送给ServiceManager. 接下来的内容见[Binder系列5—注册服务(addService)](http://gityuan.com/2015/11/14/binder-add-service/#addservice).
+通过mRemote向将ADD_SERVICE_TRANSACTION的事件发送给ServiceManager. 接下来的内容见[Binder系列5—注册服务(addService)](https://panard313.github.io/2015/11/14/binder-add-service/#addservice).
 
 ## 三. SSM.startService方式
 

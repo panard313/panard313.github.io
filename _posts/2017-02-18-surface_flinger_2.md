@@ -15,7 +15,7 @@ tags:
 
 ## 一. 图形显示输出
 
-上一篇文章[SurfaceFlinger原理(一)](http://gityuan.com/2017/02/11/surface_flinger/)，介绍了SurfaceFlinger和VSync的处理流程。当SurfaceFlinger进程收到VSync信号后经层层调用，
+上一篇文章[SurfaceFlinger原理(一)](https://panard313.github.io/2017/02/11/surface_flinger/)，介绍了SurfaceFlinger和VSync的处理流程。当SurfaceFlinger进程收到VSync信号后经层层调用，
 最终调用到该对象的handleMessageRefresh()方法。接下来，从该方法说起。
 
 
@@ -32,7 +32,7 @@ tags:
         postComposition(); //【见小节6.1】
     }
 
-先来看看SurfaceFlinger主线程绘制的systrace图：点击查看[大图](http://gityuan.com/images/surfaceFlinger/systrace_sf.png)
+先来看看SurfaceFlinger主线程绘制的systrace图：点击查看[大图](https://panard313.github.io/images/surfaceFlinger/systrace_sf.png)
 
 ![systrace_sf](/images/surfaceFlinger/systrace_sf.png)
 

@@ -248,7 +248,7 @@ App进程调用startService去启动服务，其中`mRemote`指向AMS服务的Bi
 
 ## 三. 服务端
 
-见文章[彻底理解Android Binder通信架构](http://gityuan.com/2016/09/04/binder-start-service/)，
+见文章[彻底理解Android Binder通信架构](https://panard313.github.io/2016/09/04/binder-start-service/)，
 当服务端收到bindr请求，则此时进入execTransact()过程。
 
 ### 3.1 Binder.execTransact

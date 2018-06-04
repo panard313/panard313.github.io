@@ -1536,7 +1536,7 @@ dump_thread(log, pid, sibling, map, 0, 0, 0, false);
 这里主要以源码角度来分析debuggerd的原理，整个过程中最重要的产物便是tombstone文件，先留坑，后续再进一步讲述如何分析tombstone文件。
 
 - `debuggerd -b <tid>`:  
-发送请求的action为`DEBUGGER_ACTION_DUMP_BACKTRACE`，则调用`dump_backtrace()`;[Native进程之Trace原理](http://gityuan.com/2016/11/27/native-traces/)
+发送请求的action为`DEBUGGER_ACTION_DUMP_BACKTRACE`，则调用`dump_backtrace()`;[Native进程之Trace原理](https://panard313.github.io/2016/11/27/native-traces/)
 - `debuggerd <tid>`:
 发送请求的action为`DEBUGGER_ACTION_DUMP_TOMBSTONE`，则调用`engrave_tombstone()`;
 - `native crash`:

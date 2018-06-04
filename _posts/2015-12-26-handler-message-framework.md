@@ -19,7 +19,7 @@ tags:
 
 ## 一、概述
 
-在整个Android的源码世界里，有两大利剑，其一是Binder IPC机制，，另一个便是消息机制(由Handler/Looper/MessageQueue等构成的)。关于Binder在[Binder系列](http://gityuan.com/2015/10/31/binder-prepare/)中详细讲解过，有兴趣看看。
+在整个Android的源码世界里，有两大利剑，其一是Binder IPC机制，，另一个便是消息机制(由Handler/Looper/MessageQueue等构成的)。关于Binder在[Binder系列](https://panard313.github.io/2015/10/31/binder-prepare/)中详细讲解过，有兴趣看看。
 
 Android有大量的消息驱动方式来进行交互，比如Android的四剑客`Activity`, `Service`, `Broadcast`, `ContentProvider`的启动过程的交互，都离不开消息机制，Android某种意义上也可以说成是一个以消息驱动的系统。消息机制涉及MessageQueue/Message/Looper/Handler这4个类。
 
@@ -459,7 +459,7 @@ MessageQueue是消息机制的Java层和C++层的连接纽带，大部分核心�
     private native static boolean nativeIsPolling(long ptr);
     private native static void nativeSetFileDescriptorEvents(long ptr, int fd, int events);
 
-关于这些native方法的介绍，见[Android消息机制2-Handler(native篇)](http://gityuan.com/2015/12/27/handler-message-native/)。
+关于这些native方法的介绍，见[Android消息机制2-Handler(native篇)](https://panard313.github.io/2015/12/27/handler-message-native/)。
 
 ### 4.1 创建MessageQueue
 
@@ -564,7 +564,7 @@ MessageQueue是消息机制的Java层和C++层的连接纽带，大部分核心�
 
 当处于空闲时，往往会执行`IdleHandler`中的方法。当nativePollOnce()返回后，next()从`mMessages`中提取一个消息。
 
-`nativePollOnce()`在native做了大量的工作，想进一步了解可查看 [Android消息机制2-Handler(native篇)](http://gityuan.com/2015/12/27/handler-message-native/#nativepollonce)。
+`nativePollOnce()`在native做了大量的工作，想进一步了解可查看 [Android消息机制2-Handler(native篇)](https://panard313.github.io/2015/12/27/handler-message-native/#nativepollonce)。
 
 
 ### 4.3 enqueueMessage

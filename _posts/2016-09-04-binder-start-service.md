@@ -18,7 +18,7 @@ tags:
 
 Android内核是基于Linux系统, 而Linux现存多种进程间IPC方式:管道, 消息队列, 共享内存, 套接字, 信号量, 信号. 为什么Android非要用Binder来进行进程间通信呢.
 从我个人的理解角度, 曾尝试着在知乎回答同样一个问题 [为什么Android要采用Binder作为IPC机制？](https://www.zhihu.com/question/39440766/answer/89210950).
-这是我第一次认认真真地在知乎上回答问题, 收到很多网友的点赞与回复, 让我很受鼓舞, 也决心分享更多优先地文章回报读者和粉丝, 为Android圈贡献自己的微薄之力. (当然,如果你愿意点击文章最后[打赏支持](http://gityuan.com/images/about-me/gityuan_pay.jpg)我,我会更高兴.^_^)
+这是我第一次认认真真地在知乎上回答问题, 收到很多网友的点赞与回复, 让我很受鼓舞, 也决心分享更多优先地文章回报读者和粉丝, 为Android圈贡献自己的微薄之力. (当然,如果你愿意点击文章最后[打赏支持](https://panard313.github.io/images/about-me/gityuan_pay.jpg)我,我会更高兴.^_^)
 
 在说到Binder架构之前, 先简单说说大家熟悉的TCP/IP的五层通信体系结构:
 
@@ -50,10 +50,10 @@ Binder架构也是采用分层架构设计, 每一层都有其不同的功能:
 
 #### 1.2 分析起点
 
-前面通过一个[Binder系列-开篇](http://gityuan.com/2015/10/31/binder-prepare/)来从源码讲解了Binder的各个层面, 但是Binder牵涉颇为广泛, 几乎是整个Android架构的顶梁柱, 虽说用了十几篇文章来阐述Binder的各个过程.
+前面通过一个[Binder系列-开篇](https://panard313.github.io/2015/10/31/binder-prepare/)来从源码讲解了Binder的各个层面, 但是Binder牵涉颇为广泛, 几乎是整个Android架构的顶梁柱, 虽说用了十几篇文章来阐述Binder的各个过程.
 但依然还是没有将Binder IPC(进程间通信)的过程彻底说透.
 
-Binder系统如此庞大, 那么这里需要寻求一个出发点来穿针引线, 一窥视Binder全貌. 那么本文将从全新的视角,以[startService流程分析](http://gityuan.com/2016/03/06/start-service/)为例子来说说Binder所其作用.
+Binder系统如此庞大, 那么这里需要寻求一个出发点来穿针引线, 一窥视Binder全貌. 那么本文将从全新的视角,以[startService流程分析](https://panard313.github.io/2016/03/06/start-service/)为例子来说说Binder所其作用.
 首先在发起方进程调用AMP.startService，经过binder驱动，最终调用系统进程AMS.startService,如下图:
 
 ![start_server_binder](/images/binder/binder_start_service/start_server_binder.jpg)
@@ -316,7 +316,7 @@ gDefault的数据类型为`Singleton<IActivityManager>`, 这是一个单例模�
         }
     };
 
-文章[Binder系列7—framework层分析](http://gityuan.com/2015/11/21/binder-framework/#section-4)，可知ServiceManager.getService("activity")返回的是指向目标服务AMS的代理对象`BinderProxy`对象，由该代理对象可以找到目标服务AMS所在进程
+文章[Binder系列7—framework层分析](https://panard313.github.io/2015/11/21/binder-framework/#section-4)，可知ServiceManager.getService("activity")返回的是指向目标服务AMS的代理对象`BinderProxy`对象，由该代理对象可以找到目标服务AMS所在进程
 
 #### 2.4.4 AMN.asInterface
 [-> ActivityManagerNative.java]
@@ -624,7 +624,7 @@ transact主要过程:
     }
 
 
-[binder_write_read结构体](http://gityuan.com/2015/11/01/binder-driver/#binderwriteread)用来与Binder设备交换数据的结构, 通过ioctl与mDriverFD通信，是真正与Binder驱动进行数据读写交互的过程。
+[binder_write_read结构体](https://panard313.github.io/2015/11/01/binder-driver/#binderwriteread)用来与Binder设备交换数据的结构, 通过ioctl与mDriverFD通信，是真正与Binder驱动进行数据读写交互的过程。
 
 ### 2.12  IPC.executeCommand
 
@@ -1211,7 +1211,7 @@ Binder线程的创建有两种方式：
 - ProcessState::self()->startThreadPool();
 - IPCThreadState::self()->joinThreadPool();
 
-从文章[addService 小节4.1](http://gityuan.com/2015/11/14/binder-add-service/)，可知，调用链如下：
+从文章[addService 小节4.1](https://panard313.github.io/2015/11/14/binder-add-service/)，可知，调用链如下：
 startThreadPool()过程会创建新Binder线程，再经过层层调用也会进入joinThreadPool()方法。
 `system_server`的binder线程从IPC.joinThreadPool -->  IPC.getAndExecuteCommand() ->  IPC.talkWithDriver() ,但talkWithDriver收到事务之后, 便进入IPC.executeCommand()方法。
 
@@ -1568,7 +1568,7 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
         return res != JNI_FALSE ? NO_ERROR : UNKNOWN_TRANSACTION;
     }
 
-还记得AndroidRuntime::startReg过程吗, 其中有一个过程便是register_android_os_Binder(),该过程会把gBinderOffsets.mExecTransact便是Binder.java中的execTransact()方法.详见见[Binder系列7—framework层分析](http://gityuan.com/2015/11/21/binder-framework/)文章中的第二节初始化的过程.
+还记得AndroidRuntime::startReg过程吗, 其中有一个过程便是register_android_os_Binder(),该过程会把gBinderOffsets.mExecTransact便是Binder.java中的execTransact()方法.详见见[Binder系列7—framework层分析](https://panard313.github.io/2015/11/21/binder-framework/)文章中的第二节初始化的过程.
 
 另外,此处mObject是在服务注册addService过程,会调用writeStrongBinder方法, 将Binder对象传入了JavaBBinder构造函数的参数, 最终赋值给mObject. 在本次通信过程中Object为ActivityManagerNative对象.
 

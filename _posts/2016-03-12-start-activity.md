@@ -31,7 +31,7 @@ tags:
 
 ## 一. 概述
 
-`startActivity`的整体流程与[startService启动过程分析](http://gityuan.com/2016/03/06/start-service/)非常相近，但比Service启动更为复杂，多了stack/task以及UI的相关内容以及Activity的生命周期更为丰富。
+`startActivity`的整体流程与[startService启动过程分析](https://panard313.github.io/2016/03/06/start-service/)非常相近，但比Service启动更为复杂，多了stack/task以及UI的相关内容以及Activity的生命周期更为丰富。
 
 Activity启动发起后，通过Binder最终交由system进程中的AMS来完成，则启动流程如下图：
 
@@ -1632,7 +1632,7 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
 
 #### 2.15 AMS.startProcessLocked
 
-在文章[理解Android进程启动之全过程](http://gityuan.com/2016/10/09/app-process-create-2/)中，详细介绍了AMS.startProcessLocked()整个过程，创建完新进程后会在新进程中调用`AMP.attachApplication
+在文章[理解Android进程启动之全过程](https://panard313.github.io/2016/10/09/app-process-create-2/)中，详细介绍了AMS.startProcessLocked()整个过程，创建完新进程后会在新进程中调用`AMP.attachApplication
 `，该方法经过binder ipc后调用到`AMS.attachApplicationLocked`。
 
     private final boolean attachApplicationLocked(IApplicationThread thread,

@@ -26,7 +26,7 @@ tags:
 
 ## 一. SystemServer启动
 
-上篇文章[Android系统启动-systemServer上篇](http://gityuan.com/2016/02/14/android-system-server/) 从Zygote一路启动到SystemServer的过程。
+上篇文章[Android系统启动-systemServer上篇](https://panard313.github.io/2016/02/14/android-system-server/) 从Zygote一路启动到SystemServer的过程。
 简单回顾下，在RuntimeInit.java中invokeStaticMain方法通过创建并抛出异常ZygoteInit.MethodAndArgsCaller，在`ZygoteInit.java`中的main()方法会捕捉该异常，并调用`caller.run()`，再通过反射便会调用到SystemServer.main()方法，该方法主要执行流程：
 
     SystemServer.main
@@ -150,7 +150,7 @@ LocalServices通过用静态Map变量sLocalServiceObjects，来保存以服务�
         mSystemContext.setTheme(android.R.style.Theme_DeviceDefault_Light_DarkActionBar);
     }
 
-[理解Application创建过程](http://gityuan.com/2017/04/02/android-application/)已介绍过createSystemContext()过程，
+[理解Application创建过程](https://panard313.github.io/2017/04/02/android-application/)已介绍过createSystemContext()过程，
 该过程会创建对象有ActivityThread，Instrumentation, ContextImpl，LoadedApk，Application。
 
 ### 1.4 startBootstrapServices
@@ -277,7 +277,7 @@ LocalServices通过用静态Map变量sLocalServiceObjects，来保存以服务�
             });
         }
 
-SystemServer启动各种服务中最后的一个环节便是AMS.systemReady()，详见[ActivityManagerService启动过程](http://gityuan.com/2016/02/21/activity-manager-service/).
+SystemServer启动各种服务中最后的一个环节便是AMS.systemReady()，详见[ActivityManagerService启动过程](https://panard313.github.io/2016/02/21/activity-manager-service/).
 
 
 到此, System_server主线程的启动工作总算完成, 进入Looper.loop()状态,等待其他线程通过handler发送消息到主线再处理.
@@ -450,7 +450,7 @@ WallpaperManagerService、InputMethodManagerService、LocationManagerService、C
 
 ### 三、服务类别
 
-system_server进程，从源码角度划分为引导服务、核心服务、其他服务3类。 以下这些系统服务的注册过程, 见[Android系统服务的注册方式](http://gityuan.com/2016/10/01/system_service_common/)
+system_server进程，从源码角度划分为引导服务、核心服务、其他服务3类。 以下这些系统服务的注册过程, 见[Android系统服务的注册方式](https://panard313.github.io/2016/10/01/system_service_common/)
 
 1. 引导服务(7个)：ActivityManagerService、PowerManagerService、LightsService、DisplayManagerService、PackageManagerService、UserManagerService、SensorService；
 2. 核心服务(3个)：BatteryService、UsageStatsService、WebViewUpdateService；

@@ -89,7 +89,7 @@ frameworks/native/cmds/dumpsys/dumpsys.cpp
 3. `sm->checkService()`，获取系统中指定的Service；
 4. `service->dump()`，dumpsys命令的核心还是调用远程服务中的`dump()`方法来获取相应的dump信息。
 
-如果有兴趣要了解从源码角度是如何获取ServiceManager和Service，可查看文章[Binder系列4—获取ServiceManager](http://gityuan.com/2015/11/08/binder-get-sm/)，[Binder系列6—获取服务(getService)](http://gityuan.com/2015/11/15/binder-get-service/)。
+如果有兴趣要了解从源码角度是如何获取ServiceManager和Service，可查看文章[Binder系列4—获取ServiceManager](https://panard313.github.io/2015/11/08/binder-get-sm/)，[Binder系列6—获取服务(getService)](https://panard313.github.io/2015/11/15/binder-get-service/)。
 
 
 ### 实例

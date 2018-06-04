@@ -13,7 +13,7 @@ tags:
 
 ## 一.概述
 
-上一篇文章[理解ContentProvider原理](http://gityuan.com/2016/07/30/content-provider/)介绍了provider的整个原理,
+上一篇文章[理解ContentProvider原理](https://panard313.github.io/2016/07/30/content-provider/)介绍了provider的整个原理,
 本文以查询操作为例,说一说provider引用计数的问题.
 
 ### 1.1 query操作
@@ -87,7 +87,7 @@ tags:
 
 ## 二. 增加引用计数
 
-acquireUnstableProvider过程具体过程见文章,[理解ContentProvider原理](http://gityuan.com/2016/07/30/content-provider/), 对于acquireProvider的调用栈跟acquireUnstableProvider过程非常相近,都会调用到AT.acquireProvider(),主要差别在于stable值. 这里仅仅列举其调用栈如下:
+acquireUnstableProvider过程具体过程见文章,[理解ContentProvider原理](https://panard313.github.io/2016/07/30/content-provider/), 对于acquireProvider的调用栈跟acquireUnstableProvider过程非常相近,都会调用到AT.acquireProvider(),主要差别在于stable值. 这里仅仅列举其调用栈如下:
 
 CASE 1: acquireUnstableProvider
 
@@ -624,7 +624,7 @@ CASE 2: releaseProvider
 
 #### 4.1 进程死亡
 
-对于unstable的provider可直接调用unstableProviderDied,或者是当provider进程死亡后会有死亡回调[binderDied](http://gityuan.com/2016/10/02/binder-died/),这两个方法最终都会调用到appDiedLocked().
+对于unstable的provider可直接调用unstableProviderDied,或者是当provider进程死亡后会有死亡回调[binderDied](https://panard313.github.io/2016/10/02/binder-died/),这两个方法最终都会调用到appDiedLocked().
 
 调用链如下:
 
