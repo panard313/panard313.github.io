@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "APP优化(一)"
 date:   2015-09-26 21:21:50
 catalog:  true

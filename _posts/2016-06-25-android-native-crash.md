@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解Native Crash处理流程"
 date:   2016-6-25 21:25:53
 catalog:    true

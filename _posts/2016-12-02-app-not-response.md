@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解Android ANR的信息收集过程"
 date:   2016-12-02 22:19:53
 catalog:    true

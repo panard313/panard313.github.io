@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "debuggerd守护进程"
 date:   2016-6-15 20:25:33
 catalog:    true

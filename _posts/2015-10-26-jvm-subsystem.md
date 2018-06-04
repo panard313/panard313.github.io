@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Jvm系列4—执行子系统"
 date:   2015-10-26 19:16:10
 catalog:  true

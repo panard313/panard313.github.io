@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "四大组件之ActivityRecord"
 date:   2017-06-11 22:11:12
 catalog:  true

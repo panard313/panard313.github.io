@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Linux Kernel简介"
 date:   2016-04-01 22:22:53
 catalog:    true

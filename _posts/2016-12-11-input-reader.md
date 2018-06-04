@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Input系统—InputReader线程"
 date:   2016-12-11 22:19:12
 catalog:  true

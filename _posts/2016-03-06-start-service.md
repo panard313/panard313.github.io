@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "startService启动过程分析"
 date:   2016-03-06 20:12:50
 catalog:  true

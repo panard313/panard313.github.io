@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "以Window视角来看startActivity"
 date:   2017-01-22 20:32:00
 catalog:  true

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android系统启动-zygote篇"
 date:   2016-02-13 20:21:40
 catalog:  true

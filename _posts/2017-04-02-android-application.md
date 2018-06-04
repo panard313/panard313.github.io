@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解Application创建过程"
 date:   2017-04-02 20:12:30
 catalog:    true

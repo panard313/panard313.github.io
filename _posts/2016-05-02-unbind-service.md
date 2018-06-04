@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "unbindService流程分析"
 date:   2016-05-02 20:22:50
 catalog:  true

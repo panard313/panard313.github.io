@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  " Android内存分析命令"
 date:   2016-01-02 11:49:40
 catalog:  true

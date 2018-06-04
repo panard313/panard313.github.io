@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android消息机制3-Handler(实战)"
 date:   2016-01-01 14:09:12
 catalog:  true

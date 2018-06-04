@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "LocalBroadcastManager原理分析"
 date:   2017-04-23 22:19:12
 catalog:  true

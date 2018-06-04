@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android JNI原理分析"
 date:   2016-5-28 19:42:30
 catalog:    true

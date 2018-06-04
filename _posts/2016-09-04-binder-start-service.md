@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "彻底理解Android Binder通信架构"
 date:   2016-09-04 11:30:00
 catalog:  true

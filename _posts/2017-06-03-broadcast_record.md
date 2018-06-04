@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "四大组件之BroadcastRecord"
 date:   2017-06-03 23:19:12
 catalog:  true

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列9—如何使用AIDL"
 date:   2015-11-23 20:45:50
 catalog:  true

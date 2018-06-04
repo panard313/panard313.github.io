@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "浅谈HTTP协议"
 date:   2015-06-20 22:10:54
 catalog:  true

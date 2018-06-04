@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Pm命令用法"
 date:   2016-02-28 20:55:51
 catalog:  true

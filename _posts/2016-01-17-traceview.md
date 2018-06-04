@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "性能工具Traceview"
 date:   2016-01-17 22:37:22
 catalog:  true

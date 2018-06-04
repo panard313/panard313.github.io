@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android消息机制2-Handler(Native层)"
 date:   2015-12-27 22:30:20
 catalog:  true

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android类加载器ClassLoader"
 date:   2017-03-19 11:30:00
 catalog:  true

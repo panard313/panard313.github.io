@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder异常解析"
 date:   2017-05-01 23:11:50
 catalog:  true

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "进程优先级"
 date:   2015-10-01 22:20:52
 catalog:  true

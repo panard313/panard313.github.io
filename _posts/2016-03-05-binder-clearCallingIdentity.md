@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder IPC的权限控制"
 date:   2016-03-05 20:12:45
 catalog:  true

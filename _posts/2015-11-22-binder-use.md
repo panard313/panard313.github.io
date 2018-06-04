@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列8—如何使用Binder"
 date:   2015-11-22 21:11:50
 catalog:  true

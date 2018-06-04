@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "ps进程命令"
 date:   2015-10-11 22:20:50
 catalog:  true

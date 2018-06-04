@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "WMS—启动窗口(StartingWindow)"
 date:   2017-01-15 20:32:00
 catalog:  true

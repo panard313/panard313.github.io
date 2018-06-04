@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解Android Context"
 date:   2017-4-09 23:33:30
 catalog:    true

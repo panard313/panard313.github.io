@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Am命令用法"
 date:   2016-02-27 20:55:51
 catalog:  true

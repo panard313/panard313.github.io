@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android四大组件与进程启动的关系"
 date:   2016-10-09 21:20:00
 catalog:  true

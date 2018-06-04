@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Java线程池分析"
 date:   2016-01-16 20:12:42
 catalog:  true

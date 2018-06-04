@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列1—Binder Driver初探"
 date:   2015-11-01 20:11:50
 catalog:  true

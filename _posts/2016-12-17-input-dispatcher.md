@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Input系统—InputDispatcher线程"
 date:   2016-12-17 22:19:12
 catalog:  true

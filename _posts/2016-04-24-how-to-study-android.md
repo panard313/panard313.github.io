@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "如何自学Android"
 date:   2016-04-24 22:10:22
 catalog:    true

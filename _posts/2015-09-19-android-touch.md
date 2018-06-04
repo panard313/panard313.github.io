@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android事件分发机制"
 date:   2015-09-19 1:05:00
 catalog:  true

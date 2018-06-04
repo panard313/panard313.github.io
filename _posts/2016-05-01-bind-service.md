@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "bindService启动过程分析"
 date:   2016-05-01 20:22:50
 catalog:  true

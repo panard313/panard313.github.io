@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android进程调度之adj算法"
 date:   2016-08-07 22:30:00
 catalog:  true

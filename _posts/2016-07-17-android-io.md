@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android存储系统之源码篇"
 date:   2016-07-17 2:20:00
 catalog:  true

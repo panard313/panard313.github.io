@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列3—启动ServiceManager"
 date:   2015-11-07 21:11:50
 catalog:  true

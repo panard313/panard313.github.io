@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android Launcher原理分析"
 date:   2015-9-20 15:30:00
 catalog:  true

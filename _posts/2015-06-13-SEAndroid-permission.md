@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "SELinux 权限问题"
 date:   2015-06-13 22:10:54
 catalog:  true

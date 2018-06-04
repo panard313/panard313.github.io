@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列2—Binder Driver再探"
 date:   2015-11-02 21:21:27
 catalog:  true

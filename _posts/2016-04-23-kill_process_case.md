@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "AMS杀进程场景之汇总"
 date:   2016-04-23 11:20:00
 catalog:  true

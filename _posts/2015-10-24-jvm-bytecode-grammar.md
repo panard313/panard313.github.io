@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Jvm系列2—字节码指令"
 date:   2015-10-24 22:09:12
 catalog:  true

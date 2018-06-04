@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "简单聊一聊Throwable"
 date:   2016-06-20 20:14:54
 catalog:  true

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android Broadcast广播机制分析"
 date:   2016-06-04 17:32:50
 catalog:  true

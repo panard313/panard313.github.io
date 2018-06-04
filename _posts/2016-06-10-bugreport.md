@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "调试系列1：bugreport源码篇"
 date:   2016-6-10 22:25:30
 catalog:    true

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android进程生命周期与ADJ"
 date:   2015-10-01 22:20:52
 catalog:  true

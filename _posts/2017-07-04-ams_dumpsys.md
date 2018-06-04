@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "AMS之dumpsys篇"
 date:   2017-07-04 2:20:00
 catalog:  true

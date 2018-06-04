@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "binderDied()过程分析"
 date:   2016-10-02 20:12:50
 catalog:  true

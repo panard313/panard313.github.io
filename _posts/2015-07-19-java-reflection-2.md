@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Java反射之实用篇"
 date:   2015-07-19 22:05:10
 catalog:  true

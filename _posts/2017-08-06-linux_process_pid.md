@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Linux进程pid分配法"
 date:   2017-08-06 22:22:50
 catalog:  true

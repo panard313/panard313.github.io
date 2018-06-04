@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解Android ANR的触发原理"
 date:   2016-07-02 23:39:00
 catalog:  true

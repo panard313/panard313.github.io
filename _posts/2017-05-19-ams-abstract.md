@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "四大组件之综述"
 date:   2017-05-19 21:19:12
 catalog:  true

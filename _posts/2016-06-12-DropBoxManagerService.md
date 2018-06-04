@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "DropBoxManager启动篇"
 date:   2016-6-12 20:25:33
 catalog:    true

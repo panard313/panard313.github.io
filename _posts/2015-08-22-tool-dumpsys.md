@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "dumpsys原理简介"
 date:   2015-8-22 22:12:30
 catalog:    true

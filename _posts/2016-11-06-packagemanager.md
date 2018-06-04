@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "PackageManager启动篇"
 date:   2016-11-06 20:09:12
 catalog:  true

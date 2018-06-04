@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder Driver缺陷导致定屏问题分析"
 date:   2018-05-12 10:11:12
 catalog:  true

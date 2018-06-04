@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "全面剖析SharedPreferences"
 date:   2017-06-18 20:20:00
 catalog:  true

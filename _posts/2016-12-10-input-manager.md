@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Input系统—启动篇"
 date:   2016-12-10 20:09:12
 catalog:  true

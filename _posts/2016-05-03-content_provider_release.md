@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "ContentProvider引用计数"
 date:   2016-5-3 20:30:00
 catalog:  true

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解Android线程创建流程"
 date:   2016-09-24 10:30:00
 catalog:  true

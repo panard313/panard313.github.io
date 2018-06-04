@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android系统服务的注册方式"
 date:   2016-10-01 21:12:40
 catalog:  true

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android图形系统概述"
 date:   2017-02-05 20:30:00
 catalog:  true

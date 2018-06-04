@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android系统稳定性简述"
 date:   2016-06-19 22:19:53
 catalog:    true

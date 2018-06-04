@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列5—注册服务(addService)"
 date:   2015-11-14 13:10:54
 catalog:  true

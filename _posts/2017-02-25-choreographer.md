@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Choreographer原理"
 date:   2017-2-25 20:12:30
 catalog:    true

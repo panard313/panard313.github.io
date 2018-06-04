@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "startActivity启动过程分析"
 date:   2016-03-12 21:15:40
 catalog:  true

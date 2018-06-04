@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解杀进程的实现原理"
 date:   2016-04-16 10:10:22
 catalog:    true

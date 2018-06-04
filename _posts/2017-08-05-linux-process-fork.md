@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Linux进程管理(二)--fork"
 date:   2017-08-05 21:12:50
 catalog:  true

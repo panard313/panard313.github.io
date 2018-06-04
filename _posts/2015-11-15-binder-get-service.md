@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列6—获取服务(getService)"
 date:   2015-11-15 21:11:50
 catalog:  true

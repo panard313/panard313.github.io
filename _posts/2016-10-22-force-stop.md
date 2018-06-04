@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android进程绝杀技--forceStop"
 date:   2016-10-22 10:30:00
 catalog:  true

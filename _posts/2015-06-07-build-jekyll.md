@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Windows下搭建本地Jekyll"
 date:   2015-06-07 23:10:28
 catalog:  true

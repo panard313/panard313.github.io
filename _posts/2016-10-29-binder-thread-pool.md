@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "进程的Binder线程池工作过程"
 date:   2016-10-29 11:20:00
 catalog:  true

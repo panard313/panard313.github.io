@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列—开篇"
 date:   2015-10-31 15:20:30
 catalog:  true

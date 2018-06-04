@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "简述Activity与Window关系"
 date:   2017-04-16 23:19:12
 catalog:  true

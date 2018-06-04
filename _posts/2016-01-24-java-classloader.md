@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Java类加载器(ClassLoader)"
 date:   2016-01-24 20:31:33
 catalog:  true

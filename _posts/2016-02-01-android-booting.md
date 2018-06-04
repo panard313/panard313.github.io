@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android系统启动-综述"
 date:   2016-02-01 20:21:40
 catalog:  true

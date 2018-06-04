@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android LowMemoryKiller原理分析"
 date:   2016-09-17 22:20:00
 catalog:  true

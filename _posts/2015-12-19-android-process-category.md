@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "进程篇—进程整理"
 date:   2015-12-19 21:10:40
 catalog:  true

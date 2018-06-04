@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "四大组件之ContentProviderRecord"
 date:   2017-06-04 22:19:12
 catalog:  true

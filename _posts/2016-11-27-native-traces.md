@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Native进程之Trace原理"
 date:   2016-11-27 22:29:23
 catalog:    true

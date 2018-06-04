@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android动画之插值器（三）"
 date:   2015-09-05 19:00:00
 catalog:    true

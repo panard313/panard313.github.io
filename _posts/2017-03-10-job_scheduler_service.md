@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解JobScheduler机制"
 date:   2017-3-10 20:12:30
 catalog:    true

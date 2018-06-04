@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "NotificationManagerService原理分析"
 date:   2018-03-03 10:11:12
 catalog:  true

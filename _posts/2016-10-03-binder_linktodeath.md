@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder死亡通知机制之linkToDeath"
 date:   2016-10-3 20:30:00
 catalog:  true

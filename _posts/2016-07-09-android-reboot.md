@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android重启流程(一)"
 date:   2016-7-9 22:39:22
 catalog:    true

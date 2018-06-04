@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder子系统之调试分析(一)"
 date:   2016-08-27 09:30:00
 catalog:  true

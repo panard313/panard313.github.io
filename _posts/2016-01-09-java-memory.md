@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Jvm内存模型"
 date:   2016-01-09 19:18:10
 catalog:  true

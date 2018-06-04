@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "WMS—启动过程"
 date:   2017-01-08 20:32:00
 catalog:  true

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列7—framework层分析"
 date:   2015-11-21 21:11:50
 catalog:  true

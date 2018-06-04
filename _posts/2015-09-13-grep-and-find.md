@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "grep && find命令用法"
 date:   2015-09-13 21:10:30
 catalog:    true

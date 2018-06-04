@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "wait、notify、sleep、interrupt对比分析"
 date:   2016-01-03 19:10:40
 catalog:  true
