@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android Broadcast广播机制分析"
 date:   2016-06-04 17:32:50
 catalog:  true
@@ -1408,7 +1408,7 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
 其中`Args`继承于`BroadcastReceiver.PendingResult`，实现了接口`Runnable`; 其中mActivityThread是当前进程的主线程, 是由[小节2.3.1]完成赋值过程.
 
 这里mActivityThread.post(args)
-消息机制，关于Handler消息机制，见[Android消息机制1-Handler(Java层)](http://gityuan.com/2015/12/26/handler-message-framework/)，把消息放入MessageQueue，再调用Args的run()方法。
+消息机制，关于Handler消息机制，见[Android消息机制1-Handler(Java层)](https://panard313.github.io/2015/12/26/handler-message-framework/)，把消息放入MessageQueue，再调用Args的run()方法。
 
 ### 4.9 ReceiverDispatcher.Args.run
 
@@ -1624,7 +1624,7 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
 
 ### 5.2 流程图
 
-最后,通过一幅图来总结整个广播处理过程. 点击查看[大图](http://gityuan.com//images/ams/send_broadcast.jpg)
+最后,通过一幅图来总结整个广播处理过程. 点击查看[大图](https://panard313.github.io//images/ams/send_broadcast.jpg)
 
 ![send_broadcast](/images/ams/send_broadcast.jpg)
 

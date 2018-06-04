@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Installd守护进程"
 date:   2016-11-13 21:15:40
 catalog:  true

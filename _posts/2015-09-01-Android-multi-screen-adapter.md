@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android多屏适配"
 date:   2015-09-02 22:05:00
 catalog:    true

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解Refbase强弱引用"
 date:   2015-12-05 15:10:50
 catalog:  true

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android耗电统计算法"
 date:   2016-01-10 20:47:40
 catalog:  true

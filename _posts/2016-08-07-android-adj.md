@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android进程调度之adj算法"
 date:   2016-08-07 22:30:00
 catalog:  true
@@ -37,7 +37,7 @@ tags:
 |SYSTEM_ADJ |-16|系统进程
 |NATIVE_ADJ | -17|native进程（不被系统管理）
 
-lmkd会根据会根据当前系统可能内存的情况，来决定杀掉不同adj级别的进程，[Android进程生命周期与ADJ](http://gityuan.com/2015/10/01/process-lifecycle/)。
+lmkd会根据会根据当前系统可能内存的情况，来决定杀掉不同adj级别的进程，[Android进程生命周期与ADJ](https://panard313.github.io/2015/10/01/process-lifecycle/)。
 
 FOREGROUND_APP_ADJ
 

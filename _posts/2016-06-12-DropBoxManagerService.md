@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "DropBoxManager启动篇"
 date:   2016-6-12 20:25:33
 catalog:    true
@@ -237,9 +237,9 @@ DBMS有很多常量参数：
 
 当发生以下任一场景，都会调用AMS.addErrorToDropBox()来触发DBMS工作。
 
-- **crash:** 文章[理解Android Crash处理流程](http://gityuan.com/2016/06/24/app-crash/) [小节4]的AMS.handleApplicationCrashInner过程
-- **anr:** 文章[android ANR原理分析](http://gityuan.com/2016/07/02/android-anr/)[小节3.1]的AMS.appNotResponding()过程；
-- **watchdog:** 文章[WatchDog工作原理](http://gityuan.com/2016/06/21/watchdog/) [小节3.1]的Watchdog.run()过程;
+- **crash:** 文章[理解Android Crash处理流程](https://panard313.github.io/2016/06/24/app-crash/) [小节4]的AMS.handleApplicationCrashInner过程
+- **anr:** 文章[android ANR原理分析](https://panard313.github.io/2016/07/02/android-anr/)[小节3.1]的AMS.appNotResponding()过程；
+- **watchdog:** 文章[WatchDog工作原理](https://panard313.github.io/2016/06/21/watchdog/) [小节3.1]的Watchdog.run()过程;
 - **native_crash**: 当调用NativeCrashReporter.run()的过程;
 - **wtf:** 当调用Log.wtf()或者Log.wtfQuiet()的过程；
 - **lowmem:** 当内存较低时，触发AMS.reportMemUsage()过程；

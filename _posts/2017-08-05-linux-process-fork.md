@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Linux进程管理(二)--fork"
 date:   2017-08-05 21:12:50
 catalog:  true
@@ -470,7 +470,7 @@ linux程序执行fork方法，通过中断(syscall)陷入内核，执行系统�
       return pid;
     }
 
-通过alloc_pidmap()方法来完成pid的分配工作，具体分配算法见下一篇文章[Linux进程pid分配法](http://gityuan.com/2017/08/06/linux_process_pid/)
+通过alloc_pidmap()方法来完成pid的分配工作，具体分配算法见下一篇文章[Linux进程pid分配法](https://panard313.github.io/2017/08/06/linux_process_pid/)
 
 接下来的重头大戏是关于fs,mm等结构体的复制，见下面的过程。
 

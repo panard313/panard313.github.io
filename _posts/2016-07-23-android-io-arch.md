@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android存储系统之架构篇"
 date:   2016-07-23 22:59:00
 catalog:  true
@@ -12,7 +12,7 @@ tags:
 
 ## 一、概述
 
-本文讲述Android存储系统的架构与设计，涉及到最为核心的便是MountService和Vold这两个模块以及之间的交互。上一篇文章[Android存储系统之源码篇](http://gityuan.com/2016/07/17/android-io/)从源码角度介绍相关模块的创建与启动过程，那么本文主要从全局角度把握和剖析Android的存储系统。
+本文讲述Android存储系统的架构与设计，涉及到最为核心的便是MountService和Vold这两个模块以及之间的交互。上一篇文章[Android存储系统之源码篇](https://panard313.github.io/2016/07/17/android-io/)从源码角度介绍相关模块的创建与启动过程，那么本文主要从全局角度把握和剖析Android的存储系统。
 
 **MountService**：Android Binder服务端，运行在system_server进程，用于跟Vold进行消息通信，比如`MountService`向`Vold`发送挂载SD卡的命令,或者接收到来自`Vold`的外设热插拔事件。MountService作为Binder服务端，那么相应的Binder客户端便是StorageManager，通过binder IPC与MountService交互。
 

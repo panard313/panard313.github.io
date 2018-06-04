@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder子系统之调试分析(一)"
 date:   2016-08-27 09:30:00
 catalog:  true
@@ -11,7 +11,7 @@ tags:
 ## 一. 概述
 
 在博客以前有写过关于binder系列，大概写了10篇关于binder的文章，从binder驱动，到native层，再到framework，一路写到app层的使用。有兴趣的可以看看
-[Binder系列—开篇](http://gityuan.com/2015/10/31/binder-prepare/)。
+[Binder系列—开篇](https://panard313.github.io/2015/10/31/binder-prepare/)。
 
 
 ## 二.Binder驱动调试

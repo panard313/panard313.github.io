@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "进程的Binder线程池工作过程"
 date:   2016-10-29 11:20:00
 catalog:  true
@@ -19,12 +19,12 @@ tags:
 
 ## 一. 概述
 
-Android系统启动完成后，ActivityManager, PackageManager等各大服务都运行在system_server进程，app应用需要使用系统服务都是通过binder来完成进程之间的通信，上篇文章[彻底理解Android Binder通信架构](http://gityuan.com/2016/09/04/binder-start-service/)，从整体架构以及通信协议的角度来阐述了Binder架构。那对于binder线程是如何管理的呢，又是如何创建的呢？其实无论是system_server进程，还是app进程，都是在进程fork完成后，便会在新进程中执行onZygoteInit()的过程中，启动binder线程池。接下来，就以此为起点展开从线程的视角来看看binder的世界。
+Android系统启动完成后，ActivityManager, PackageManager等各大服务都运行在system_server进程，app应用需要使用系统服务都是通过binder来完成进程之间的通信，上篇文章[彻底理解Android Binder通信架构](https://panard313.github.io/2016/09/04/binder-start-service/)，从整体架构以及通信协议的角度来阐述了Binder架构。那对于binder线程是如何管理的呢，又是如何创建的呢？其实无论是system_server进程，还是app进程，都是在进程fork完成后，便会在新进程中执行onZygoteInit()的过程中，启动binder线程池。接下来，就以此为起点展开从线程的视角来看看binder的世界。
 
 
 ## 二. Binder线程创建
 
-Binder线程创建与其所在进程的创建中产生，Java层进程的创建都是通过[Process.start()](http://gityuan.com/2016/03/26/app-process-create/)方法，向Zygote进程发出创建进程的socket消息，Zygote收到消息后会调用Zygote.forkAndSpecialize()来fork出新进程，在新进程中会调用到`RuntimeInit.nativeZygoteInit`方法，该方法经过jni映射，最终会调用到app_main.cpp中的onZygoteInit，那么接下来从这个方法说起。
+Binder线程创建与其所在进程的创建中产生，Java层进程的创建都是通过[Process.start()](https://panard313.github.io/2016/03/26/app-process-create/)方法，向Zygote进程发出创建进程的socket消息，Zygote收到消息后会调用Zygote.forkAndSpecialize()来fork出新进程，在新进程中会调用到`RuntimeInit.nativeZygoteInit`方法，该方法经过jni映射，最终会调用到app_main.cpp中的onZygoteInit，那么接下来从这个方法说起。
 
 ### 2.1 onZygoteInit
 [-> app_main.cpp]
@@ -37,7 +37,7 @@ Binder线程创建与其所在进程的创建中产生，Java层进程的创建�
         proc->startThreadPool();
     }
 
-ProcessState::self()是单例模式，主要工作是调用open()打开/dev/binder驱动设备，再利用mmap()映射内核的地址空间，将Binder驱动的fd赋值ProcessState对象中的变量mDriverFD，用于交互操作。startThreadPool()是创建一个新的binder线程，不断进行talkWithDriver()。 详细过程,见[注册服务](http://gityuan.com/2015/11/14/binder-add-service/)的[小节二].
+ProcessState::self()是单例模式，主要工作是调用open()打开/dev/binder驱动设备，再利用mmap()映射内核的地址空间，将Binder驱动的fd赋值ProcessState对象中的变量mDriverFD，用于交互操作。startThreadPool()是创建一个新的binder线程，不断进行talkWithDriver()。 详细过程,见[注册服务](https://panard313.github.io/2015/11/14/binder-add-service/)的[小节二].
 
 ### 2.2 PS.startThreadPool
 [-> ProcessState.cpp]
@@ -211,7 +211,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
         return err;
     }
 
-在这里调用的isMain=true，也就是向mOut例如写入的便是`BC_ENTER_LOOPER`. 经过talkWithDriver(), 接下来程序往哪进行呢？在文章[彻底理解Android Binder通信架构](http://gityuan.com/2016/09/04/binder-start-service/)详细讲解了Binder通信过程，那么从`binder_thread_write()`往下说`BC_ENTER_LOOPER`的处理过程。
+在这里调用的isMain=true，也就是向mOut例如写入的便是`BC_ENTER_LOOPER`. 经过talkWithDriver(), 接下来程序往哪进行呢？在文章[彻底理解Android Binder通信架构](https://panard313.github.io/2016/09/04/binder-start-service/)详细讲解了Binder通信过程，那么从`binder_thread_write()`往下说`BC_ENTER_LOOPER`的处理过程。
 
 #### 2.7.1 binder_thread_write
 [-> binder.c]

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android调试技巧(一)"
 date:   2017-07-11 22:19:53
 catalog:    true

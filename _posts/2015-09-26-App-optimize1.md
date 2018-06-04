@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "APP优化(一)"
 date:   2015-09-26 21:21:50
 catalog:  true
@@ -18,7 +18,7 @@ tags:
 ## 1.  广播
 
 应用程序内部广播通信，优先采用LocalBroadcastManager，安全性更好，运行效率更高。 
-见文章[LocalBroadcastManager原理分析](http://www.gityuan.com/2017/4/23/local_broadcast_manager)
+见文章[LocalBroadcastManager原理分析](https://panard313.github.io/2017/4/23/local_broadcast_manager)
 
 
 ## 2.  线程池

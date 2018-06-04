@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Linux进程管理(一)"
 date:   2017-07-30 20:12:50
 catalog:  true

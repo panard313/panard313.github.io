@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解Native Crash处理流程"
 date:   2016-6-25 21:25:53
 catalog:    true
@@ -16,13 +16,13 @@ tags:
 
 从系统全局来说，Crash分为Framework/App Crash， Native Crash，以及Kernel Crash。
 
-- 对于framework层或者app层的Crash(即Java层面Crash)，那么往往是通过抛出未捕获异常而导致的Crash，这个内容在本文的姊妹篇[理解Android Crash处理流程](http://gityuan.com/2016/06/24/app-crash/)已详细介绍过。
+- 对于framework层或者app层的Crash(即Java层面Crash)，那么往往是通过抛出未捕获异常而导致的Crash，这个内容在本文的姊妹篇[理解Android Crash处理流程](https://panard313.github.io/2016/06/24/app-crash/)已详细介绍过。
 - 至于Kernel Crash，很多情况是发生Kernel panic，对于内核崩溃往往是驱动或者硬件出现故障。
 - Native Crash，即C/C++层面的Crash，这是介于系统framework层与Linux层之间的一层，这是本文接下来要讲解的内容。
 
 如果你是从事Android系统开发或者架构相关工作，或者遇到需要解系统性的疑难杂症，再或者需要写JNI代码，则就有可能遇到Native Crash，了解系统Native Crash处理流程就很有必要。
 
-接下来介绍介绍`Android N`的Native Crash处理流程，你没有看错，本文就是针对最新Android Nouget来分析的。Native crash的工作核心是由debuggerd守护进程来完成，在文章[调试系列4：debuggerd源码篇)](http://gityuan.com/2016/06/15/android-debuggerd/)，已经介绍过Debuggerdd的工作原理。
+接下来介绍介绍`Android N`的Native Crash处理流程，你没有看错，本文就是针对最新Android Nouget来分析的。Native crash的工作核心是由debuggerd守护进程来完成，在文章[调试系列4：debuggerd源码篇)](https://panard313.github.io/2016/06/15/android-debuggerd/)，已经介绍过Debuggerdd的工作原理。
 
 要了解Native Crash，首先从应用程序入口位于`begin.S`中的`__linker_init`入手。
 
@@ -448,7 +448,7 @@ read_request执行完成后，则从socket通道中读取到out_request。
 - SIGSTKFLT：协处理器栈异常
 - SIGTRAP：陷阱异常
 
-另外，上篇文章已介绍过[engrave_tombstone](http://gityuan.com/2016/06/15/android-debuggerd/#tombstone)的功能内容，这里就不再累赘了。
+另外，上篇文章已介绍过[engrave_tombstone](https://panard313.github.io/2016/06/15/android-debuggerd/#tombstone)的功能内容，这里就不再累赘了。
 
 #### 2.4.3 activity_manager_write
 
@@ -485,7 +485,7 @@ debuggerd与AMS的NativeCrashListener建立socket连接后，再通过该方法�
 
 #### 2.4.4 send_signal
 
-此处只是向目标进程发送SIGKILL信号，用于杀掉目标进程，文章[理解杀进程的实现原理](http://gityuan.com/2016/04/16/kill-signal/#sendsignal)已详细讲述过发送SIGKILL信号的处理流程。
+此处只是向目标进程发送SIGKILL信号，用于杀掉目标进程，文章[理解杀进程的实现原理](https://panard313.github.io/2016/04/16/kill-signal/#sendsignal)已详细讲述过发送SIGKILL信号的处理流程。
 
 ### 2.5 monitor_worker_process
 
@@ -742,7 +742,7 @@ NativeCrashListener继承于`Thread`，可见这是线程，通过调用start方
         }
     }
 
-不论是Native crash还是framework crash最终都会调用到`handleApplicationCrashInner()`，该方法见文章[理解Android Crash处理流程](http://gityuan.com/2016/06/24/app-crash/#handleApplicationCrashInner)。
+不论是Native crash还是framework crash最终都会调用到`handleApplicationCrashInner()`，该方法见文章[理解Android Crash处理流程](https://panard313.github.io/2016/06/24/app-crash/#handleApplicationCrashInner)。
 
 ### 3.6 小结
 
@@ -758,7 +758,7 @@ NativeCrashListener的主要工作：
 
 ## 四、总结
 
-点击查看[大图](http://gityuan.com/images/stability/native_crash.jpg)
+点击查看[大图](https://panard313.github.io/images/stability/native_crash.jpg)
 
 ![native_crash](/images/stability/native_crash.jpg)
 
@@ -776,5 +776,5 @@ Native程序通过link连接后，当发生Native Crash时，则kernel会发送�
 
 这个流程图只是从整体来概要介绍native crash流程，其中有两个部分是核心方法：
 
-- 其一是图中红色块`perform_dump`是整个debuggerd的核心工作，该方法内部调用`engrave_tombstone`，该方法的具体工作见文章[ebuggerd守护进程](http://gityuan.com/2016/06/15/android-debuggerd/#tombstone)的功能内容，这个过程还需要与target进程通信来获取target进程更多信息。
-- 其二是AMS的handleApplicationCrashInner，该方法的工作见姊妹篇[理解Android Crash处理流程](http://gityuan.com/2016/06/24/app-crash/#handleApplicationCrashInner)。
+- 其一是图中红色块`perform_dump`是整个debuggerd的核心工作，该方法内部调用`engrave_tombstone`，该方法的具体工作见文章[ebuggerd守护进程](https://panard313.github.io/2016/06/15/android-debuggerd/#tombstone)的功能内容，这个过程还需要与target进程通信来获取target进程更多信息。
+- 其二是AMS的handleApplicationCrashInner，该方法的工作见姊妹篇[理解Android Crash处理流程](https://panard313.github.io/2016/06/24/app-crash/#handleApplicationCrashInner)。

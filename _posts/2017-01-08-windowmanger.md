@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "WMS—启动过程"
 date:   2017-01-08 20:32:00
 catalog:  true
@@ -22,7 +22,7 @@ tags:
 
 ![wms_relation](/images/wms/wms_relation.jpg)
 
-说明: [点击查看大图](http://gityuan.com/images/wms/wms_relation.jpg)
+说明: [点击查看大图](https://panard313.github.io/images/wms/wms_relation.jpg)
 
 - WMS继承于`IWindowManager.Stub`, 作为Binder服务端;
 - WMS的成员变量mSessions保存着所有的Session对象,Session继承于`IWindowSession.Stub`, 作为Binder服务端;

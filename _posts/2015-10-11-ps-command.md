@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "ps进程命令"
 date:   2015-10-11 22:20:50
 catalog:  true
@@ -67,4 +67,4 @@ tags:
 
 ----------
 
-关于更多进程的调度与优先级的说明，见[进程与线程](http://gityuan.com/2015/10/01/Process-and-thread/)。
+关于更多进程的调度与优先级的说明，见[进程与线程](https://panard313.github.io/2015/10/01/Process-and-thread/)。

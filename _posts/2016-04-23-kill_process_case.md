@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "AMS杀进程场景之汇总"
 date:   2016-04-23 11:20:00
 catalog:  true
@@ -16,7 +16,7 @@ tags:
 
 ### 一. 杀进程场景
 
-[理解杀进程的实现原理](http://gityuan.com/2016/04/16/kill-signal/), 介绍了杀进程的过程, 接下来本文介绍系统framework层, ActivityManagerService在哪些场景会调用ProcessRecord.java中的kill()方法来杀进程.
+[理解杀进程的实现原理](https://panard313.github.io/2016/04/16/kill-signal/), 介绍了杀进程的过程, 接下来本文介绍系统framework层, ActivityManagerService在哪些场景会调用ProcessRecord.java中的kill()方法来杀进程.
 
     void kill(String reason, boolean noisy) {
         if (!killedByAm) {

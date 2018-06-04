@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "AMS总结(一)"
 date:   2017-06-25 22:11:12
 catalog:  true

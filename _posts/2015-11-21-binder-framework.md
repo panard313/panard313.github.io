@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列7—framework层分析"
 date:   2015-11-21 21:11:50
 catalog:  true
@@ -37,7 +37,7 @@ tags:
 binder在framework层，采用JNI技术来调用native(C/C++)层的binder架构，从而为上层应用程序提供服务。 看过binder系列之前的文章，我们知道native层中，binder是C/S架构，分为Bn端(Server)和Bp端(Client)。对于java层在命名与架构上非常相近，同样实现了一套IPC通信架构。
 
 
-framework Binder架构图：查看[大图](http://gityuan.com/images/binder/java_binder/java_binder.jpg)
+framework Binder架构图：查看[大图](https://panard313.github.io/images/binder/java_binder/java_binder.jpg)
 
 ![java_binder](/images/binder/java_binder/java_binder.jpg)
 
@@ -51,7 +51,7 @@ framework Binder架构图：查看[大图](http://gityuan.com/images/binder/java
 
 ### 1.2 Binder类图
 
-下面列举framework的binder类关系图：查看[大图](http://gityuan.com/images/binder/java_binder/class_ServiceManager.jpg)
+下面列举framework的binder类关系图：查看[大图](https://panard313.github.io/images/binder/java_binder/class_ServiceManager.jpg)
 
 ![class_java_binder](/images/binder/java_binder/class_ServiceManager.jpg)
 
@@ -69,14 +69,14 @@ framework Binder架构图：查看[大图](http://gityuan.com/images/binder/java
 
 整个Binder从kernel至，native，JNI，Framework层所涉及的全部类
 
-点击查看[大图](http://gityuan.com/images/binder/java_binder_framework.jpg)
+点击查看[大图](https://panard313.github.io/images/binder/java_binder_framework.jpg)
 
 ![java_binder_framework](/images/binder/java_binder_framework.jpg)
 
 
 ## 二、初始化
 
-在Android系统开机过程中，Zygote启动时会有一个[虚拟机注册过程](http://gityuan.com/2016/02/13/android-zygote/#jnistartreg)，该过程调用AndroidRuntime::`startReg`方法来完成jni方法的注册。
+在Android系统开机过程中，Zygote启动时会有一个[虚拟机注册过程](https://panard313.github.io/2016/02/13/android-zygote/#jnistartreg)，该过程调用AndroidRuntime::`startReg`方法来完成jni方法的注册。
 
 ### 2.1 startReg
 
@@ -309,7 +309,7 @@ framework Binder架构图：查看[大图](http://gityuan.com/images/binder/java
 
 BinderInternal.java中有一个native方法getContextObject()，JNI调用执行上述方法。
 
-对于ProcessState::self()->getContextObject()，在[获取ServiceManager](http://gityuan.com/2015/11/08/binder-get-sm/)的第3节已详细解决，即`ProcessState::self()->getContextObject()`等价于 `new BpBinder(0)`;
+对于ProcessState::self()->getContextObject()，在[获取ServiceManager](https://panard313.github.io/2015/11/08/binder-get-sm/)的第3节已详细解决，即`ProcessState::self()->getContextObject()`等价于 `new BpBinder(0)`;
 
 #### 3.2.2 javaObjectForIBinder
 [-> android_util_binder.cpp]
@@ -595,7 +595,7 @@ data.writeStrongBinder(service)最终等价于`parcel->writeStrongBinder(new Jav
         return JNI_FALSE;
     }
 
-Java层的BinderProxy.transact()最终交由Native层的BpBinder::transact()完成。Native Binder的[注册服务(addService)](http://gityuan.com/2015/11/14/binder-add-service/)中有详细说明BpBinder执行过程。另外，该方法可抛出RemoteException。
+Java层的BinderProxy.transact()最终交由Native层的BpBinder::transact()完成。Native Binder的[注册服务(addService)](https://panard313.github.io/2015/11/14/binder-add-service/)中有详细说明BpBinder执行过程。另外，该方法可抛出RemoteException。
 
 ### 3.9 小结
 
@@ -631,7 +631,7 @@ addService的核心过程：
         return null;
     }
 
-关于getIServiceManager()，在前面[小节3.2](http://gityuan.com/2015/11/21/binder-framework/#getiservicemanager)已经讲述了，等价于new ServiceManagerProxy(new BinderProxy())。
+关于getIServiceManager()，在前面[小节3.2](https://panard313.github.io/2015/11/21/binder-framework/#getiservicemanager)已经讲述了，等价于new ServiceManagerProxy(new BinderProxy())。
 其中sCache = new HashMap<String, IBinder>()以hashmap格式缓存已组成的名称。请求获取服务过程中，先从缓存中查询是否存在，如果缓存中不存在的话，再通过binder交互来查询相应的服务。
 
 ### 4.2 SMP.getService
@@ -770,7 +770,7 @@ addService的核心过程：
         return err;
     }
 
-那么这个reply是哪来的呢，在文章[Binder系列3—启动ServiceManager](http://gityuan.com/2015/11/07/binder-start-sm/)
+那么这个reply是哪来的呢，在文章[Binder系列3—启动ServiceManager](https://panard313.github.io/2015/11/07/binder-start-sm/)
 
 #### 4.7.1 binder_send_reply
 [-> servicemanager/binder.c]

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Linux Kernel简介"
 date:   2016-04-01 22:22:53
 catalog:    true
@@ -10,7 +10,7 @@ tags:
 
 ## 一. Linux全局观
 
-先来看一幅Linux kernel map：点击查看[大图](http://www.gityuan.com/images/linux/linux_kernel_map.png)
+先来看一幅Linux kernel map：点击查看[大图](https://panard313.github.io/images/linux/linux_kernel_map.png)
 
 ![linux kernel map](/images/linux/linux_kernel_map.png)
 

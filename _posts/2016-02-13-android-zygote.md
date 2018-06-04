@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android系统启动-zygote篇"
 date:   2016-02-13 20:21:40
 catalog:  true
@@ -25,7 +25,7 @@ tags:
 
 ## 一. 概述
 
-Zygote是由[init进程](http://gityuan.com/2016/02/05/android-init/)通过解析init.zygote.rc文件而创建的，zygote所对应的可执行程序app_process，所对应的源文件是App_main.cpp，进程名为zygote。
+Zygote是由[init进程](https://panard313.github.io/2016/02/05/android-init/)通过解析init.zygote.rc文件而创建的，zygote所对应的可执行程序app_process，所对应的源文件是App_main.cpp，进程名为zygote。
 
     service zygote /system/bin/app_process -Xzygote /system/bin --zygote --start-system-server
         class main
@@ -491,7 +491,7 @@ zygote进程内加载了preload()方法中的所有资源，当需要fork新进�
         return true;
     }
 
-准备参数并fork新进程，从上面可以看出system server进程参数信息为uid=1000,gid=1000,进程名为sytem_server，从zygote进程fork新进程后，需要关闭zygote原有的socket。另外，对于有两个zygote进程情况，需等待第2个zygote创建完成。更多详情见[Android系统启动-systemServer上篇](http://gityuan.com/2016/02/14/android-system-server/)。
+准备参数并fork新进程，从上面可以看出system server进程参数信息为uid=1000,gid=1000,进程名为sytem_server，从zygote进程fork新进程后，需要关闭zygote原有的socket。另外，对于有两个zygote进程情况，需等待第2个zygote创建完成。更多详情见[Android系统启动-systemServer上篇](https://panard313.github.io/2016/02/14/android-system-server/)。
 
 ### 3.5 runSelectLoop
 [-->ZygoteInit.java]
@@ -595,7 +595,7 @@ Zygote采用高效的I/O多路复用机制，保证在没有客户端连接请�
         }
     }
 
-更多内容，见[理解Android进程创建流程](http://gityuan.com/2016/03/26/app-process-create/)
+更多内容，见[理解Android进程创建流程](https://panard313.github.io/2016/03/26/app-process-create/)
 
 ## 四、总结
 

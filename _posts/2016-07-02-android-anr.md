@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解Android ANR的触发原理"
 date:   2016-07-02 23:39:00
 catalog:  true
@@ -36,7 +36,7 @@ Service Timeout是位于"ActivityManager"线程中的AMS.MainHandler收到`SERVI
 
 ### 2.1 埋炸弹
 
-文章[startService流程分析](http://gityuan.com/2016/03/06/start-service/)详细介绍Service启动流程.
+文章[startService流程分析](https://panard313.github.io/2016/03/06/start-service/)详细介绍Service启动流程.
 其中在Service进程attach到system_server进程的过程中会调用`realStartServiceLocked()`方法来埋下炸弹.
 
 #### 2.1.1  AS.realStartServiceLocked
@@ -224,7 +224,7 @@ BroadcastReceiver Timeout是位于"ActivityManager"线程中的BroadcastQueue.Br
 
 ### 3.1 埋炸弹
 
-文章[Android Broadcast广播机制分析](http://gityuan.com/2016/06/04/broadcast-receiver/)详细介绍广播启动流程，通过调用
+文章[Android Broadcast广播机制分析](https://panard313.github.io/2016/06/04/broadcast-receiver/)详细介绍广播启动流程，通过调用
 processNextBroadcast来处理广播.其流程为先处理并行广播,再处理当前有序广播,最后获取并处理下条有序广播.
 
 #### 3.1.1 processNextBroadcast
@@ -436,11 +436,11 @@ processNextBroadcast来处理广播.其流程为先处理并行广播,再处理�
 ContentProvider Timeout是位于”ActivityManager”线程中的AMS.MainHandler收到CONTENT_PROVIDER_PUBLISH_TIMEOUT_MSG消息时触发。
 
 ContentProvider 超时为CONTENT_PROVIDER_PUBLISH_TIMEOUT = 10s. 这个跟前面的Service和BroadcastQueue完全不同,
-由Provider[进程启动](http://gityuan.com/2016/10/09/app-process-create-2/)过程相关.
+由Provider[进程启动](https://panard313.github.io/2016/10/09/app-process-create-2/)过程相关.
 
 ### 4.1 埋炸弹
 
-文章[理解ContentProvider原理](http://gityuan.com/2016/07/30/content-provider/)详细介绍了Provider启动流程. 埋炸弹的过程
+文章[理解ContentProvider原理](https://panard313.github.io/2016/07/30/content-provider/)详细介绍了Provider启动流程. 埋炸弹的过程
 其实是在进程创建的过程,进程创建后会调用attachApplicationLocked()进入system_server进程.
 
 #### 4.1.1  AMS.attachApplicationLocked
@@ -581,7 +581,7 @@ ContentProvider 超时为CONTENT_PROVIDER_PUBLISH_TIMEOUT = 10s. 这个跟前面
     
 
 
-removeDyingProviderLocked()的功能跟进程的存活息息相关：详见[ContentProvider引用计数](http://gityuan.com/2016/05/03/content_provider_release/) []小节4.5]
+removeDyingProviderLocked()的功能跟进程的存活息息相关：详见[ContentProvider引用计数](https://panard313.github.io/2016/05/03/content_provider_release/) []小节4.5]
 
 - 对于stable类型的provider(即conn.stableCount > 0),则会杀掉所有跟该provider建立stable连接的非persistent进程.
 - 对于unstable类的provider(即conn.unstableCount > 0),并不会导致client进程被级联所杀.
@@ -631,7 +631,7 @@ removeDyingProviderLocked()的功能跟进程的存活息息相关：详见[Cont
     
 ## 五、总结
 
-当出现ANR时，都是调用到AMS.appNotResponding()方法，详细过程见文章[理解Android ANR的信息收集过程](http://gityuan.com/2016/12/02/app-not-response/). 当然这里介绍的provider例外.
+当出现ANR时，都是调用到AMS.appNotResponding()方法，详细过程见文章[理解Android ANR的信息收集过程](https://panard313.github.io/2016/12/02/app-not-response/). 当然这里介绍的provider例外.
 
 #### Timeout时长
 

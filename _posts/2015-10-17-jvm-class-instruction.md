@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Jvm系列1—Class文件格式"
 date:   2015-10-17 10:16:10
 catalog:  true

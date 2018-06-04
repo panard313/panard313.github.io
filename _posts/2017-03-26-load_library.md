@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "loadLibrary动态库加载过程分析"
 date:   2017-03-26 20:30:00
 catalog:  true

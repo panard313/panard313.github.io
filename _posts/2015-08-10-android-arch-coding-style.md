@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android开发规范"
 date:   2015-08-10 21:14:54
 catalog:  true

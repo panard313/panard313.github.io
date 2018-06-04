@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android进程绝杀技--forceStop"
 date:   2016-10-22 10:30:00
 catalog:  true
@@ -450,8 +450,8 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
 - 从mProcessNames, mPidsSelfLocked队列移除该进程;
 - 移除进程启动超时的消息PROC_START_TIMEOUT_MSG;
-- 调用app.kill()来杀进程会同时调用Process.kill和Process.killProcessGroup, 该过程详见[理解杀进程的实现原理](http://gityuan.com/2016/04/16/kill-signal/)
-- 调用handleAppDiedLocked()来清理进程相关的信息, 该过程详见[binderDied()过程分析](http://gityuan.com/2016/10/02/binder-died/)
+- 调用app.kill()来杀进程会同时调用Process.kill和Process.killProcessGroup, 该过程详见[理解杀进程的实现原理](https://panard313.github.io/2016/04/16/kill-signal/)
+- 调用handleAppDiedLocked()来清理进程相关的信息, 该过程详见[binderDied()过程分析](https://panard313.github.io/2016/10/02/binder-died/)
 
 ## 四. Activity
 
@@ -1229,7 +1229,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
 ## 八. Alarm和Notification
 
-在前面[小节2.2]介绍到处理完forceStopPackageLocked()，紧接着便是发送广播`ACTION_PACKAGE_RESTARTED`，经过[Broadcast广播分发](http://gityuan.com/2016/06/04/broadcast-receiver/)，最终调用到注册过该广播的接收者。
+在前面[小节2.2]介绍到处理完forceStopPackageLocked()，紧接着便是发送广播`ACTION_PACKAGE_RESTARTED`，经过[Broadcast广播分发](https://panard313.github.io/2016/06/04/broadcast-receiver/)，最终调用到注册过该广播的接收者。
 
 ### 8.1 Alarm清理
 [-> AlarmManagerService.java]

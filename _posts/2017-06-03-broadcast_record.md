@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "四大组件之BroadcastRecord"
 date:   2017-06-03 23:19:12
 catalog:  true
@@ -30,7 +30,7 @@ tags:
 
 ## 二. Broadcast数据结构
 
-[点击查看大图](http://www.gityuan.com/images/ams/broadcast/broadcast_record.jpg)
+[点击查看大图](https://panard313.github.io/images/ams/broadcast/broadcast_record.jpg)
 
 ![broadcast_record](/images/ams/broadcast/broadcast_record.jpg)
 
@@ -62,7 +62,7 @@ BroadcastFilter继承于IntentFilter.
 ### 2.4 AMS
 
 
-[点击查看大图](http://www.gityuan.com/images/ams/broadcast/broadcast_relation1.jpg)
+[点击查看大图](https://panard313.github.io/images/ams/broadcast/broadcast_relation1.jpg)
 
 ![broadcast_relation1](/images/ams/broadcast/broadcast_relation1.jpg)
 
@@ -105,7 +105,7 @@ queryIntentReceivers()方法来查询指定Intent所对应的ResolveInfo列表�
 
 ### 3.2 发送过程
 
-[点击查看大图](http://www.gityuan.com/images/ams/broadcast/seq_broadcast.jpg)
+[点击查看大图](https://panard313.github.io/images/ams/broadcast/seq_broadcast.jpg)
 ![seq_broadcast](/images/ams/broadcast/seq_broadcast.jpg)
 
 处理过程，根据注册方式不同执行流程略有不同。
@@ -118,4 +118,4 @@ queryIntentReceivers()方法来查询指定Intent所对应的ResolveInfo列表�
 - 位于mParallelBroadcasts中的并行广播, 一次性全部发出.
 - 位于mOrderedBroadcasts中的串行广播，一次处理一个，等待上一个receive完成才继续处理；
 
-更多源码详细过程，见[Android Broadcast广播机制分析](http://gityuan.com/2016/06/04/broadcast-receiver/)
+更多源码详细过程，见[Android Broadcast广播机制分析](https://panard313.github.io/2016/06/04/broadcast-receiver/)

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Dalvik与ART的GC调试"
 date:   2015-10-03 22:10:54
 catalog:  true

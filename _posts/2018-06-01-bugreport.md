@@ -10,7 +10,7 @@ lang: zh-Hans
 
 ## 调试系列2：bugreport分析
 ---
-+ [source link](http://gityuan.com/2016/06/11/bugreport-2/)
++ [source link](https://panard313.github.io/2016/06/11/bugreport-2/)
 
 ## 一、Bugreport
 文章Bugreport源码篇(一)从源码角度阐释了Bugreport，那么本文则是从实战角度来说说，如何看懂bugreport，对于通过bugreport获取到内容往往非常长，这里简单划分为19部分，先整体上简单说说每部分log的title信息。

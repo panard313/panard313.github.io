@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解ContentProvider原理"
 date:   2016-07-30 20:30:00
 catalog:  true
@@ -94,7 +94,7 @@ ContentProvider作为Android四大组件之一，并没有Activity那样复杂�
 
 ### 1.5 query流程图
 
-点击查看[大图](http://www.gityuan.com/images/ams/get_content_provider.jpg)
+点击查看[大图](https://panard313.github.io/images/ams/get_content_provider.jpg)
 
 ![get_content_provider](/images/ams/get_content_provider.jpg)
 
@@ -1253,4 +1253,4 @@ provider未发布: 请求provider时,provider进程存在但provide的记录对�
 如果provider在publish完成之后, 这时再次请求该provider,那就便没有的最右侧的这个过程,直接在AMS.getContentProviderImpl之后便进入AT.installProvider的过程,而不会再次进入wait()过程.
 
 最后, 关于provider分为stable provider和unstable provider, 在于[引用计数
-](http://gityuan.com/2016/05/03/content_provider_release/)的不同，一句话来说就是stable provider建立的是强连接, 客户端进程的与provider进程是存在依赖关系, 即provider进程死亡则会导致客户端进程被杀.
+](https://panard313.github.io/2016/05/03/content_provider_release/)的不同，一句话来说就是stable provider建立的是强连接, 客户端进程的与provider进程是存在依赖关系, 即provider进程死亡则会导致客户端进程被杀.

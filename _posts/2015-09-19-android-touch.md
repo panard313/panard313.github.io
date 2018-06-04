@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android事件分发机制"
 date:   2015-09-19 1:05:00
 catalog:  true
@@ -45,7 +45,7 @@ tags:
 
 ## 二. 分发原理
 
-[Input系统—进程交互](http://gityuan.com/2016/12/31/input-ipc/)文章的小节[3.3]已介绍事件分发过程的前期工作.
+[Input系统—进程交互](https://panard313.github.io/2016/12/31/input-ipc/)文章的小节[3.3]已介绍事件分发过程的前期工作.
 当UI主线程收到底层上报的input事件,便会调用InputEventReceiver.dispachInputEvent方法.
 
 ![input_event_dispatcher](/images/input/input_event_dispatcher.jpg)

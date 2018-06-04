@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android JNI原理分析"
 date:   2016-5-28 19:42:30
 catalog:    true
@@ -30,7 +30,7 @@ tags:
 
 JNI（Java Native Interface，Java本地接口），用于打通Java层与Native(C/C++)层。这不是Android系统所独有的，而是Java所有。众所周知，Java语言是跨平台的语言，而这跨平台的背后都是依靠Java虚拟机，虚拟机采用C/C++编写，适配各个系统，通过JNI为上层Java提供各种服务，保证跨平台性。
 
-相信不少经常使用Java的程序员，享受着其跨平台性，可能全然不知JNI的存在。在Android平台，让JNI大放异彩，为更多的程序员所熟知，往往为了提供效率或者其他功能需求，就需要NDK开发。上一篇文章[Linux系统调用(syscall)原理](http://gityuan.com/2016/05/21/syscall/)，介绍了打通android上层与底层kernel的枢纽syscall，那么本文的目的则是介绍打通android上层中Java层与Native的纽带JNI。
+相信不少经常使用Java的程序员，享受着其跨平台性，可能全然不知JNI的存在。在Android平台，让JNI大放异彩，为更多的程序员所熟知，往往为了提供效率或者其他功能需求，就需要NDK开发。上一篇文章[Linux系统调用(syscall)原理](https://panard313.github.io/2016/05/21/syscall/)，介绍了打通android上层与底层kernel的枢纽syscall，那么本文的目的则是介绍打通android上层中Java层与Native的纽带JNI。
 
 
 ## 二、JNI查找方式
@@ -78,7 +78,7 @@ register_jni_procs(gRegJNI, NELEM(gRegJNI), env)这行代码的作用就是就�
         ...
     };
 
-该数组的每个成员都代表一个类文件的jni映射，其中REG_JNI是一个宏定义，在[Zygote](http://gityuan.com/2016/02/13/android-zygote)中介绍过，该宏的作用就是调用相应的方法。
+该数组的每个成员都代表一个类文件的jni映射，其中REG_JNI是一个宏定义，在[Zygote](https://panard313.github.io/2016/02/13/android-zygote)中介绍过，该宏的作用就是调用相应的方法。
 
 ### 2.2 如何查找native方法
 
@@ -162,7 +162,7 @@ Binder.java所对应的native文件：android_util_Binder.cpp
 
 通过static静态代码块中System.loadLibrary方法来加载动态库，库名为`media_jni`, Android平台则会自动扩展成所对应的`libmedia_jni.so`库。 接着通过关键字`native`加在native_init方法之前，便可以在java层直接使用native层方法。
 
-接下来便要查看`libmedia_jni.so`库定义所在文件，一般都是通过`Android.mk`文件定义LOCAL_MODULE:= libmedia_jni，可以采用[grep](http://gityuan.com/2015/09/13/grep-and-find/)或者[mgrep](http://gityuan.com/2016/03/19/android-build/#section-3)来搜索包含libmedia_jni字段的Android.mk所在路径。
+接下来便要查看`libmedia_jni.so`库定义所在文件，一般都是通过`Android.mk`文件定义LOCAL_MODULE:= libmedia_jni，可以采用[grep](https://panard313.github.io/2015/09/13/grep-and-find/)或者[mgrep](https://panard313.github.io/2016/03/19/android-build/#section-3)来搜索包含libmedia_jni字段的Android.mk所在路径。
 
 搜索可知，libmedia_jni.so位于/frameworks/base/media/jni/Android.mk。用前面实例(一)中的知识来查看相应的文件和方法名分别为：
 

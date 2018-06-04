@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解Android进程创建流程"
 date:   2016-03-26 21:10:11
 catalog:  true
@@ -47,7 +47,7 @@ tags:
 - `system_server`进程：是用于管理整个Java framework层，包含ActivityManager，PowerManager等各种系统服务;
 - `Zygote`进程：是Android系统的首个Java进程，Zygote是所有Java进程的父进程，包括 `system_server`进程以及所有的App进程都是Zygote的子进程，注意这里说的是子进程，而非子线程。
 
-如果想更进一步了解system_server进程和Zygote进程在整个Android系统所处的地位，可查看我的另一个文章[Android系统-开篇](http://gityuan.com/android)。
+如果想更进一步了解system_server进程和Zygote进程在整个Android系统所处的地位，可查看我的另一个文章[Android系统-开篇](https://panard313.github.io/android)。
 
 ### 进程创建图
 
@@ -213,7 +213,7 @@ tags:
 
 ## 三. Zygote创建进程
 
-文章[Android系统启动-zygote篇](http://gityuan.com/2016/02/13/android-zygote/)已介绍，简单来说就是Zygote进程是由由init进程而创建的，进程启动之后调用ZygoteInit.main()方法，经过创建socket管道，预加载资源后，便进程runSelectLoop()方法。
+文章[Android系统启动-zygote篇](https://panard313.github.io/2016/02/13/android-zygote/)已介绍，简单来说就是Zygote进程是由由init进程而创建的，进程启动之后调用ZygoteInit.main()方法，经过创建socket管道，预加载资源后，便进程runSelectLoop()方法。
 
 ### 4. ZygoteInit.main
 
@@ -403,7 +403,7 @@ VM_HOOKS是Zygote对象的静态成员变量：VM_HOOKS = new ZygoteHooks();
 
 从图中可知Zygote进程有4个Daemon子线程分别是ReferenceQueueDaemon，FinalizerDaemon，FinalizerWatchdogDaemon，HeapTaskDaemon。图中线程名显示的并不完整是由于底层的进程结构体`task_struct`是由长度为16的char型数组保存，超过15个字符便会截断。
 
-可能有人会问zygote64进程不是还有system_server，com.android.phone等子线程，怎么会只有4个呢？那是因为这些并不是Zygote子线程，而是Zygote的子进程。在图中用红色圈起来的是进程的[VSIZE，virtual size)](http://gityuan.com/2015/10/11/ps-command/)，代表的是进程虚拟地址空间大小。线程与进程的最为本质的区别便是是否共享内存空间，图中VSIZE和Zygote进程相同的才是Zygote的子线程，否则就是Zygote的子进程。
+可能有人会问zygote64进程不是还有system_server，com.android.phone等子线程，怎么会只有4个呢？那是因为这些并不是Zygote子线程，而是Zygote的子进程。在图中用红色圈起来的是进程的[VSIZE，virtual size)](https://panard313.github.io/2015/10/11/ps-command/)，代表的是进程虚拟地址空间大小。线程与进程的最为本质的区别便是是否共享内存空间，图中VSIZE和Zygote进程相同的才是Zygote的子线程，否则就是Zygote的子进程。
 
 ### 8. preFork
 
@@ -543,7 +543,7 @@ fork()采用copy on write技术，这是linux创建进程的标准方法，调�
 - 当出现错误时，fork返回负数。（当进程数超过上限或者系统内存不足时会出错）
 
 fork()的主要工作是寻找空闲的进程号pid，然后从父进程拷贝进程信息，例如数据段和代码段，fork()后子进程要执行的代码等。
-Zygote进程是所有Android进程的母体，包括system_server和各个App进程。zygote利用fork()方法生成新进程，对于新进程A复用Zygote进程本身的资源，再加上新进程A相关的资源，构成新的应用进程A。其中下图中Zygote进程的libc、vm、preloaded classes、preloaded resources是如何生成的，可查看另一个文章[Android系统启动-zygote篇](http://gityuan.com/2016/02/13/android-zygote/#preload)，见下图：
+Zygote进程是所有Android进程的母体，包括system_server和各个App进程。zygote利用fork()方法生成新进程，对于新进程A复用Zygote进程本身的资源，再加上新进程A相关的资源，构成新的应用进程A。其中下图中Zygote进程的libc、vm、preloaded classes、preloaded resources是如何生成的，可查看另一个文章[Android系统启动-zygote篇](https://panard313.github.io/2016/02/13/android-zygote/#preload)，见下图：
 
 ![zygote_fork](/images/boot/zygote/zygote_fork.jpg)
 
@@ -707,7 +707,7 @@ VM_HOOKS.postForkCommon的主要功能是在fork新进程后，启动Zygote的4�
         ZygoteHooks.postForkCommon
             Daemons.start
 
-**时序图：** 点击查看[大图](http://gityuan.com/images/android-process/fork_and_specialize.jpg)
+**时序图：** 点击查看[大图](https://panard313.github.io/images/android-process/fork_and_specialize.jpg)
 
 ![fork_and_specialize](/images/android-process/fork_and_specialize.jpg)
 
@@ -829,7 +829,7 @@ nativeZygoteInit()所对应的jni方法如下：
     }
 
 - ProcessState::self():主要工作是调用open()打开/dev/binder驱动设备，再利用mmap()映射内核的地址空间，将Binder驱动的fd赋值ProcessState对象中的变量mDriverFD，用于交互操作。startThreadPool()是创建一个新的binder线程，不断进行talkWithDriver().
-- startThreadPool(): 启动Binder线程池, 详见[进程的Binder线程池工作过程](http://gityuan.com/2016/10/29/binder-thread-pool/)
+- startThreadPool(): 启动Binder线程池, 详见[进程的Binder线程池工作过程](https://panard313.github.io/2016/10/29/binder-thread-pool/)
 
 
 #### 14.3 applicationInit
@@ -937,14 +937,14 @@ Process.start()方法是阻塞操作，等待直到进程创建完成并返回�
 
 当App第一次启动时或者启动远程Service，即AndroidManifest.xml文件中定义了process:remote属性时，都需要创建进程。比如当用户点击桌面的某个App图标，桌面本身是一个app（即Launcher App），那么Launcher所在进程便是这次创建新进程的发起进程，该通过binder发送消息给system_server进程，该进程承载着整个java framework的核心服务。system_server进程从Process.start开始，执行创建进程，流程图（以进程的视角）如下：
 
-点击查看[大图](http://gityuan.com/images/android-process/process-create.jpg)
+点击查看[大图](https://panard313.github.io/images/android-process/process-create.jpg)
 
 ![process-create](/images/android-process/process-create.jpg)
 
 上图中，`system_server`进程通过socket IPC通道向`zygote`进程通信，`zygote`在fork出新进程后由于fork**调用一次，返回两次**，即在zygote进程中调用一次，在zygote进程和子进程中各返回一次，从而能进入子进程来执行代码。该调用流程图的过程：
 
 1. **system_server进程**（`即流程1~3`）：通过Process.start()方法发起创建新进程请求，会先收集各种新进程uid、gid、nice-name等相关的参数，然后通过socket通道发送给zygote进程；
-2. **zygote进程**（`即流程4~12`）：接收到system_server进程发送过来的参数后封装成Arguments对象，图中绿色框forkAndSpecialize()方法是进程创建过程中最为核心的一个环节（[详见流程6](http://gityuan.com/2016/03/26/app-process-create/#forkandspecialize-1)），其具体工作是依次执行下面的3个方法：
+2. **zygote进程**（`即流程4~12`）：接收到system_server进程发送过来的参数后封装成Arguments对象，图中绿色框forkAndSpecialize()方法是进程创建过程中最为核心的一个环节（[详见流程6](https://panard313.github.io/2016/03/26/app-process-create/#forkandspecialize-1)），其具体工作是依次执行下面的3个方法：
     - preFork()：先停止Zygote的4个Daemon子线程（java堆内存整理线程、对线下引用队列线程、析构线程以及监控线程）的运行以及初始化gc堆；
     - nativeForkAndSpecialize()：调用linux的fork()出新进程，创建Java堆处理的线程池，重置gc性能数据，设置进程的信号处理函数，启动JDWP线程；
     - postForkCommon()：在启动之前被暂停的4个Daemon子线程。

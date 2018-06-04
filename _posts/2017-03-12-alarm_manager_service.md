@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解AlarmManager机制"
 date:   2017-3-12 20:12:30
 catalog:    true
@@ -10,7 +10,7 @@ tags:
 
 ## 一. 概述    
 
-上一篇文章[理解JobScheduler机制](http://gityuan.com/2017/03/10/job_scheduler_service/), 介绍了根据一定条件而触发的任务可以采用JobScheduler.
+上一篇文章[理解JobScheduler机制](https://panard313.github.io/2017/03/10/job_scheduler_service/), 介绍了根据一定条件而触发的任务可以采用JobScheduler.
 那么对于只是定时的任务, 而非考虑网络/时间之类的条件,也可以直接采用AlarmManager来完成.
 
 AlarmManager的用法  
@@ -867,7 +867,7 @@ getIntentSender()获取的是PendingIntentRecord对象, 而该对象继承于IIn
      }
 
 默认情况下mHandler是指设置闹钟setImpl方法所在进程的主线程, 当然也可以指定Handler线程.
-对于前面[JobSchedulerService](http://gityuan.com/2017/03/10/job_scheduler_service/)中用到的TimeController
+对于前面[JobSchedulerService](https://panard313.github.io/2017/03/10/job_scheduler_service/)中用到的TimeController
 则是在system_server进程设置的闹钟, 那么接下来post到了system_server的主线程.
 
 #### 4.4.1 ListenerWrapper.run

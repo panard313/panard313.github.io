@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Java注解(Annotation)"
 date:   2016-01-23 15:20:40
 catalog:  true

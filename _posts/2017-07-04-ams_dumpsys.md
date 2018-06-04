@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "AMS之dumpsys篇"
 date:   2017-07-04 2:20:00
 catalog:  true
@@ -16,7 +16,7 @@ tags:
 前面介绍过AMS相关的一些数据结构，每个数据结构有大量的成员变量，为了查询当前手机运行时状态的
 变化值，可以通过dumpsys activity命令来完成，该方法最终是调用AMS.dump()方法。
 
-[dumpsys命令用法](http://gityuan.com/2016/05/14/dumpsys-command/)简要介绍过dumpsys命令
+[dumpsys命令用法](https://panard313.github.io/2016/05/14/dumpsys-command/)简要介绍过dumpsys命令
 的基本用法，以及系统服务列表信息，那么本文重点介绍AMS。
 根据dumpsys activity传递不同的参数， 对于AMS.dump便会输出相应的对象信息。
 具体可以跟哪些参数.

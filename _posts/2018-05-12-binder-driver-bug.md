@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder Driver缺陷导致定屏问题分析"
 date:   2018-05-12 10:11:12
 catalog:  true
@@ -32,7 +32,7 @@ tags:
 
 #### 1.2 Binder简介
 
-Binder IPC是最为整个Android系统跨进程通信的基石，整个系统绝大多数的跨进程都是采用Binder，如果对Binder不太了解看本文会非常吃力，在Gityuan.com博客中有大量讲解关于Binder原理的文章，见http://gityuan.com/2015/10/31/binder-prepare/。这里不再赘述，简单列两张关于Binder通信架构的图。
+Binder IPC是最为整个Android系统跨进程通信的基石，整个系统绝大多数的跨进程都是采用Binder，如果对Binder不太了解看本文会非常吃力，在Gityuan.com博客中有大量讲解关于Binder原理的文章，见https://panard313.github.io/2015/10/31/binder-prepare/。这里不再赘述，简单列两张关于Binder通信架构的图。
 
 ![ServiceManager](/images/binder/prepare/IPC-Binder.jpg)
 

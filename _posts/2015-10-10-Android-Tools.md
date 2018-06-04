@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android Studio 内存工具"
 date:   2015-10-10 21:10:21
 catalog:  true
@@ -39,4 +39,4 @@ Memory Monitor, Heap Viewer, Allocation Tracker
 
 打开Android Studio，点击"start Allocation Tracking"，开始追踪从当前时间点的内存分配情况，再次点击该按钮，将停止追踪内存分配情况，并生成堆快照文件。 生成的文件名格式为Allocation-yyyy.mm.dd-hh.mm.ss.alloc。
 
-另外，可通过各种[Android内存分析命令](http://gityuan.com/2016/01/02/memory-tool/)来分析当前内存使用情况以及内存泄露情况。
+另外，可通过各种[Android内存分析命令](https://panard313.github.io/2016/01/02/memory-tool/)来分析当前内存使用情况以及内存泄露情况。

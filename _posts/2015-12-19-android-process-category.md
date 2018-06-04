@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "进程篇—进程整理"
 date:   2015-12-19 21:10:40
 catalog:  true
@@ -16,7 +16,7 @@ tags:
 
 ![process_status](/images/android-process/android-boot.jpg)
 
-上图在[Android系统-开篇](http://gityuan.com/2016/01/30/android-boot/)中有讲解，是从Android系统启动的角度来分析，本文是从进程/线程的视角来分析该问题。
+上图在[Android系统-开篇](https://panard313.github.io/2016/01/30/android-boot/)中有讲解，是从Android系统启动的角度来分析，本文是从进程/线程的视角来分析该问题。
 
 ### 1.1 父进程
 在所有进程中，以父进程的姿态存在的进程(即图中的浅红色项)，如下：
@@ -100,7 +100,7 @@ Android进程从大类来划分，可分为内核进程和用户进程。
 
 
 
-servicemanager，作为Binder架构的一个大管家，所有注册服务、获取服务，都需要经过servicemanager，更多关于servicemanager查看[Binder系列](http://gityuan.com/2015/10/31/binder-prepare/)文章。
+servicemanager，作为Binder架构的一个大管家，所有注册服务、获取服务，都需要经过servicemanager，更多关于servicemanager查看[Binder系列](https://panard313.github.io/2015/10/31/binder-prepare/)文章。
 
 
 ### 2.3 Zygote子进程

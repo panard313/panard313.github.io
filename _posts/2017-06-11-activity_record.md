@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "四大组件之ActivityRecord"
 date:   2017-06-11 22:11:12
 catalog:  true
@@ -25,7 +25,7 @@ ServiceRecord本身继承于Binder对象，传递到客户端的代理：
 ## 二. ActivityRecord结构体
 
 先以一幅图来展示AMS管理Activity所涉及的相关数据结构：
-[点击查看大图](http://www.gityuan.com/images/ams/activity/activity_record.jpg)
+[点击查看大图](https://panard313.github.io/images/ams/activity/activity_record.jpg)
 
 ![activity_record](/images/ams/activity/activity_record.jpg)
 
@@ -126,7 +126,7 @@ home的栈ID等于0,即HOME_STACK_ID = 0;
 
 ### 3.1 Stack组成图
 
-Activity栈结构体的组成关系，[点击查看大图](http://www.gityuan.com/images/ams/activity/ams_relations.jpg)
+Activity栈结构体的组成关系，[点击查看大图](https://panard313.github.io/images/ams/activity/ams_relations.jpg)
 
 ![ams_relations](/images/ams/activity/ams_relations.jpg)
 
@@ -156,7 +156,7 @@ Activity栈结构体的组成关系，[点击查看大图](http://www.gityuan.co
 
 ## 四. 启动过程
 
-Activity启动与停止流程，[点击查看大图](http://www.gityuan.com/images/ams/activity/Seq_activity.jpg)
+Activity启动与停止流程，[点击查看大图](https://panard313.github.io/images/ams/activity/Seq_activity.jpg)
 
 ![Seq_activity](/images/ams/activity/Seq_activity.jpg)
 
@@ -171,4 +171,4 @@ Activity的stop情况：
 - 当Activity处于不可见状态，则需要stop该Activity;
 - 为了更好的用户体验，先resume新的Activity，再待进入idle状态(即没有用户操作)再去stop旧的Activity;
 
-更多源码详细过程，见[startActivity启动过程分析](http://gityuan.com/2016/03/12/start-activity/)
+更多源码详细过程，见[startActivity启动过程分析](https://panard313.github.io/2016/03/12/start-activity/)

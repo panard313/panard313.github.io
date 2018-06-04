@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "NotificationManagerService原理分析"
 date:   2018-03-03 10:11:12
 catalog:  true
@@ -91,12 +91,12 @@ NotificationListenerService继承于Service，该服务是为了给app提供获�
 
 #### 1.2.1 核心类图
 
-[点击查看大图](http://www.gityuan.com/images/notification/notification_class.jpg)
+[点击查看大图](https://panard313.github.io/images/notification/notification_class.jpg)
 
 ![notification](/images/notification/notification_class.jpg)
 
 #### 1.2.2 通知处理流程图
-[点击查看大图](http://www.gityuan.com/images/notification/notification_seq.jpg)
+[点击查看大图](https://panard313.github.io/images/notification/notification_seq.jpg)
 
 ![notification](/images/notification/notification_seq.jpg)
 

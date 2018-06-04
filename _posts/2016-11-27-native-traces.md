@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Native进程之Trace原理"
 date:   2016-11-27 22:29:23
 catalog:    true
@@ -53,7 +53,7 @@ debuggerd输出traces信息。
 
 ## 二. Debuggerd
 
-文章[debuggerd守护进程](http://gityuan.com/2016/06/15/android-debuggerd/)详细介绍了Debuggerd的工作原理，此处当执行`debuggerd -b`命令后：
+文章[debuggerd守护进程](https://panard313.github.io/2016/06/15/android-debuggerd/)详细介绍了Debuggerd的工作原理，此处当执行`debuggerd -b`命令后：
 
 1. Client进程调用send_request()方法向debuggerd服务端发出`DEBUGGER_ACTION_DUMP_BACKTRACE`命令；
 2. Debugggerd进程收到该命令，fork子进程中再执行worker_process()过程；

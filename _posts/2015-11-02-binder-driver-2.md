@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列2—Binder Driver再探"
 date:   2015-11-02 21:21:27
 catalog:  true
@@ -12,7 +12,7 @@ tags:
 
 ## 一、Binder通信简述
 
-上一篇文章[Binder Driver初探](http://gityuan.com/2015/11/01/binder-driver/)介绍了Binder驱动的`init`、`open`、`mmap`、`ioctl`这4个核心方法，并说明与Binder相关的常见结构体。
+上一篇文章[Binder Driver初探](https://panard313.github.io/2015/11/01/binder-driver/)介绍了Binder驱动的`init`、`open`、`mmap`、`ioctl`这4个核心方法，并说明与Binder相关的常见结构体。
 
 Client进程通过RPC(Remote Procedure Call Protocol)与Server通信，可以简单地划分为三层，驱动层、IPC层、业务层。`demo()`便是Client端和Server共同协商好的统一方法；handle、RPC数据、代码、协议这4项组成了IPC层的数据，通过IPC层进行数据传输；而真正在Client和Server两端建立通信的基础设施便是Binder Driver。
 
@@ -160,7 +160,7 @@ binder请求码，是用`enum binder_driver_command_protocol`来定义的，是�
 
 1. BC_FREE_BUFFER：
   - 通过mmap()映射内存，其中ServiceManager映射的空间大小为128K，其他Binder应用进程映射的内存大小为1M-8K。
-  - Binder驱动基于这块映射的内存采用最佳匹配算法来动态分配和释放，通过[binder_buffer](http://gityuan.com/2015/11/01/binder-driver/#binderbuffer)结构体中的`free`字段来表示相应的buffer是空闲还是已分配状态。对于已分配的buffers加入到binder_proc中的allocated_buffers红黑树;对于空闲的buffers加入到binder_proc中的free_buffers红黑树。
+  - Binder驱动基于这块映射的内存采用最佳匹配算法来动态分配和释放，通过[binder_buffer](https://panard313.github.io/2015/11/01/binder-driver/#binderbuffer)结构体中的`free`字段来表示相应的buffer是空闲还是已分配状态。对于已分配的buffers加入到binder_proc中的allocated_buffers红黑树;对于空闲的buffers加入到binder_proc中的free_buffers红黑树。
   - 当应用程序需要内存时，根据所需内存大小从free_buffers中找到最合适的内存，并放入allocated_buffers树；当应用程序处理完后必须尽快使用`BC_FREE_BUFFER`命令来释放该buffer，从而添加回到free_buffers树。
 2. BC_INCREFS、BC_ACQUIRE、BC_RELEASE、BC_DECREFS等请求码的作用是对binder的强/弱引用的计数操作，用于实现强/弱指针的功能。
 3. 参数类型主要有以下几类：
@@ -230,7 +230,7 @@ binder请求码，是用`enum binder_driver_command_protocol`来定义的，是�
 4. binder_thread的looper状态为BINDER_LOOPER_STATE_REGISTERED或BINDER_LOOPER_STATE_ENTERED。
 
 
-那么在哪里处理响应码呢？ 通过前面的Binder通信协议图，可以知道处理响应码的过程是在用户态处理，即后续文章会讲到的用户空间IPCThreadState类中的[IPCThreadState::waitForResponse()](http://gityuan.com/2015/11/14/binder-add-service/#waitforresponse)和[IPCThreadState::executeCommand()](http://gityuan.com/2015/11/14/binder-add-service/#executecommand)两个方法共同处理Binder协议中的18个响应码。
+那么在哪里处理响应码呢？ 通过前面的Binder通信协议图，可以知道处理响应码的过程是在用户态处理，即后续文章会讲到的用户空间IPCThreadState类中的[IPCThreadState::waitForResponse()](https://panard313.github.io/2015/11/14/binder-add-service/#waitforresponse)和[IPCThreadState::executeCommand()](https://panard313.github.io/2015/11/14/binder-add-service/#executecommand)两个方法共同处理Binder协议中的18个响应码。
 
 #### 2.3.1 BR_PROTOCOL
 
@@ -348,7 +348,7 @@ BR_DEAD_REPLY，BR_FAILED_REPLY，BR_ERROR这些都是失败或错误相关的�
 
 ## 四、Binder内存机制
 
-在上一篇文章从代码角度阐释了[binder_mmap()](http://gityuan.com/2015/11/01/binder-driver/#bindermmap)，这也是Binder进程间通信效率高的核心机制所在，如下图：
+在上一篇文章从代码角度阐释了[binder_mmap()](https://panard313.github.io/2015/11/01/binder-driver/#bindermmap)，这也是Binder进程间通信效率高的核心机制所在，如下图：
 
 ![binder_physical_memory](/images/binder/binder_dev/binder_physical_memory.jpg)
 

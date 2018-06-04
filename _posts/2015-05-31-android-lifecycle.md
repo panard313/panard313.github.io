@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Activity与Service生命周期"
 date:   2015-05-31 20:30:00
 catalog:  true

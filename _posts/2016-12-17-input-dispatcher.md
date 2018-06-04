@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Input系统—InputDispatcher线程"
 date:   2016-12-17 22:19:12
 catalog:  true
@@ -13,7 +13,7 @@ tags:
 
 ## 一. InputDispatcher起点
 
-上篇文章[输入系统之InputReader线程](http://gityuan.com/2016/12/11/input-reader/)，介绍InputReader利用EventHub获取数据后生成EventEntry事件，加入到InputDispatcher的mInboundQueue队列，再唤醒InputDispatcher线程。本文将介绍InputDispatcher，同样从threadLoop为起点开始分析。
+上篇文章[输入系统之InputReader线程](https://panard313.github.io/2016/12/11/input-reader/)，介绍InputReader利用EventHub获取数据后生成EventEntry事件，加入到InputDispatcher的mInboundQueue队列，再唤醒InputDispatcher线程。本文将介绍InputDispatcher，同样从threadLoop为起点开始分析。
 
 #### 1.1 threadLoop
 先来回顾一下InputDispatcher对象的初始化过程:
@@ -774,7 +774,7 @@ startDispatchCycleLocked的主要功能: 从outboundQueue中取出事件,重新�
     }
 
 InputChannel通过socket向远端的socket发送消息。socket通道是如何建立的呢？
-InputDispatcher又是如何与前台的window通信的呢？ 见下一篇文章[Input系统—进程交互](http://gityuan.com/2016/12/31/input-ipc/),
+InputDispatcher又是如何与前台的window通信的呢？ 见下一篇文章[Input系统—进程交互](https://panard313.github.io/2016/12/31/input-ipc/),
 从文章的小节2.1开始继续往下说.
 
 ### 2.10 releasePendingEventLocked
@@ -895,7 +895,7 @@ runCommandsLockedInterruptible是不断地从mCommandQueue队列取出命令，�
 
 ### 4.1 流程图
 
-点击查看[大图](http://www.gityuan.com/images/input/input_dispatcher_seq.jpg):
+点击查看[大图](https://panard313.github.io/images/input/input_dispatcher_seq.jpg):
 
 ![input_dispatcher_seq](/images/input/input_dispatcher_seq.jpg)
 

@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android存储系统之源码篇"
 date:   2016-07-17 2:20:00
 catalog:  true
@@ -1326,4 +1326,4 @@ socket名为“vold”
 - **CommandListener**：接收来自VolumeManager的事件，通过`socket`通信方式发送给MountService；
 - **MountService**：接收来自CommandListener的事件。
 
-本文从源码视角主要介绍了相关模块的创建与启动过程以及部分流程的介绍。要想更进一步了解,[Android存储系统之架构篇](http://gityuan.com/2016/07/23/android-io-arch).
+本文从源码视角主要介绍了相关模块的创建与启动过程以及部分流程的介绍。要想更进一步了解,[Android存储系统之架构篇](https://panard313.github.io/2016/07/23/android-io-arch).

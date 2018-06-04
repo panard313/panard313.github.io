@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Binder系列6—获取服务(getService)"
 date:   2015-11-15 21:11:50
 catalog:  true
@@ -17,7 +17,7 @@ tags:
 
 #### 1.1 类图
 
-点击查看[大图](http://gityuan.com/images/binder/addService/add_media_player_service.png)
+点击查看[大图](https://panard313.github.io/images/binder/addService/add_media_player_service.png)
 
 ![get_media_player_service](/images/binder/getService/get_media_player_service.png)
 
@@ -25,7 +25,7 @@ tags:
 
 - 蓝色: 代表获取MediaPlayerService服务相关的类；
 - 绿色: 代表Binder架构中与Binder驱动通信过程中的最为核心的两个类；
-- 紫色: 代表[注册服务](http://gityuan.com/2015/11/14/binder-add-service/)和获取服务的公共接口/父类；
+- 紫色: 代表[注册服务](https://panard313.github.io/2015/11/14/binder-add-service/)和获取服务的公共接口/父类；
 
 
 ## 二. 获取Media服务
@@ -61,7 +61,7 @@ tags:
     }
 
 
-其中defaultServiceManager()过程在上一篇文章[获取ServiceManager](http://gityuan.com/2015/11/08/binder-get-sm/#defaultservicemanager)已讲过，返回BpServiceManager。
+其中defaultServiceManager()过程在上一篇文章[获取ServiceManager](https://panard313.github.io/2015/11/08/binder-get-sm/#defaultservicemanager)已讲过，返回BpServiceManager。
 
 在请求获取名为"media.player"的服务过程中，采用不断循环获取的方法。由于MediaPlayerService服务可能还没向ServiceManager注册完成或者尚未启动完成等情况，故则binder返回为NULL，休眠0.5s后继续请求，直到获取服务为止。
 
@@ -236,7 +236,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         return NO_ERROR;
     }
 
-其中handle的值用来标识目的端，注册服务过程的目的端为service manager，此处handle=0所对应的是binder_context_mgr_node对象，正是service manager所对应的binder实体对象。[binder_transaction_data结构体](http://gityuan.com/2015/11/01/binder-driver/#bindertransactiondata)是binder驱动通信的数据结构，该过程最终是把Binder请求码BC_TRANSACTION和binder_transaction_data结构体写入到`mOut`。
+其中handle的值用来标识目的端，注册服务过程的目的端为service manager，此处handle=0所对应的是binder_context_mgr_node对象，正是service manager所对应的binder实体对象。[binder_transaction_data结构体](https://panard313.github.io/2015/11/01/binder-driver/#bindertransactiondata)是binder驱动通信的数据结构，该过程最终是把Binder请求码BC_TRANSACTION和binder_transaction_data结构体写入到`mOut`。
 
 
 ### 2.7 IPC.waitForResponse
@@ -325,7 +325,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         return err;
     }
 
-[binder_write_read结构体](http://gityuan.com/2015/11/01/binder-driver/#binderwriteread)用来与Binder设备交换数据的结构, 通过ioctl与mDriverFD通信，是真正与Binder驱动进行数据读写交互的过程。 先向service manager进程发送查询服务的请求(BR_TRANSACTION)，见[Binder系列3—启动ServiceManager](http://gityuan.com/2015/11/07/binder-start-sm/)。当service manager进程收到该命令后，会执行do_find_service()
+[binder_write_read结构体](https://panard313.github.io/2015/11/01/binder-driver/#binderwriteread)用来与Binder设备交换数据的结构, 通过ioctl与mDriverFD通信，是真正与Binder驱动进行数据读写交互的过程。 先向service manager进程发送查询服务的请求(BR_TRANSACTION)，见[Binder系列3—启动ServiceManager](https://panard313.github.io/2015/11/07/binder-start-sm/)。当service manager进程收到该命令后，会执行do_find_service()
 查询服务所对应的handle，然后再binder_send_reply()应答 发起者，发送BC_REPLY协议，然后调用binder_transaction()，再向服务请求者的Todo队列
 插入事务。
 

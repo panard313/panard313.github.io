@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Android系统启动-Init篇"
 date:   2016-02-05 20:15:40
 catalog:  true
@@ -456,7 +456,7 @@ Zygote服务会随着main class的启动而启动，退出后会由init重启zyg
 
 ![zygote_init](/images/boot/init/zygote_init.jpg)
 
-而关于Zygote重启在前面的信号处理过程中讲过，是处理SIGCHLD信号，init进程重启zygote进程，更多关于Zygote内容见[Zygote篇](http://gityuan.com/2016/02/13/android-zygote/)。
+而关于Zygote重启在前面的信号处理过程中讲过，是处理SIGCHLD信号，init进程重启zygote进程，更多关于Zygote内容见[Zygote篇](https://panard313.github.io/2016/02/13/android-zygote/)。
 
 ### 4.3 服务重启
 

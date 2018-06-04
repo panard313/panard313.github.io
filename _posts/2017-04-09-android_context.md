@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "理解Android Context"
 date:   2017-4-09 23:33:30
 catalog:    true
@@ -32,7 +32,7 @@ tags:
 回到主题, Android Context本身是一个抽象类. ContextImpl, Activity, Service, Application这些都是Context的直接或间接子类,
 下面通过看看这些类的关系,如下:
 
-[点击查看大图](http://www.gityuan.com/images/context/context.jpg)
+[点击查看大图](https://panard313.github.io/images/context/context.jpg)
 
 ![context](/images/context/context.jpg)
 
@@ -423,7 +423,7 @@ startActivity的过程最终会在目标进程执行performLaunchActivity()方�
     - mLoadedApk指向当前所在的LoadedApk对象;
 4. 将新创建的Application对象保存到ContextImpl的成员变量mOuterContext.
 
-关于initializeJavaContextClassLoader()的过程, 见文章[理解Application初始化](http://gityuan.com/2017/04/02/android-application/)的[小节2.9].
+关于initializeJavaContextClassLoader()的过程, 见文章[理解Application初始化](https://panard313.github.io/2017/04/02/android-application/)的[小节2.9].
 
 关于应用类名采用的是Apk中声明的应用类名,即Manifest.xml中定义的类名. 有两种特殊情况会强制
 设置应用类名为"android.app.Application":

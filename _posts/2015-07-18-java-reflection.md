@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Java反射之基础篇"
 date:   2015-07-18 22:10:10
 catalog:  true
@@ -8,7 +8,7 @@ tags:
 
 ---
 
-> 从代码角度，关于反射的用法总结，请查看[Java反射之实用篇.](http://gityuan.com/2015/10/31/java-reflection-2/);
+> 从代码角度，关于反射的用法总结，请查看[Java反射之实用篇.](https://panard313.github.io/2015/10/31/java-reflection-2/);
 
 ## 一、概念
 
@@ -115,7 +115,7 @@ Class.forName(String className); (最常用)
     String className = "com.reflect.Outer$inner";
     Class.forName(className);
 
-关于内部类以及反射实用，请查看下一篇文章从代码角度来述说的[Java反射之实用篇。](http://gityuan.com/2015/10/31/java-reflection-2/);
+关于内部类以及反射实用，请查看下一篇文章从代码角度来述说的[Java反射之实用篇。](https://panard313.github.io/2015/10/31/java-reflection-2/);
 
 
 ## 四、参考

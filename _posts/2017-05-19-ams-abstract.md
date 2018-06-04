@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "四大组件之综述"
 date:   2017-05-19 21:19:12
 catalog:  true
@@ -49,7 +49,7 @@ GityuanService这个服务运行在remote进程。
 
 以一幅图来展示AMS管理进程的相关成员变量以及ProcessRecord对象：
 
-[点击查看大图](http://www.gityuan.com/images/ams/process_record.jpg)
+[点击查看大图](https://panard313.github.io/images/ams/process_record.jpg)
 
 ![process_record](/images/ams/process_record.jpg)
 
@@ -129,7 +129,7 @@ provider的代理。此时会在进程A的ProcessRecord.conProviders添加一个
 - Provider信息记录在ProviderMap和AMS;
 
 可见，AMS是整个四大组件最为核心的对象，所有组件都或多或少依赖该对象的数据结构信息。
-关系图如下：[点击查看大图](http://www.gityuan.com/images/ams/four_component.jpg)
+关系图如下：[点击查看大图](https://panard313.github.io/images/ams/four_component.jpg)
 
 ![four_component](/images/ams/four_component.jpg)
 
@@ -279,7 +279,7 @@ AS对象
 
 ## 四. App端的组件信息
 
-关系图如下：[点击查看大图](http://www.gityuan.com/images/ams/client_component.jpg)
+关系图如下：[点击查看大图](https://panard313.github.io/images/ams/client_component.jpg)
 
 ![client_component](/images/ams/client_component.jpg)
 

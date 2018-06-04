@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "数组遍历的性能分析"
 date:   2015-8-30 0:52:30
 catalog:    true

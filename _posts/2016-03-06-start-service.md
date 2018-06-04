@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "startService启动过程分析"
 date:   2016-03-06 20:12:50
 catalog:  true
@@ -30,8 +30,8 @@ tags:
 
 ## 一、概述
 
-看过前面介绍[Binder系列](http://gityuan.com/2015/10/31/binder-prepare/)文章，相信对Binder架构有了较深地理解。在[Android系统启动-开篇](http://gityuan.com/2016/01/03/android-boot/)中讲述了Binder的地位是非常之重要，整个Java framework的提供ActivityManagerService、PackageManagerService等服务都是基于Binder架构来通信的，另外
-[handle消息机制](http://gityuan.com/2015/12/26/handler-message/)在进程内的通信使用非常多。本文将开启对ActivityManagerService的分析。
+看过前面介绍[Binder系列](https://panard313.github.io/2015/10/31/binder-prepare/)文章，相信对Binder架构有了较深地理解。在[Android系统启动-开篇](https://panard313.github.io/2016/01/03/android-boot/)中讲述了Binder的地位是非常之重要，整个Java framework的提供ActivityManagerService、PackageManagerService等服务都是基于Binder架构来通信的，另外
+[handle消息机制](https://panard313.github.io/2015/12/26/handler-message/)在进程内的通信使用非常多。本文将开启对ActivityManagerService的分析。
 
 ActivityManagerService是Android的Java framework的服务框架最重要的服务之一。对于Andorid的Activity、Service、Broadcast、ContentProvider四剑客的管理，包含其生命周期都是通过ActivityManagerService来完成的。对于这四剑客的介绍，此处先略过，后续博主会针对这4剑客分别阐述。
 
@@ -64,7 +64,7 @@ ActivityManagerService是Android的Java framework的服务框架最重要的服�
 
 **启动服务的流程图：**
 
-点击查看[大图](http://gityuan.com/images/android-service/am/Seq_start_service.png)
+点击查看[大图](https://panard313.github.io/images/android-service/am/Seq_start_service.png)
 
 ![Seq_start_service](/images/android-service/am/Seq_start_service.png)
 
@@ -165,7 +165,7 @@ gDefault为Singleton类型对象，此次采用单例模式，mInstance为IActiv
 
 该方法返回的是ActivityManagerProxy对象，那么下一步调用ActivityManagerProxy.startService()方法。
 
-通过Binder通信过程中，提供了一个IActivityManager服务接口，ActivityManagerProxy类与ActivityManagerService类都实现了IActivityManager接口。ActivityManagerProxy作为binder通信的客户端，ActivityManagerService作为binder通信的服务端，根据[Binder系列](http://gityuan.com/2015/10/31/binder-prepare/)文章，ActivityManagerProxy.startService()最终调用ActivityManagerService.startService()，整个流程图如下：
+通过Binder通信过程中，提供了一个IActivityManager服务接口，ActivityManagerProxy类与ActivityManagerService类都实现了IActivityManager接口。ActivityManagerProxy作为binder通信的客户端，ActivityManagerService作为binder通信的服务端，根据[Binder系列](https://panard313.github.io/2015/10/31/binder-prepare/)文章，ActivityManagerProxy.startService()最终调用ActivityManagerService.startService()，整个流程图如下：
 
 ![Activity_Manager_Service](/images/android-service/am/Activity_Manager_Service.png)
 
@@ -453,7 +453,7 @@ mRemote.transact()是binder通信的客户端发起方法，经过binder驱动�
     }
 
 - 当目标进程已存在，则直接执行realStartServiceLocked()；
-- 当目标进程不存在，则先执行[startProcessLocked](http://gityuan.com/2016/10/09/app-process-create-2/)创建进程，
+- 当目标进程不存在，则先执行[startProcessLocked](https://panard313.github.io/2016/10/09/app-process-create-2/)创建进程，
 经过层层调用最后会调用到AMS.attachApplicationLocked, 然后再执行realStartServiceLocked()。
 
 对于非前台进程调用而需要启动的服务，如果已经有其他的后台服务正在启动中，那么我们可能希望延迟其启动。这是用来避免启动同时启动过多的进程(非必须的)。
@@ -917,7 +917,7 @@ Service启动过程出现ANR，”executing service [发送超时serviceRecord�
 
 ![start_service_process](/images/android-service/start_service/start_service_processes.jpg)
 
-图中涉及3种IPC通信方式：`Binder`、`Socket`以及`Handler`，在图中分别用3种不同的颜色来代表这3种通信方式。一般来说，同一进程内的线程间通信采用的是 [Handler消息队列机制](http://gityuan.com/2015/12/26/handler-message/)，不同进程间的通信采用的是[binder机制](http://gityuan.com/2015/10/31/binder-prepare/)，另外与Zygote进程通信采用的`Socket`。
+图中涉及3种IPC通信方式：`Binder`、`Socket`以及`Handler`，在图中分别用3种不同的颜色来代表这3种通信方式。一般来说，同一进程内的线程间通信采用的是 [Handler消息队列机制](https://panard313.github.io/2015/12/26/handler-message/)，不同进程间的通信采用的是[binder机制](https://panard313.github.io/2015/10/31/binder-prepare/)，另外与Zygote进程通信采用的`Socket`。
 
 启动流程：
 
@@ -933,12 +933,12 @@ Service启动过程出现ANR，”executing service [发送超时serviceRecord�
 
 ### 5.2 生命周期
 
-startService的生命周期为onCreate, onStartCommand, onDestroy,流程如下图: [点击查看大图](http://www.gityuan.com/images/ams/service_lifeline.jpg)
+startService的生命周期为onCreate, onStartCommand, onDestroy,流程如下图: [点击查看大图](https://panard313.github.io/images/ams/service_lifeline.jpg)
 
 ![service_lifeline](/images/ams/service_lifeline.jpg)
 
 由上图可见,造成ANR可能的原因有Binder full{step 7, 12}, MessageQueue(step 10), AMS Lock (step 13).
 
-当进程启动Service其所在进程还没有启动时, 需要先启动其目标进程,流程如下图: [点击查看大图](http://www.gityuan.com/images/ams/start_service_process.jpg)
+当进程启动Service其所在进程还没有启动时, 需要先启动其目标进程,流程如下图: [点击查看大图](https://panard313.github.io/images/ams/start_service_process.jpg)
 
 ![start_service_process](/images/ams/start_service_process.jpg)

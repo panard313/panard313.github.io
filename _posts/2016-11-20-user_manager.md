@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "多用户管理UserManager"
 date:   2016-11-20 11:31:00
 catalog:  true

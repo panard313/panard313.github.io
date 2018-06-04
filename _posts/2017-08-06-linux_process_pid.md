@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "Linux进程pid分配法"
 date:   2017-08-06 22:22:50
 catalog:  true
@@ -14,7 +14,7 @@ tags:
 Android系统创建进程，最终的实现还是调用linux fork方法，对于linux系统每个进程都有唯一的
 进程ID(值大于0)，也有pid上限，默认为32768。 pid可重复利用，当进程被杀后会回收该pid，以供后续的进程pid分配。
 
-上一篇文章[Linux进程管理](http://gityuan.com/2017/08/05/linux-process-fork/) 详细地介绍了进程fork过程，在copy_process()过程，执行完父进行文件、内存等信息的拷贝，紧接着便是执行alloc_pid()方法去分配pid.
+上一篇文章[Linux进程管理](https://panard313.github.io/2017/08/05/linux-process-fork/) 详细地介绍了进程fork过程，在copy_process()过程，执行完父进行文件、内存等信息的拷贝，紧接着便是执行alloc_pid()方法去分配pid.
 
 ## 二. 分配法
 

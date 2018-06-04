@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "binderDied()过程分析"
 date:   2016-10-02 20:12:50
 catalog:  true
@@ -11,9 +11,9 @@ tags:
 
 ## 一. 概述
 
-[理解Android进程启动之全过程](http://gityuan.com/2016/10/09/app-process-create-2/)介绍了进程是如何从AMS.startProcessLocked一步步创建的; 当进程不再需要时便会有杀进程的过程; [理解杀进程的实现原理](http://gityuan.com/2016/04/16/kill-signal/)介绍了Process.killProcess()如何一步步地将进程杀死.
+[理解Android进程启动之全过程](https://panard313.github.io/2016/10/09/app-process-create-2/)介绍了进程是如何从AMS.startProcessLocked一步步创建的; 当进程不再需要时便会有杀进程的过程; [理解杀进程的实现原理](https://panard313.github.io/2016/04/16/kill-signal/)介绍了Process.killProcess()如何一步步地将进程杀死.
 
-当系统内存不足时,会触发[lmk](http://gityuan.com/2016/09/17/android-lowmemorykiller/)杀进程; 以及系统本身通过AMS也会控制系统中各个状态的进程个数上限. 当进程真正的被杀死之后,通过binder死亡回调后系统需要清理四大组件和进程信息.
+当系统内存不足时,会触发[lmk](https://panard313.github.io/2016/09/17/android-lowmemorykiller/)杀进程; 以及系统本身通过AMS也会控制系统中各个状态的进程个数上限. 当进程真正的被杀死之后,通过binder死亡回调后系统需要清理四大组件和进程信息.
 
 ### 1.1 死亡监听
 
@@ -33,7 +33,7 @@ tags:
         ...
     }
 
-在这个过程中,会创建AppDeathRecipient死亡通告对象,通过binder机制绑定, 当新创建的应用进程死亡后,便会回调binderDied()方法. 关于[binder](http://gityuan.com/2015/10/31/binder-prepare/)前面有大量文章深入介绍过. 其中关于binder死亡回调,是指binder server端挂了之后通过binder driver会通知binder client端. 那么对于进程死亡过程, binder server端是指应用进程的ApplicationThread, binder client端是指system_server进程中的ApplicationThreadProxy对象. 接下来从binderDied()方法说起.
+在这个过程中,会创建AppDeathRecipient死亡通告对象,通过binder机制绑定, 当新创建的应用进程死亡后,便会回调binderDied()方法. 关于[binder](https://panard313.github.io/2015/10/31/binder-prepare/)前面有大量文章深入介绍过. 其中关于binder死亡回调,是指binder server端挂了之后通过binder driver会通知binder client端. 那么对于进程死亡过程, binder server端是指应用进程的ApplicationThread, binder client端是指system_server进程中的ApplicationThreadProxy对象. 接下来从binderDied()方法说起.
 
 
 ## 二. BinderDied流程
@@ -170,7 +170,7 @@ tags:
 
 - AMS.cleanUpApplicationRecordLocked: 清理应用程序service, BroadcastReceiver, ContentProvider
 - ASS.handleAppDiedLocked: 清理activity相关信息, 当应用存在可见的activity则返回true
-- 当并没有处于正在启动,且死亡的app存在可见的Activity时, 则调用resumeTopActivitiesLocked恢复栈顶第一个非finish的activity,如果还失败,再调用ensureActivitiesVisibleLocked再次确保有可见的activity. 关于这里的方法,可查看文章[startActivity启动过程分析](http://gityuan.com/2016/03/12/start-activity/)的小节[2.11].
+- 当并没有处于正在启动,且死亡的app存在可见的Activity时, 则调用resumeTopActivitiesLocked恢复栈顶第一个非finish的activity,如果还失败,再调用ensureActivitiesVisibleLocked再次确保有可见的activity. 关于这里的方法,可查看文章[startActivity启动过程分析](https://panard313.github.io/2016/03/12/start-activity/)的小节[2.11].
 
 
 另外,handleAppDiedLocked()只在AMS的如下方法调用:

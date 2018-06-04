@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "全面剖析SharedPreferences"
 date:   2017-06-18 20:20:00
 catalog:  true
@@ -36,7 +36,7 @@ SP采用xml文件格式来保存数据, 该文件所在目录位于/data/data/<p
 
 ### 1.2 架构图
 
-[点击查看大图](http://www.gityuan.com/images/sp/shared_preference.jpg)
+[点击查看大图](https://panard313.github.io/images/sp/shared_preference.jpg)
 
 ![shared_preference](/images/sp/shared_preference.jpg)
 
@@ -49,7 +49,7 @@ SharedPreferences与Editor只是两个接口. SharedPreferencesImpl和EditorImpl
 - mPreferencesDir:是指SP所在目录, 是指/data/data/<package name>/shared_prefs/
 
 
-[点击查看大图](http://www.gityuan.com/images/sp/shared_preferences_arch.jpg)
+[点击查看大图](https://panard313.github.io/images/sp/shared_preferences_arch.jpg)
 
 ![shared_preferences_arch](/images/sp/shared_preferences_arch.jpg)
 

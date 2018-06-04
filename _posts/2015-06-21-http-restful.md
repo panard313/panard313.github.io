@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title:  "浅谈HTTP RESTful架构"
 date:   2015-06-21 21:20:50
 catalog:  true
