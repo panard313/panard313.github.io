@@ -43,14 +43,18 @@ Jekyll是用ruby语言编写的，所以我们首先要在windows上装好ruby�
 
     *  无翻墙软件，可使用国内淘宝提供的源
 
+```shell
             gem sources --remove https://rubygems.org/
             gem sources -a https://ruby.taobao.org/
             gem sources -l
+```
 
     * 有翻墙软件，可以使用如下源
 
+```shell
             gem sources --remove https://rubygems.org/
             gem sources -a  http://rubygems.org/
+```
 
 
 ### 2.  安装jekyll
@@ -60,7 +64,7 @@ Jekyll是用ruby语言编写的，所以我们首先要在windows上装好ruby�
 开始安装，因为是联网安装，所以可能时间比较常，耐心等待。至此Jekyll 安装全部完成。
 
 ### 3. 安装paginate
-    gem install jekyll-paginate
+> gem install jekyll-paginate
 
 并_config.yml 中加入一句 gems: [jekyll-paginate]
 
@@ -70,8 +74,10 @@ Jekyll是用ruby语言编写的，所以我们首先要在windows上装好ruby�
 
 *  先把github博客Clone下来
 
-        git clone https://github.com/[username]/[username].github.io.git
-        git clone git@github.com:[username]/[username].github.io.git
+```shell
+    git clone https://github.com/[username]/[username].github.io.git
+    git clone git@github.com:[username]/[username].github.io.git
+```
 
 clone有两种方法，第一种是https方法，通过直接输入账号密码的格式提交代码；第二种是ssh的方式，需要提前配置SSH，之后可直接push代码。
 

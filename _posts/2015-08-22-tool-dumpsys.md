@@ -15,6 +15,7 @@ tags:
 
 dumpsys是Android自带的强大debug工具，命令源码来自dumpsys.cpp文件。
 
+```java
 frameworks/native/cmds/dumpsys/dumpsys.cpp
 
     int main(int argc, char* const argv[])
@@ -81,6 +82,7 @@ frameworks/native/cmds/dumpsys/dumpsys.cpp
         }
         return 0;
     }
+```
 
 从代码中，可以得出`dumpsys`主要工作分为以下4个步骤：
 
@@ -98,4 +100,4 @@ frameworks/native/cmds/dumpsys/dumpsys.cpp
 
     dumpsys activity
 
-由前面的原理可知， 先要查询sm->checkService("activity")，这里得到的是ActivityManagerService，那么也就意味着上述命令等价于调用ActivityManagerService.dump()。 同理其他的命令也是类似的方式。
+由前面的原理可知， 先要查询`sm->checkService("activity")`，这里得到的是`ActivityManagerService`，那么也就意味着上述命令等价于调用`ActivityManagerService.dump()`。 同理其他的命令也是类似的方式。

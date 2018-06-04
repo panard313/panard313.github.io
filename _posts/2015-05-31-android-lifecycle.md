@@ -47,6 +47,7 @@ tags:
 ### 1.3 代码实践
 利用下面的`DemoActivity`代码，可亲自感受每一个阶段的状态。比如点返回键，home键，menu键等操作，可以借助通过logcat查看该activity到底处于哪种状态，这里就不说结果了，自己动手，丰衣足食。
 
+```java
     import android.app.Activity;
     import android.os.Bundle;
     import android.util.Log;
@@ -85,6 +86,7 @@ tags:
             Log.i(TAG, "onDestroy::The activity is about to be destroyed");
         }
     }
+```
 
 ----------
 
@@ -106,6 +108,7 @@ service有两种启动方式, 不同的启动方式决定了Service具有两种�
 ### 2.2  代码实践
 利用下面的`DemoService`代码，通过logcat自行感受每一个阶段的状态与场景的关系。
 
+```java
     import android.app.Service;
     import android.content.Intent;
     import android.os.IBinder;
@@ -147,3 +150,4 @@ service有两种启动方式, 不同的启动方式决定了Service具有两种�
             Log.i(TAG,"onDestroy::The service is no longer used");
         }
     }
+```

@@ -22,18 +22,22 @@ Android的动画主要包括三大类：**逐帧（Frame）动画**，**补间�
 
 `frame_animation.xml`放在文件夹`res/drawable/`下，该逐帧动画包含3张图片wheel0.png, wheel1.png, wheel2.png:
 
+```xml
      <animation-list android:id="@+id/selected" android:oneshot="false">
         <item android:drawable="@drawable/wheel0" android:duration="50" />
         <item android:drawable="@drawable/wheel1" android:duration="50" />
         <item android:drawable="@drawable/wheel2" android:duration="50" />
      </animation-list>
+```
 
 **1.2 调用方法**
 
+```java
      ImageView img = (ImageView)findViewById(R.id.wheel_image);
      img.setBackgroundResource(R.drawable.frame_animation);
      AnimationDrawable frameAnimation = (AnimationDrawable) img.getBackground();
      frameAnimation.start();
+```
 
 **1.3 参数说明**
 
@@ -53,6 +57,7 @@ Android的动画主要包括三大类：**逐帧（Frame）动画**，**补间�
 
 `tween_animation.xml`放在文件夹`res/anim/`下, 该动画同时包括透明度，缩放，位移，旋转4种变化，当然也可以是其中一种，或几种变化的组合。
 
+```xml
     <?xml version="1.0" encoding="utf-8"?>
     <set xmlns:android="http://schemas.android.com/apk/res/android"
         android:interpolator="@[package:]anim/interpolator_resource"
@@ -84,12 +89,15 @@ Android的动画主要包括三大类：**逐帧（Frame）动画**，**补间�
             android:pivotX="50%"
             android:pivotY="50%" />
     <set>
+```
 
 **1.2 调用方法**
 
+```java
      ImageView img = (ImageView)findViewById(R.id.wheel_image);
      Animation tweenAnimation = AnimationUtils.loadAnimation(this, R.anim.tween_animation);
      img.startAnimation(tweenAnimation);
+```
 
 **1.3 参数说明**
 
@@ -133,8 +141,10 @@ Android的动画主要包括三大类：**逐帧（Frame）动画**，**补间�
 
 属性动画，是补间动画的增强版，但更加灵活。可直接修改任何属性，使之形成动画，功能非常强大，也是最常用的动画。**下面举个简单的例子:**
 
+```java
     ObjectAnimator anim = ObjectAnimator.ofFloat(targetObject, "alpha", 0f, 1f);
     anim.setDuration(1000);
     anim.start();
+```
 
 关于属性动画的详细介绍在下一篇文章中，详细介绍[**Android动画之入门篇（二）**](http://gityuan.com/2015/09/04/android-anaimator-2/)

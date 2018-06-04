@@ -207,15 +207,17 @@ view缩写如下：
 - 不要直接忽略Exceptions
 
     例如下面的示例，永远不要这样做，无法预测未来可能的变化
-
+```java
         void setServerPort(String value) {
             try {
                 serverPort = Integer.parseInt(value);
             } catch (NumberFormatException e) { }
         }
+```
 
     正确的做法应该如下：
 
+```java
         void setServerPort(String value) throws ConfigurationException {
             try {
                 serverPort = Integer.parseInt(value);
@@ -223,16 +225,18 @@ view缩写如下：
                 throw new ConfigurationException("Port " + value + " is not valid.");
             }
         }
+```
 
 - import采用完全限定名
 
     不提倡：
-
+```java
         import foo.*;
-
+```
     正确做法：
-
+```java
         import foo.Bar;
+```
 
 - 括号风格：
 
@@ -282,6 +286,7 @@ view缩写如下：
 
 - 3.快注释
 
+```java
     private class MessageObserver extends ContentObserver {
         public MessageObserver() {
             super(mainHandler);
@@ -292,6 +297,7 @@ view缩写如下：
          mHandler.sendMessage(mHandler.obtainMessage(0x2));
         }
     }
+```
 
 
 - 4.资源文件注释

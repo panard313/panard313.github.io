@@ -28,25 +28,32 @@ tags:
 **1. 调用类的静态方法**
 对于参数方法，只需把参数，紧跟方法名后面，可以跟不定长的参数个数。
 
+```java
         Class<?> clazz = ReflectUtils.getClazz("com.yuanhh.model.Outer"); //获取class
         ReflectUtils.invokeStaticMethod(clazz, "outerStaticMethod");  //无参方法
         ReflectUtils.invokeStaticMethod(clazz, "outerStaticMethod","yuanhh"); //有参数方法
+```
 
 **2. 调用类的非静态方法**
 
+```java
         Object obj = ReflectUtils.newInstance("com.yuanhh.model.Outer");  //实例化对象
         ReflectUtils.invokeMethod(obj, "outerMethod");  //无参方法
         ReflectUtils.invokeMethod(obj, "outerMethod", "yuanhh"); //有参方法
+```
 **3. set/get类的静态属性**
 
+```java
         ReflectUtils.getStaticField(clazz, "outerStaticField"); //get操作
         ReflectUtils.setStaticField(clazz, "outerStaticField", "new value"); //set操作
+```
 
 **4. set/get类的非静态属性**
 
+```java
         ReflectUtils.getField(obj, "outerField");  //get操作
         ReflectUtils.setField(obj, "outerField", "new value"); //set操作
-
+```
 
 如果只知道类名，需先查看该类的所有方法详细参数信息，可以通过调用**`dumpClass(String className)`**
 ，返回值是String,记录着所有构造函数，成员方法，属性值的信息。
@@ -57,6 +64,7 @@ tags:
 
 先定义一个`Outer`类, 包名假设为`com.yuanhh.model`，对于该类，非public，构造方法，成员方法，属性都是private：
 
+```java
     class Outer {
         private String outerField = "outer Field";
         private static String outerStaticField = "outer static Field";
@@ -86,10 +94,12 @@ tags:
             System.out.println("I'am outer static method with param "+param);
         }
     }
+```
 
 
 构造函数，获取类的实例化对象：
 
+```java
     /**
      * 实例化获取类名对应的类
      *
@@ -123,9 +133,11 @@ tags:
 
         return object;
     }
+```
 
 对象方法的反射调用如下：
 
+```java
     /**
      * 反射调用方法
      *
@@ -157,9 +169,11 @@ tags:
         return result;
 
     }
+```
 
 对象属性值的反射获取方法：
 
+```java
     /**
      * 反射调用，获取属性值
      *
@@ -187,9 +201,11 @@ tags:
         }
         return result;
     }
+```
 
 类属性的反射设置过程：
 
+```java
     /**
      * 反射调用，设置属性值
      *
@@ -218,6 +234,7 @@ tags:
         }
         return true;
     }
+```java
 
 ## 二、内部类的反射用法
 对于内部类，这里比较复杂，而内部类又分static内部类与非static内部类，两者的反射方式还是有区别的，刚开始在这边折腾了好一阵子，一直反射失败。static内部类与非static内部类的反射调用，根本区别在于构造方法不一样。下面通过代码来告诉如何正确。
@@ -225,6 +242,7 @@ tags:
 ### 2.1 static与非static内部类的反射差异
 先定义一个包含两个内部类的类：
 
+```java
     class Outer {
         /**
          *  普通内部类
@@ -272,6 +290,7 @@ tags:
             }
         }
     }
+```
 
 对于上面两个内部类，如果直接实例化内部类，该怎么做，抛开private等权限不够的问题，应该是这样的：
 
@@ -280,6 +299,7 @@ tags:
 
 这种差异，在于内部类的构造方法不一样。我们可以通过下面的方法`dumpClass()`来比较。
 
+```java
     /**
      * 获取类的所有 构造函数，属性，方法
      *
@@ -315,6 +335,7 @@ tags:
         }
         return sb.toString();
     }
+```
 
 通过`dumpClass()`,对比我们会发现，
 
@@ -328,41 +349,53 @@ tags:
 ### 2.2 static内部类的 `ReflectUtils`类用法
 1. 调用类的静态方法（先获取类，再调用）
 
+```java
         Class<?> clazz = ReflectUtils.getClazz("com.yuanhh.model.Outer$StaticInner"); //获取class
         ReflectUtils.invokeStaticMethod(clazz, "innerStaticMethod");  //无参方法
         ReflectUtils.invokeStaticMethod(clazz, "innerStaticMethod","yuanhh"); //有参数方法
+```
 
 2. 调用类的非静态方法（先获取对象，再调用）
 
+```java
         Object obj = ReflectUtils.newInstance("com.yuanhh.model.Outer$StaticInner");  //实例化对象
         ReflectUtils.invokeMethod(obj, "innerMethod");  //无参方法
         ReflectUtils.invokeMethod(obj, "innerMethod", "yuanhh"); //有参方法
+```
+
 3. set/get类的静态属性（先获取类，再调用）
 
+```java
         ReflectUtils.getStaticField(clazz, "innerField"); //get操作
         ReflectUtils.setStaticField(clazz, "innerField", "new value"); //set操作
+```
 
 4. set/get类的非静态属性（先获取对象，再调用）
 
+```java
         ReflectUtils.getField(obj, "innerField");  //get操作
         ReflectUtils.setField(obj, "innerField", "new value"); //set操作
+```
+
 ### 2.2 非static内部类的 `ReflectUtils`类用法
 非static内部类，不能定义静态方法和静态属性，故操作只有两项：
 
 2. 调用类的非静态方法（先获取对象，再调用）
 
+```java
         // 获取外部类实例，这是static内部类所不需要的，注意点
         Object outObj = ReflectUtils.newInstance("com.yuanhh.model.Outer");
         Object obj = ReflectUtils.newInstance("com.yuanhh.model.Outer$Inner"， outObj);  //实例化对象
         ReflectUtils.invokeMethod(obj, "innerMethod");  //无参方法
         ReflectUtils.invokeMethod(obj, "innerMethod", "yuanhh"); //有参方法
-
+```
 
 4. set/get类的非静态属性（先获取对象，再调用）
 
+```java
         ReflectUtils.getField(obj, "innerField");  //get操作
         ReflectUtils.setField(obj, "innerField", "new value"); //set操作
-
+```
 
 ## 三、小结
 

@@ -16,6 +16,7 @@ tags:
 
 下面是一个C++代码，由于一些奇怪的原因，已排序的数据数组比未排序地数组运算差不多快6倍。
 
+```java
     #include <algorithm>
     #include <ctime>
     #include <iostream>
@@ -52,6 +53,7 @@ tags:
         std::cout << elapsedTime << std::endl;
         std::cout << "sum = " << sum << std::endl;
     }
+```
 
 - 对于去掉`std::sort(data, data + arraySize)`，代码运行时间为11.54s.
 - 对于已排序的数据，代码运行时间为1.93s.
@@ -59,6 +61,7 @@ tags:
 
 起初，可能仅仅是语言或者编译器的反常的原因，因此尝试用JAVA实现。
 
+```java
     import java.util.Arrays;
     import java.util.Random;
 
@@ -96,6 +99,7 @@ tags:
             System.out.println("sum = " + sum);
         }
     }
+```
 
 结果跟前面的C++的情况，基本一致，也是排序过的数组比未排序的快很多。
 
@@ -188,8 +192,10 @@ tags:
 
 将原始方案：
 
+```c
     if (data[c] >= 128)
         sum += data[c];
+```
 
 替换优化方案为：
 
