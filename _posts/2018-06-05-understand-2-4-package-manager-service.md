@@ -70,7 +70,7 @@ frameworks/base/services/java/com/android/server/pm/UserManager.java
 
 frameworks/base/core/android/java/content/pm/UserInfo.java
 
-4.1  概述
+## 4.1  概述
 PackageManagerService是本书分析的第一个核心服务，也是Android系统中最常用的服务之一。它负责系统中Package的管理，应用程序的安装、卸载、信息查询等。图4-1展示了PackageManagerService及客户端的类家族。
 
 
