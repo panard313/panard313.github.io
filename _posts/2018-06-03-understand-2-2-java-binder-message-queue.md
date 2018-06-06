@@ -128,7 +128,7 @@ int register_android_os_Binder(JNIEnv* env)
 }
 ```
 据上面的代码可知，register_android_os_Binder函数完成了Java Binder架构中最重要的4个类的初始化工作。我们重点关注前3个。
-####1.  Binder类的初始化
+#### 1.  Binder类的初始化
 
 int_register_android_os_Binder函数完成了Binder类的初始化工作，代码如下：
 
