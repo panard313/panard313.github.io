@@ -1,3 +1,14 @@
+---
+layout: article 
+title: 深入理解Android卷二 第五章  深入理解PowerManagerService
+key: 20180605
+tags:
+  - 深入理解 二
+  - PowerManagerService
+  - pms
+lang: zh-Hans
+---
+
 # 第5章  深入理解PowerManagerService
 本章主要内容：
 -  深入分析PowerManagerService

@@ -4,7 +4,8 @@ title: 深入理解Android卷二 第四章 深入理解PackageManagerService
 key: 20180605
 tags:
   - 深入理解 二
-  - PackManagerService
+  - PackageManagerService
+  - pms
 lang: zh-Hans
 ---
 
