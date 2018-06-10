@@ -71,7 +71,7 @@ AMS是本书碰到的第一块难啃的骨头[①]，涉及的知识点较多。
 先来看AMS的家族图谱，如图6-1所示。
 
 
-图6-1  AMS家族图谱
+![图6-1  AMS家族图谱](/images/understand2/6-1.png)
 
 由图6-1可知：
 -  AMS由ActivityManagerNative（以后简称AMN）类派生，并实现Watchdog.Monitor和BatteryStatsImpl.BatteryCallback接口。而AMN由Binder派生，实现了IActivityManager接口。
@@ -563,7 +563,7 @@ public ContextImpl getSystemContext() {
 
 
 
-图6-2  ContextImpl和它的“兄弟”们
+![图6-2  ContextImpl和它的“兄弟”们](/images/understand2/6-2.png)
 
 由图6-2可知：
 -  先来看派生关系， ApplicationContentResolver从ConentResolver派生，它主要用于和ContentProvider打交道。ContextImpl和ContextWrapper均从Context继承，而Application则从ContextWrapper派生。
@@ -596,7 +596,7 @@ Android运行环境是构建在进程之上的。有Android开发经验的读者
 
 
 
-图6-3  Context家族图谱
+![图6-3  Context家族图谱](/images/understand2/6-3.png)
 
 由图6-3可知：
 
@@ -660,7 +660,7 @@ AMS的main函数的目的有两个：
 
 
 
-图6-4  ActivityThread和ContextImpl的部分成员变量
+![图6-4  ActivityThread和ContextImpl的部分成员变量](/images/understand2/6-4.png)
 
 由图6-4可知：
 -  ActivityThread中有一个mLooper成员，它代表一个消息循环。这恐怕是ActivityThread被称做“Thread”的一个直接证据。另外，mServices用于保存Service，Activities用于保存ActivityClientRecord，mAllApplications用于保存Application。关于这些变量的具体作用，以后遇到时再说。
@@ -839,7 +839,7 @@ public voidinstallSystemApplicationInfo(ApplicationInfo info) {
 
 AMS中的进程管理结构是ProcessRecord。
 
-2.  关于ProcessRecord和IApplicationThread的介绍
+#### 2.  关于ProcessRecord和IApplicationThread的介绍
 
 分析ProcessRecord之前，先来思考一个问题：
 
@@ -849,7 +849,7 @@ AMS如何与应用进程交互？例如AMS启动一个位于其他进程的Activ
 
 
 
-图6-5  ApplicationThread类
+![图6-5  ApplicationThread类](/images/understand2/6-5.png)
 
 由图6-5可知：
 
@@ -866,7 +866,7 @@ IApplicationThread的Binder服务端在应用进程中还是在AMS中？
 有了IApplicationThread接口，AMS就可以和应用进程交互了。例如，对于下面一个简单的函数：
 
 [-->ActivityThread.java::scheduleStopActivity]
-
+```java
 public final void scheduleStopActivity(IBindertoken, boolean showWindow,
 
                                      intconfigChanges) {
@@ -878,6 +878,7 @@ public final void scheduleStopActivity(IBindertoken, boolean showWindow,
                token, 0, configChanges);
 
  }
+```
 
 当AMS想要停止（stop）一个Activity时，会调用对应进程IApplicationThread Binder客户端的scheduleStopActivity函数。该函数服务端实现的就是向ActivityThread所在线程发送一个消息。在应用进程中，ActivityThread运行在主线程中，所以这个消息最终在主线程被处理。
 
@@ -886,7 +887,7 @@ public final void scheduleStopActivity(IBindertoken, boolean showWindow,
 IApplicationThread仅仅是AMS和另外一个进程交互的接口，除此之外，AMS还需要更多的有关该进程的信息。在AMS中，进程的信息都保存在ProcessRecord数据结构中。那么，ProcessRecord是什么呢？先来看setSystemProcess的第二个关键点，即newProcessRecordLocked函数，其代码如下：
 
 [-->ActivityManagerService.java::newProcessRecordLocked]
-
+```java
 final ProcessRecordnewProcessRecordLocked(IApplicationThread thread,
 
                 ApplicationInfo info, String customProcess) {
@@ -910,11 +911,12 @@ final ProcessRecordnewProcessRecordLocked(IApplicationThread thread,
    returnnew ProcessRecord(ps, thread, info, proc);
 
  }
+```
 
 ProcessRecord的成员变量较多，先来看看再其构造函数中都初始化了哪些成员变量。
 
 [-->ProcessRecord.java::ProcessRecord]
-
+```java
 ProcessRecord(BatteryStatsImpl.Uid.Proc_batteryStats,
 
         IApplicationThread_thread,ApplicationInfo _info, String _processName) {
@@ -950,11 +952,12 @@ ProcessRecord(BatteryStatsImpl.Uid.Proc_batteryStats,
      removed= false;
 
 }
+```
 
 ProcessRecord除保存和应用进程通信的IApplicationThread对象外，还保存了进程名、不同状态对应的Oom_adj值及一个ApplicationInfo。一个进程虽然可运行多个Application，但是ProcessRecord一般保存该进程中先运行的那个Application的ApplicationInfo。
 
 至此，已经创建了一个ProcessRecord对象，和其他应用进程不同的是，该对象对应的进程为SystemServer。为了彰显其特殊性，AMS为其中的一些成员变量设置了特定的值：
-
+```java
    app.persistent = true;//设置该值为true
 
    app.pid =MY_PID;//设置pid为SystemServer的进程号
@@ -962,16 +965,16 @@ ProcessRecord除保存和应用进程通信的IApplicationThread对象外，还�
    app.maxAdj= ProcessList.SYSTEM_ADJ;//设置最大OOM_Adj，系统进程默认值为-16
 
    //另外，app的processName被设置成“system”
-
+```
 这时，一个针对SystemServer的ProcessRecord对象就创建完成了。此后AMS将把它并入自己的势力范围内。
 
 AMS中有两个成员变量用于保存ProcessRecord，一个是mProcessNames，另一个是mPidsSelfLocked，如图6-6所示为这两个成员变量的数据结构示意图。
 
 
 
-图6-6  mPidsSelfLocked和mProcessNames数据结构示意图
+![图6-6  mPidsSelfLocked和mProcessNames数据结构示意图](/images/understand2/6-6.png)
 
-3.  AMS的setSystemProcess总结
+#### 3.  AMS的setSystemProcess总结
 
 现在来总结回顾setSystemProcess的工作：
 
@@ -981,7 +984,7 @@ AMS中有两个成员变量用于保存ProcessRecord，一个是mProcessNames，
 
  
 
-6.2.3  AMS的installSystemProviders函数分析
+### 6.2.3  AMS的installSystemProviders函数分析
 
 还记得Settings数据库吗？SystemServer中很多Service都需要向它查询配置信息。为此，Android提供了一个SettingsProvider来帮助开发者。该Provider在SettingsProvider.apk中，installSystemProviders就会加载该APK并把SettingsProvider放到SystemServer进程中来运行。
 
@@ -990,7 +993,7 @@ AMS中有两个成员变量用于保存ProcessRecord，一个是mProcessNames，
 提示读者在定制自己的Android系统时，万不可去掉/system/app/SettingsProvider.apk，否则系统将无法正常启动。
 
 [-->ActivityManagerService.java::installSystemProviders]
-
+```java
 public static final void installSystemProviders(){
 
  List<ProviderInfo> providers;
@@ -1040,6 +1043,7 @@ public static final void installSystemProviders(){
     mSelf.mUsageStatsService.monitorPackages();
 
  }
+```
 
 在代码中列出了两个关键调用，分别是：
 
@@ -1051,10 +1055,10 @@ public static final void installSystemProviders(){
 
 下面来看第一个关键点generateApplicationProvidersLocked函数。
 
-1.  AMS的 generateApplicationProvidersLocked函数分析
+#### 1.  AMS的 generateApplicationProvidersLocked函数分析
 
 [-->ActivityManagerService.java::generateApplicationProvidersLocked]
-
+```java
 private final List<ProviderInfo> generateApplicationProvidersLocked(
 
                               ProcessRecordapp) {
@@ -1116,15 +1120,16 @@ private final List<ProviderInfo> generateApplicationProvidersLocked(
     returnproviders;
 
  }
+```
 
 由以上代码可知：generateApplicationProvidersLocked先从PKMS那里查询满足条件的ProviderInfo信息，而后将它们分别保存到AMS和ProcessRecord中对应的数据结构中。
 
 先看查询函数queryContentProviders。
 
-（1） PMS中 queryContentProviders函数分析
+##### （1） PMS中 queryContentProviders函数分析
 
 [-->PackageManagerService.java::queryContentProviders]
-
+```java
 public List<ProviderInfo>queryContentProviders(String processName,
 
     int uid,int flags) {
@@ -1192,18 +1197,19 @@ public List<ProviderInfo>queryContentProviders(String processName,
    returnfinalList;//返回最终结果
 
  }
+```
 
 queryContentProviders函数很简单，就是从PKMS那里查找满足条件的Provider，然后生成AMS使用的ProviderInfo信息。为何偏偏能找到SettingsProvider呢？来看它的AndroidManifest.xml文件，如图6-7所示。
 
 
 
-图6-7  SettingsProvider的AndroidManifest.xml文件示意
+![图6-7  SettingsProvider的AndroidManifest.xml文件示意](/images/understand2/6-7.png)
 
 由图6-7可知，SettingsProvider设置了其uid为“android.uid.system”，同时在application中设置了process名为“system”。而在framework-res.apk中也做了相同的设置。所以，现在可以确认SettingsProvider将和framework-res.apk运行在同一个进程，即SystemServer中。
 
 提示从运行效率角度来说，这样做也是合情合理的。因为SystemServer的很多Service都依赖Settings数据库，把它们放在同一个进程中，可以降低由于进程间通信带来的效率损失。
 
-（2）  关于ContentProvider的介绍
+##### （2）  关于ContentProvider的介绍
 
 前面介绍的从PKMS那里查询到的ProviderInfo还属于公有财产，现在我们要将它与AMS及ProcessRecord联系起来。
 
@@ -1215,7 +1221,7 @@ AMS及ProcessRecord均使用了一个新的数据结构ContentProviderRecord来�
 
 
 
-图6-8  ContentProvicerRecord及相应的“管理团队”
+![图6-8  ContentProvicerRecord及相应的“管理团队”](/images/understand2/6-8.png)
 
 由图6-8可知：
 
@@ -1225,12 +1231,12 @@ AMS及ProcessRecord均使用了一个新的数据结构ContentProviderRecord来�
 
 至此，Provider信息已经保存到AMS及ProcessRecord中了。那么，下一步的工作是什么呢？
 
-2.  ActivityThread 的installSystemProviders函数分析
+#### 2.  ActivityThread 的installSystemProviders函数分析
 
 在AMS和ProcessRecord中都保存了Provider信息，但这些仅仅都是一些信息，并不是ContentProvider，因此下面要创建一个ContentProvider实例（即SettingsProvider对象）。该工作由ActivityThread的installSystemProviders来完成，代码如下：
 
 [-->ActivityThread.java::installSystemProviders]
-
+```java
 public final void installSystemProviders(List<ProviderInfo>providers) {
 
   if(providers != null)
@@ -1240,11 +1246,12 @@ public final void installSystemProviders(List<ProviderInfo>providers) {
    installContentProviders(mInitialApplication, providers);
 
 }
+```
 
 installContentProviders这个函数是所有ContentProvider产生的必经之路，其代码如下：
 
 [-->ActivityThread.java::installContentProviders]
-
+```java
 private void installContentProviders(
 
            Context context, List<ProviderInfo> providers) {
@@ -1310,6 +1317,7 @@ private void installContentProviders(
  
 
     }
+```
 
 installContentProviders实际上是标准的ContentProvider安装时调用的程序。安装ContentProvider包括两方面的工作：
 
@@ -1321,10 +1329,10 @@ installContentProviders实际上是标准的ContentProvider安装时调用的程
 
 马上来看ActivityThread的installProvider函数。
 
-（1） ActivityThread的installProvider函数分析
+#### （1） ActivityThread的installProvider函数分析
 
 [-->ActivityThread.java::installProvider]
-
+```java
 private IContentProvider installProvider(Contextcontext,
 
            IContentProvider provider, ProviderInfoinfo, boolean noisy) {
@@ -1472,6 +1480,7 @@ private IContentProvider installProvider(Contextcontext,
   return provider;
 
 }
+```
 
 以上代码不算复杂，但是涉及一些数据结构和一句令人费解的对inkToDeath函数的调用。先来说说那句令人费解的调用。
 
@@ -1481,7 +1490,7 @@ private IContentProvider installProvider(Contextcontext,
 
 
 
-图6-9  ActivityThread中ContentProvider涉及的数据结构
+![图6-9  ActivityThread中ContentProvider涉及的数据结构](/images/understand2/6-9.png)
 
 由图6-9可知：
 
@@ -1493,12 +1502,12 @@ private IContentProvider installProvider(Contextcontext,
 
 至此，本例中的SettingProvider已经创建完毕，接下来的工作就是把它推向历史舞台——即发布该Provider。
 
-（2） ASM的 publishContentProviders分析
+#### （2） ASM的 publishContentProviders分析
 
 publicContentProviders函数用于向AMS注册ContentProviders，其代码如下：
 
 [-->ActivityManagerService.java::publishContentProviders]
-
+```java
  publicfinal void publishContentProviders(IApplicationThread caller,
 
                            List<ContentProviderHolder>providers) {
@@ -1584,6 +1593,7 @@ publicContentProviders函数用于向AMS注册ContentProviders，其代码如下
     }// synchronized(this)结束
 
  }
+```
 
 这里应解释一下publishContentProviders的工作流程：
 
@@ -1597,18 +1607,18 @@ publicContentProviders函数用于向AMS注册ContentProviders，其代码如下
 
 现在，一个SettingsProvider就算正式在系统中挂牌并注册了，此后，和Settings数据库相关的操作均由它来打理。
 
-3.  ASM的installSystemProviders总结
+#### 3.  ASM的installSystemProviders总结
 
 AMS的installSystemProviders函数其实就是用于启动SettingsProvider，其中比较复杂的是ContentProvider相关的数据结构，读者可参考图6-9。
 
-6.2.4  ASM的systemReady分析
+### 6.2.4  ASM的systemReady分析
 
 作为核心服务，AMS的systemReady会做什么呢？由于该函数内容较多，我们将它分为三段。首先看第一段的工作。
 
-1.  systemReady第一阶段的工作
+#### 1.  systemReady第一阶段的工作
 
 [-->ActivityManagerService.java::systemReady]
-
+```java
 public void systemReady(final RunnablegoingCallback) {
 
      synchronized(this){
@@ -1734,6 +1744,7 @@ public void systemReady(final RunnablegoingCallback) {
     if(!mStartRunning)  return;
 
    }//synchronized(this)结束
+```
 
 由以上代码可知，systemReady第一阶段的工作并不轻松，其主要职责是发送并处理与PRE_BOOT_COMPLETED广播相关的事情。目前代码中还没有接收该广播的地方，不过从代码中的注释中可猜测到，该广播接收者的工作似乎和系统升级有关。
 
@@ -1741,10 +1752,10 @@ public void systemReady(final RunnablegoingCallback) {
 
 下面来介绍systemReady第二阶段的工作。
 
-2.  systemReady第二阶段的工作
+#### 2.  systemReady第二阶段的工作
 
 [-->ActivityManagerService.java::systemReady]
-
+```java
    ArrayList<ProcessRecord>procsToKill = null;
 
   synchronized(mPidsSelfLocked) {
@@ -1806,6 +1817,7 @@ public void systemReady(final RunnablegoingCallback) {
    //查询Settings数据，获取一些配置参数
 
    retrieveSettings();
+```
 
 systemReady第二阶段的工作包括：
 
@@ -1815,10 +1827,10 @@ systemReady第二阶段的工作包括：
 
  
 
-3.  systemReady第三阶段的工作
+#### 3.  systemReady第三阶段的工作
 
 [-->ActivityManagerService.java::systemReady]
-
+```java
 //调用systemReady传入的参数，它是一个Runnable对象，下节将分析此函数
 
 if (goingCallback != null) goingCallback.run();
@@ -1882,6 +1894,7 @@ if (goingCallback != null) goingCallback.run();
     }// synchronized结束
 
 }
+```
 
 systemReady第三阶段的工作有3项：
 
@@ -1893,10 +1906,10 @@ systemReady第三阶段的工作有3项：
 
 先看回调对象goingCallback的run函数的工作。
 
-（1） goingCallback的run函数分析
+##### （1） goingCallback的run函数分析
 
 [-->SystemServer.java::ServerThread.run]
-
+```java
 ActivityManagerService.self().systemReady(newRunnable() {
 
     publicvoid run() {
@@ -1916,6 +1929,7 @@ ActivityManagerService.self().systemReady(newRunnable() {
     ......//调用其他服务的systemReady函数
 
  }
+ ```
 
 run函数比较简单，执行的工作如下：
 
@@ -1929,6 +1943,7 @@ startSystemUi的代码如下：
 
 [-->SystemServer.java::startSystemUi]
 
+```java
 static final void startSystemUi(Context context) {
 
      Intentintent = new Intent();
@@ -1940,17 +1955,18 @@ static final void startSystemUi(Context context) {
        context.startService(intent);
 
  }
+```
 
 SystemUIService由SystemUi.apk提供，它实现了系统的状态栏。
 
 注意在精简ROM时，也不能删除SystemUi.apk。
 
-（2）  启动Home界面
+##### （2）  启动Home界面
 
 如前所述，resumeTopActivityLocked将启动Home界面，此函数非常重要也比较复杂，故以后再详细分析。我们提取了resumeTopActivityLocked启动Home界面时的相关代码，如下所示：
 
 [-->ActivityStack.java::resumeTopActivityLocked]
-
+```java
 final booleanresumeTopActivityLocked(ActivityRecord prev) {
 
    //找到下一个要启动的Activity
@@ -1978,11 +1994,12 @@ final booleanresumeTopActivityLocked(ActivityRecord prev) {
    ......//以后再详细分析
 
 }
+```
 
 下面来看AMS的startHomeActivityLocked函数，代码如下：
 
 [-->ActivityManagerService.java::startHomeActivityLocked]
-
+```java
 boolean startHomeActivityLocked() {
 
    Intentintent = new Intent( mTopAction,
@@ -2036,17 +2053,18 @@ boolean startHomeActivityLocked() {
   return true;
 
 }
+```
 
 至此，AMS携诸位Service都启动完毕，Home也靓丽登场，整个系统就准备完毕，只等待用户的检验了。不过在分析逻辑上还有一点没涉及，那会是什么呢？
 
-（3） 发送ACTION_BOOT_COMPLETED广播
+##### （3） 发送ACTION_BOOT_COMPLETED广播
 
 由前面的代码可知，AMS发送了ACTION_PRE_BOOT_COMPLETED广播，可系统中没有地方处理它。在前面的章节中，还碰到一个ACTION_BOOT_COMPLETED广播，该广播广受欢迎，却不知道它是在哪里发送的。
 
 当Home Activity启动后，ActivityStack的activityIdleInternal函数将被调用，其中有一句代码颇值得注意：
 
 [-->ActivityStack.java::activityIdleInternal]
-
+```java
 final ActivityRecord activityIdleInternal(IBindertoken, boolean fromTimeout,
 
            Configuration config) {
@@ -2140,14 +2158,15 @@ final void finishBooting() {
         }
 
  }
+```
 
 原来，在Home启动成功后，AMS才发送ACTION_BOOT_COMPLETED广播。
 
-4.  ASM的 systemReady总结
+#### 4.  ASM的 systemReady总结
 
 systemReady函数完成了系统就绪的必要工作，然后它将启动Home Activity。至此，Android系统就全部启动了。
 
-6.2.5  初识ActivityManagerService总结
+### 6.2.5  初识ActivityManagerService总结
 
 本节所分析的4个关键函数均较复杂，与之相关的知识点总结如下：
 
@@ -2161,16 +2180,16 @@ systemReady函数完成了系统就绪的必要工作，然后它将启动Home A
 
 对AMS 调用轨迹分析是我们破解AMS的第一条线，希望读者反复阅读，以真正理解其中涉及的知识点，尤其是和Android运行环境及Context相关的知识。
 
-6.3  startActivity分析
+## 6.3  startActivity分析
 
 本节将重点分析Activity的启动过程，它是五条线中最难分析的一条，只要用心相信读者能啃动这块“硬骨头”。
 
-6.3.1  从am说起
+### 6.3.1  从am说起
 
 am和pm（见4.4.2节）一样，也是一个脚本，它用来和AMS交互，如启动Activity、启动Service、发送广播等。其核心文件在Am.java中，代码如下：
 
 [-->Am.java::main]
-
+```java
 public static void main(String[] args) {
 
    try {
@@ -2180,12 +2199,13 @@ public static void main(String[] args) {
    }......
 
  }
+```
 
 am的用法很多，读者可通过adb shell登录手机，然后执行am，这样就能获取它的用法。
 
 利用am启动一个activity的方法如下：
 
-am start [-D] [-W] [-P <FILE>][--start-profiler <FILE>] [-S] <INTENT>
+    am start [-D] [-W] [-P <FILE>][--start-profiler <FILE>] [-S] <INTENT>
 
 其中：
 
@@ -2195,14 +2215,14 @@ am start [-D] [-W] [-P <FILE>][--start-profiler <FILE>] [-S] <INTENT>
 
 假设已知某个Activity的ComponentName（package名和Activity的Class名），启动这个Activity的相应命令如下：
 
-am start -W -n com.dfp.test/.TestActivity
+    am start -W -n com.dfp.test/.TestActivity
 
 其中，-W选项表示am将会等目标Activity启动后才返回，-n表示后面的参数用于设置Intent的Component。就本例而言，com.dfp.test为Package名，.TestActivity为该Package下对应的Activity类名，所以将要启动的Activity的全路径名为com.dfp.test.TestActivity。
 
 现在就以上面的命令为例来分析Am的run函数，代码如下：
 
 [-->Am.java::run]
-
+```java
  privatevoid run(String[] args) throws Exception {
 
   mAm =ActivityManagerNative.getDefault();
@@ -2218,11 +2238,12 @@ am start -W -n com.dfp.test/.TestActivity
   else if ......//处理其他参数
 
 }
+```
 
 runStart函数用于处理Activity启动请求，其代码如下：
 
 [-->Am.java::runStart]
-
+```java
  privatevoid runStart() throws Exception {
 
     Intentintent = makeIntent();
@@ -2294,17 +2315,18 @@ runStart函数用于处理Activity启动请求，其代码如下：
      ......//打印结果
 
  }
+```
 
 am最终将调用AMS的startActivityAndWait函数来处理这次启动请求。下面将深入到AMS内部去继续这次旅程。
 
 提示为什么选择从am来分析Activity的启动呢？如果选择从一个Activity来分析如何启动另一个Activity，则将给人一种鸡生蛋、蛋孵鸡的感觉，故此处选择从am入手。除此之外，从am来分析Activity的启动也是Activity启动分析中相对简单的一条路线。
 
-6.3.2  AMS的startActivityAndWait函数分析
+### 6.3.2  AMS的startActivityAndWait函数分析
 
 startActivityAndWait函数有很多参数，先来认识一下它们。
 
 [-->ActiivtyManagerService.java::startActivityAndWait原型]
-
+```java
  publicfinal WaitResult startActivityAndWait(
 
    /*
@@ -2348,13 +2370,14 @@ startActivityAndWait函数有很多参数，先来认识一下它们。
    StringprofileFile,
 
    ParcelFileDescriptor profileFd, booleanautoStopProfiler)
+```
 
 关于以上代码中一些参数的具体作用，以后碰到时会再作分析。建议读者先阅读SDK文档中关于Activity类定义的几个函数，如startActivity、startActivityForResult及onActivityResult等。
 
 startActivityAndWait的代码如下：
 
 [-->ActivityManagerService.java::startActivityAndWait]
-
+```java
  publicfinal WaitResult startActivityAndWait(IApplicationThread caller,
 
       Intent intent, String resolvedType, Uri[]grantedUriPermissions,
@@ -2384,18 +2407,19 @@ startActivityAndWait的代码如下：
     returnres;
 
  }
+```
 
 mMainStack为AMS的成员变量，类型为ActivityStack，该类是Activity调度的核心角色。正式分析它之前，有必要先介绍一下相关的基础知识。
 
-1.  Task、Back Stack、ActivityStack及Launch mode
+#### 1.  Task、Back Stack、ActivityStack及Launch mode
 
-（1） 关于Task及Back Stack的介绍
+##### （1） 关于Task及Back Stack的介绍
 
 先来看图6-10。
 
 
 
-图6-10  用户想干什么
+![图6-10  用户想干什么](/images/understand2/6-10.png)
 
 图6-10列出了用户在Android系统上想干的三件事情，分别用A、B、C表示，将每一件事情称为一个Task。一个Task还可细分为多个子步骤，即Activity。
 
@@ -2409,7 +2433,7 @@ mMainStack为AMS的成员变量，类型为ActivityStack，该类是Activity调�
 
 
 
-图6-11  Task及Back Stack示例
+![图6-11  Task及Back Stack示例](/images/understand2/6-11.png)
 
 由图6-11可知：
 
@@ -2421,7 +2445,7 @@ mMainStack为AMS的成员变量，类型为ActivityStack，该类是Activity调�
 
 
 
-图6-12  多个Task的情况
+![图6-12  多个Task的情况](/images/understand2/6-12.png)
 
 由图6-12可知：对多Task的情况来说，系统只支持一个处于前台的Task，即用户当前看到的Activity所属的Task，其余的Task均处于后台，这些后台Task内部的Activity保持顺序不变。用户可以一次将整个Task挪到后台或者置为前台。
 
@@ -2429,7 +2453,7 @@ mMainStack为AMS的成员变量，类型为ActivityStack，该类是Activity调�
 
 以上内容从抽象角度介绍了什么是Task，以及Android如何分解Task和管理Activity，那么在实际代码中，是如何考虑并设计的呢？
 
-（2） 关于ActivityStack的介绍
+##### （2） 关于ActivityStack的介绍
 
 通过上述分析，我们对Android的设计有了一定了解，那么如何用代码来实现这一设计呢？此处有两点需要考虑：
 
@@ -2441,7 +2465,7 @@ Android设计了一个ActivityStack类来负责上述工作，它的组成如图
 
 
 
-图6-13  ActivityStack及相关成员
+![图6-13  ActivityStack及相关成员](/images/understand2/6-13.png)
 
 由图6-13可知：
 
@@ -2462,7 +2486,7 @@ Android设计了一个ActivityStack类来负责上述工作，它的组成如图
 下面来看ActivityStack中几个常用的搜索ActivityRecord的函数，代码如下：
 
 [-->ActivityStack.java::topRunningActivityLocked]
-
+```java
 /* topRunningActivityLocked:
 
 找到栈中第一个与notTop不同的，并且不处于finishing状态的ActivityRecord。当notTop为
@@ -2522,11 +2546,12 @@ final ActivityRecordtopRunningNonDelayedActivityLocked(ActivityRecord notTop) {
     returnnull;
 
   }
+```
 
 ActivityStack还提供findActivityLocked函数以根据Intent及ActivityInfo来查找匹配的ActivityRecord，同样，查找也是从mHistory尾端开始，相关代码如下：
 
 [-->ActivityStack.java::findActivityLocked]
-
+```java
 private ActivityRecord findActivityLocked(Intentintent, ActivityInfo info) {
 
   ComponentName cls = intent.getComponent();
@@ -2550,11 +2575,12 @@ private ActivityRecord findActivityLocked(Intentintent, ActivityInfo info) {
   return null;
 
  }
+```
 
 另一个findTaskLocked函数的返回值是ActivityRecord，其代码如下：
 
 [ActivityStack.java::findTaskLocked]
-
+```java
 private ActivityRecord findTaskLocked(Intentintent, ActivityInfo info) {
 
   ComponentName cls = intent.getComponent();
@@ -2614,12 +2640,13 @@ private ActivityRecord findTaskLocked(Intentintent, ActivityInfo info) {
     returnnull;
 
  }
+```
 
 其实，findTaskLocked是根据mHistory中ActivityRecord所属的Task的情况来进行相应的查找工作。
 
 以上这4个函数均是ActivityStack中常用的函数，如果不需要逐项（case by case）地研究AMS，那么读者仅需了解这几个函数的作用即可。
 
-（3） 关于Launch Mode的介绍
+##### （3） 关于Launch Mode的介绍
 
 Launch Mode用于描述Activity的启动模式，目前一共有4种模式，分别是standard、singleTop、singleTask和singleInstance。初看它们，较难理解，实际上不过是Android玩的一个“小把戏“而已。启动模式就是用于控制Activity和Task关系的。
 
@@ -2645,7 +2672,7 @@ Launch Mode用于描述Activity的启动模式，目前一共有4种模式，分
 
 介绍完上面的知识后，下面来分析ActivityStack的startActivityMayWait函数。
 
-2.  ActivityStack的startActivityMayWait函数分析
+#### 2.  ActivityStack的startActivityMayWait函数分析
 
 startActivityMayWait函数的目标是启动com.dfp.test.TestActivity，假设系统之前没有启动过该Activity，本例最终的结果将是：
 
@@ -2657,10 +2684,10 @@ startActivityMayWait函数的目标是启动com.dfp.test.TestActivity，假设�
 
 好了，将这个函数分三部分进行介绍，先来分析第一部分。
 
-（1） startActivityMayWait分析之一
+##### （1） startActivityMayWait分析之一
 
 [-->ActivityStack.java::startActivityMayWait]
-
+```java
 final int startActivityMayWait(IApplicationThreadcaller, int callingUid,
 
         Intentintent, String resolvedType, Uri[] grantedUriPermissions,
@@ -2750,6 +2777,7 @@ final int startActivityMayWait(IApplicationThreadcaller, int callingUid,
     }
 
    ......//待续
+```
 
 startActivityMayWait第一阶段的工作内容相对较简单：
 
@@ -2761,10 +2789,10 @@ startActivityMayWait第一阶段的工作内容相对较简单：
 
 下面介绍startActivityMayWait第二阶段的工作。
 
-（2） startActivityMayWait分析之二
+##### （2） startActivityMayWait分析之二
 
 [-->ActivityStack.java::startActivityMayWait]
-
+```java
     //调用此函数启动Activity，将返回值保存到res
 
    int res = startActivityLocked(caller, intent,resolvedType,
@@ -2792,13 +2820,14 @@ startActivityMayWait第一阶段的工作内容相对较简单：
             mService.updateConfigurationLocked(config,null, false);
 
    }
+```
 
 此处，启动Activity的核心函数是startActivityLocked，该函数异常复杂，将用一节专门分析。下面先继续分析startActivityMayWait第三阶段的工作。
 
-（3） startActivityMayWait分析之三
+##### （3） startActivityMayWait分析之三
 
 [-->ActivityStack.java::startActivityMayWait]
-
+```java
     if(outResult != null) {
 
       outResult.result = res;//设置启动结果
@@ -2832,17 +2861,18 @@ startActivityMayWait第一阶段的工作内容相对较简单：
      }
 
  }
+```
 
 第三阶段的工作就是根据返回值做一些处理，那么res返回成功（即res== IActivityManager.START_SUCCESS的时候）后为何还需要等待呢？
 
 这是因为目标Activity要运行在一个新的应用进程中，就必须等待那个应用进程正常启动并处理相关请求。注意，只有am设置了-W选项，才会进入wait这一状态。
 
-6.3.3  startActivityLocked分析
+### 6.3.3  startActivityLocked分析
 
 startActivityLocked是startActivityMayWait第二阶段的工作重点，该函数有点长，请读者耐心看代码。
 
 [-->ActivityStack.java::startActivityLocked]
-
+```java
 final int startActivityLocked(IApplicationThreadcaller,
 
            Intent intent, String resolvedType,
@@ -3092,6 +3122,7 @@ final int startActivityLocked(IApplicationThreadcaller,
    return err;
 
 }
+```
 
 startActivityLocked函数的主要工作包括：
 
@@ -3103,14 +3134,14 @@ startActivityLocked函数的主要工作包括：
 
 先来看app Switch，它虽然是一个小变量，但是意义重大。
 
-1.  关于resume/stopAppSwitches的介绍
+#### 1.  关于resume/stopAppSwitches的介绍
 
 AMS提供了两个函数，用于暂时（注意，是暂时）禁止App切换。为什么会有这种需求呢？因为当某些重要（例如设置账号等）Activity处于前台（即用户当前所见的Activity）时，不希望系统因用户操作之外的原因而切换Activity（例如恰好此时收到来电信号而弹出来电界面）。
 
 先来看stopAppSwitches，代码如下：
 
 [-->ActivityManagerService.java::stopAppSwitches]
-
+```java
 public void stopAppSwitches() {
 
     ......//检查调用进程是否有STOP_APP_SWITCHES权限
@@ -3136,6 +3167,7 @@ public void stopAppSwitches() {
    }
 
 }
+```
 
 在以上代码中有两点需要注意：
 
@@ -3146,7 +3178,7 @@ public void stopAppSwitches() {
 再来看resumeAppSwitches函数，代码如下：
 
 [-->ActivityManagerService::resumeAppSwitches]
-
+```java
  public voidresumeAppSwitches() {
 
     ......//检查调用进程是否有STOP_APP_SWITCHES权限
@@ -3160,6 +3192,7 @@ public void stopAppSwitches() {
     //注意，系统并不在此函数内启动那些被阻止的Activity
 
 }
+```
 
 在resumeAppSwitches中只设置mAppSwitchesAllowedTime的值为0，它并不处理在stop和resume这段时间内积攒起的Pending请求，那么这些请求是在何时被处理的呢？
 
@@ -3169,14 +3202,14 @@ public void stopAppSwitches() {
 
 在本例中，由于不考虑app switch的情况，那么接下来的工作就是调用startActivityUncheckedLocked函数来处理本次activity的启动请求。此时，我们已经创建了一个ActivityRecord用于保存目标Activity的相关信息。
 
-2.  startActivityUncheckedLocked函数分析
+#### 2.  startActivityUncheckedLocked函数分析
 
 startActivityUncheckedLocked函数很长，但是目的比较简单，即为新创建的ActivityRecord找到一个合适的Task。虽然本例最终的结果是创建一个新的Task，但是该函数的处理逻辑却比较复杂。先看第一段分析。
 
-（1） startActivityUncheckedLocked分析之一
+##### （1） startActivityUncheckedLocked分析之一
 
 [-->ActivityStack.java::startActivityUncheckedLocked]
-
+```java
 final intstartActivityUncheckedLocked(ActivityRecord r,
 
    ActivityRecord sourceRecord, Uri[] grantedUriPermissions,
@@ -3258,15 +3291,16 @@ final intstartActivityUncheckedLocked(ActivityRecord r,
       r.resultTo = null;
 
    }
+```
 
 startActivityUncheckedLocked第一阶段的工作还算简单，主要确定是否需要为新的Activity创建一个Task，即是否设置FLAG_ACTIVITY_NEW_TASK标志。
 
 接下来看下一阶段的工作。
 
-（2） startActivityUncheckedLocked分析之二
+##### （2） startActivityUncheckedLocked分析之二
 
 [-->ActivityStack.java::startActivityUncheckedLocked]
-
+```java
    booleanaddingToTask = false;
 
   TaskRecord reuseTask = null;
@@ -3302,15 +3336,16 @@ startActivityUncheckedLocked第一阶段的工作还算简单，主要确定是�
          }//if(r.resultTo == null)判断结束
 
  }
+```
 
 在本例中，目标Activity首次登场，所以前面的逻辑处理都没有起作用，建议读者根据具体情况分析该段代码。
 
 下面来看startActivityUncheckLocked第三阶段的工作。
 
-（3） startActivityUncheckLocked分析之三
+##### （3） startActivityUncheckLocked分析之三
 
 [-->ActivityStack.java::startActivityUncheckLocked]
-
+```java
    if(r.packageName != null) {
 
         //判断目标Activity是否已经在栈顶，如果是，需要判断是创建一个新的Activity
@@ -3404,15 +3439,16 @@ startActivityUncheckedLocked第一阶段的工作还算简单，主要确定是�
    return START_SUCCESS;
 
 }//startActivityUncheckLocked函数结束
+```
 
 startActivityUncheckLocked的第三阶段工作也比较复杂，不过针对本例，它将创建一个新的TaskRecord，并调用startActivityLocked函数进行处理。
 
 下面我们转战startActivityLocked函数。
 
-（4） startActivityLocked函数分析
+##### （4） startActivityLocked函数分析
 
 [-->ActivityStack.java::startActivityLocked]
-
+```java
 private final voidstartActivityLocked(ActivityRecord r, boolean newTask,
 
            boolean doResume, boolean keepCurTransition) {
@@ -3450,21 +3486,22 @@ private final voidstartActivityLocked(ActivityRecord r, boolean newTask,
    if (doResume) resumeTopActivityLocked(null);//重点分析这个函数
 
  }
+```
 
 在以上列出的startActivityLocked函数中，略去了一部分逻辑处理，这部分内容和Activity之间的切换动画有关（通过这些动画，使切换过程看起来更加平滑和美观，需和WMS交互）。
 
 提示笔者认为，此处将Activity切换和动画处理这两个逻辑揉到一起并不合适，但是似乎也没有更合适的地方来进行该工作了。读者不妨自行研读一下该段代码以加深体会。
 
-（5） startActivityUncheckedLocked总结
+##### （5） startActivityUncheckedLocked总结
 
 说实话，startActivityUncheckedLocked函数的复杂度超乎笔者的想象，光这些函数名就够让人头疼的。但是针对本例而言，相关逻辑的难度还算适中，毕竟这是Activity启动流程中最简单的情况。可用一句话总结本例中startActivityUncheckedLocked函数的功能：创建ActivityRecord和TaskRecord并将ActivityRecord添加到mHistory末尾，然后调用resumeTopActivityLocked启动它。
 
 下面用一节来分析resumeTopActivityLocked函数。
 
-3.  resumeTopActivityLocked函数分析
+#### 3.  resumeTopActivityLocked函数分析
 
 [-->ActivityStack.java::resumeTopActivityLocked]
-
+```java
  finalboolean resumeTopActivityLocked(ActivityRecord prev) {
 
    //从mHistory中找到第一个需要启动的ActivityRecord
@@ -3574,6 +3611,7 @@ private final voidstartActivityLocked(ActivityRecord r, boolean newTask,
     returntrue;
 
 }
+```
 
 resumeTopActivityLocked函数中有两个非常重要的关键点：
 
@@ -3585,10 +3623,10 @@ resumeTopActivityLocked函数中有两个非常重要的关键点：
 
 好了，继续我们的分析。resumeTopActivityLocked最后将调用另外一个startSpecificActivityLocked，该函数将真正创建一个应用进程。
 
-（1） startSpecificActivityLocked分析
+##### （1） startSpecificActivityLocked分析
 
 [-->ActivityStack.java::startSpecificActivityLocked]
-
+```java
 private final voidstartSpecificActivityLocked(ActivityRecord r,
 
            boolean andResume, boolean checkConfig) {
@@ -3642,13 +3680,13 @@ private final voidstartSpecificActivityLocked(ActivityRecord r,
               true, 0,"activity",r.intent.getComponent(), false);
 
 }
-
+```
 来看AMS的startProcessLocked函数，它将创建一个新的应用进程。
 
-（2） startProcessLocked分析
+##### （2） startProcessLocked分析
 
 [-->ActivityManagerService.java::startProcessLocked]
-
+```java
 final ProcessRecord startProcessLocked(StringprocessName,
 
            ApplicationInfo info, boolean knownToBeDead, int intentFlags,
@@ -3718,6 +3756,7 @@ final ProcessRecord startProcessLocked(StringprocessName,
      return(app.pid != 0) ? app : null;
 
  }
+```
 
 在以上代码中列出两个关键点，其中第一点和FLAG_FROM_BACKGROUND有关，相关知识点如下：
 
@@ -3730,7 +3769,7 @@ final ProcessRecord startProcessLocked(StringprocessName,
 下面来看第二个关键点，即另一个startProcessLocked函数，其代码如下：
 
 [-->ActivityManagerService.java::startProcessLocked]
-
+```java
 private final voidstartProcessLocked(ProcessRecord app,
 
                             String hostingType, StringhostingNameStr) {
@@ -3864,27 +3903,27 @@ private final voidstartProcessLocked(ProcessRecord app,
     }......
 
  }
+ ```
 
 startProcessLocked通过发送消息给Zygote以派生一个应用进程[④]，读者仔细研究所发消息的内容，大概会发现此处并未设置和Activity相关的信息，也就是说，该进程启动后，将完全不知道自己要干什么，怎么办？下面就此进行分析。
 
-4.  startActivity分析之半程总结
+#### 4.  startActivity分析之半程总结
 
 很抱歉，我们现在还处于startActivity分析之旅的中间点，即使越过了很多险滩恶途，一路走来还是发觉有点艰难。此处用图6-14来记录半程中的各个关键点。
 
 
-
-图6-14  startActivity半程总结
+![图6-14  startActivity半程总结](/images/understand2/6-14.png)
 
 图6-14列出了针对本例的调用顺序，其中对每个函数的大体功能也做了简单描述。
 
 注意图6-14中的调用顺序及功能说明只是针对本例而言的。读者以后可结合具体情况再深入研究其中的内容。
 
-5.  应用进程的创建及初始化
+#### 5.  应用进程的创建及初始化
 
 如前所述，应用进程的入口是ActivityThread的main函数，它是在主线程中执行的，其代码如下：
 
 [-->ActivityThread.java::main]
-
+```java
 public static void main(String[] args) {
 
    SamplingProfilerIntegration.start();
@@ -3918,13 +3957,14 @@ public static void main(String[] args) {
    throw newRuntimeException("Main thread loop unexpectedly exited");
 
 }
+```
 
 在main函数内部将创建一个消息循环Loop，接着调用ActivityThread的attach函数，最终将主线程加入消息循环。
 
 我们在分析AMS的setSystemProcess时曾分析过ActivityThread的attach函数，那时传入的参数值为true。现在来看设置其为false的情况：
 
 [-->ActivityThread.java::attach]
-
+```java
 private void attach(boolean system) {
 
   sThreadLocal.set(this);
@@ -3974,13 +4014,14 @@ private void attach(boolean system) {
    {.......//添加回调函数});
 
 }
+```
 
 我们知道，AMS创建一个应用进程后，会设置一个超时时间（一般是10秒）。如果超过这个时间，应用进程还没有和AMS交互，则断定该进程创建失败。所以，应用进程启动后，需要尽快和AMS交互，即调用AMS的attachApplication函数。在该函数内部将调用attachApplicationLocked，所以此处直接分析attachApplicationLocked，先看其第一阶段的工作。
 
-（1） attachApplicationLocked分析之一
+##### （1） attachApplicationLocked分析之一
 
 [-->ActivityManagerService.java::attachApplicationLocked]
-
+```java
 private final booleanattachApplicationLocked(IApplicationThread thread,
 
            int pid) {//此pid代表调用进程的pid
@@ -4092,6 +4133,7 @@ private final booleanattachApplicationLocked(IApplicationThread thread,
    //启动成功，从消息队列中撤销PROC_START_TIMEOUT_MSG消息
 
   mHandler.removeMessages(PROC_START_TIMEOUT_MSG, app);
+```
 
 attachApplicationLocked第一阶段的工作比较简单：
 
@@ -4101,10 +4143,10 @@ attachApplicationLocked第一阶段的工作比较简单：
 
 至此，该进程启动成功，但是这一阶段的工作仅针对进程本身（如设置调度优先级，oom_adj等），还没有涉及和Activity启动相关的内容，这部分工作将在第二阶段完成。
 
-（2） attachApplicationLocked分析之二
+##### （2） attachApplicationLocked分析之二
 
 [-->ActivityManagerService.java::attachApplicationLocked]
-
+```java
    ......
 
    //SystemServer早就启动完毕，所以normalMode为true
@@ -4204,9 +4246,10 @@ attachApplicationLocked第一阶段的工作比较简单：
    mPersistentStartingProcesses.remove(app);
 
   mProcessesOnHold.remove(app);
+```
 
 由以上代码可知，第二阶段的工作主要是为调用ApplicationThread的bindApplication做准备，将在后面的章节中分析该函数的具体内容。此处先来看它的原型。
-
+```java
 /*
 
    正如我们在前面分析时提到的，刚创建的这个进程并不知道自己的历史使命是什么，甚至连自己的
@@ -4262,13 +4305,14 @@ public final void bindApplication(
        Map<String,IBinder> services,
 
        BundlecoreSettings)//核心配置参数，目前仅有“long_press”值
+```
 
 对bindApplication的原型分析就到此为止，再来看attachApplicationLocked最后一阶段的工作。
 
-（3） attachApplicationLocked分析之三
+##### （3） attachApplicationLocked分析之三
 
 [-->ActivityManagerService.java::attachApplicationLocked]
-
+```java
    booleanbadApp = false;
 
    booleandidSomething = false;
@@ -4398,6 +4442,7 @@ public final void bindApplication(
    returntrue;
 
  }
+```
 
 attachApplicationLocked第三阶段的工作就是通知应用进程启动Activity和Service等组件，其中用于启动Activity的函数是ActivityStack realStartActivityLocked。
 
@@ -4405,12 +4450,12 @@ attachApplicationLocked第三阶段的工作就是通知应用进程启动Activi
 
 提示还记得AMS中System Context执行的两次init吗？第二次init的功能就是将Context和对应的Application绑定在一起。
 
-（4） ApplicationThread的bindApplication分析
+##### （4） ApplicationThread的bindApplication分析
 
 bindApplication在ApplicationThread中的实现，其代码如下：
 
 [-->ActivityThread.java::bindApplication]
-
+```java
 public final void bindApplication(......) {
 
  
@@ -4442,11 +4487,12 @@ public final void bindApplication(......) {
     queueOrSendMessage(H.BIND_APPLICATION, data);
 
  }
+```
 
 由以上代码可知，ApplicationThread接收到来自AMS的指令后，均会将指令中的参数封装到一个数据结构中，然后通过发送消息的方式转交给主线程去处理。BIND_APPLICATION最终将由handleBindApplication函数处理。该函数并不复杂，但是其中有些点是值得关注的，这些点主要是初始化应用进程的一些参数。handleBindApplication函数的代码如下：
 
 [-->ActivityThread.java::handleBindApplication]
-
+```java
 private void handleBindApplication(AppBindDatadata) {
 
    mBoundApplication = data;
@@ -4650,6 +4696,7 @@ private void handleBindApplication(AppBindDatadata) {
   mInstrumentation.callApplicationOnCreate(app);
 
 }
+```
 
 由以上代码可知，bindApplication函数将设置一些初始化参数，其中最重要的有：
 
@@ -4659,7 +4706,7 @@ private void handleBindApplication(AppBindDatadata) {
 
 提示从以上代码可知，ContentProvider的创建就在bindApplication函数中，其时机早于其他组件的创建。
 
-（5） 应用进程的创建及初始化总结
+##### （5） 应用进程的创建及初始化总结
 
 本节从应用进程的入口函数main开始，分析了应用进程和AMS之间的两次重要交互，它们分别是：
 
@@ -4669,12 +4716,12 @@ private void handleBindApplication(AppBindDatadata) {
 
 提示这个流程有点类似生孩子，一般生之前需要到医院去登记，生完后又需去注册户口，如此这般，这个孩子才会在社会有合法的身份。
 
-6.  ActivityStack realStartActivityLocked分析
+#### 6.  ActivityStack realStartActivityLocked分析
 
 如前所述，AMS调用完bindApplication后，将通过realStartActivityLocked启动Activity。在此之前，要创建完应用进程并初始化Android运行环境（除此之外，连ContentProvider都安装好了）。
 
 [-->ActivityStack.java::realStartActivityLocked]
-
+```java
 //注意，在本例中该函数的最后两个参数的值都为true
 
 final booleanrealStartActivityLocked(ActivityRecord r, ProcessRecord app,
@@ -4808,13 +4855,14 @@ final booleanrealStartActivityLocked(ActivityRecord r, ProcessRecord app,
     returntrue;
 
  }
+```
 
 在以上代码中有两个关键函数，分别是：scheduleLaunchActivity和completeResumeLocked。其中，scheduleLaunchActivity用于和应用进程交互，通知它启动目标Activity。而completeResumeLocked将继续AMS的处理流程。先来看第一个关键函数。
 
-（1） scheduleLaunchActivity函数分析
+##### （1） scheduleLaunchActivity函数分析
 
 [-->ActivityThread.java::scheduleLaunchActivity]
-
+```java
 public final void scheduleLaunchActivity(Intentintent, IBinder token, int ident,
 
      ActivityInfo info, Configuration curConfig,CompatibilityInfo compatInfo,
@@ -4836,9 +4884,10 @@ public final void scheduleLaunchActivity(Intentintent, IBinder token, int ident,
   queueOrSendMessage(H.LAUNCH_ACTIVITY, r);
 
  }
+```
 
 [-->ActivityThread.java::handleMessage]
-
+```java
 public void handleMessage(Message msg) {
 
   switch(msg.what) {
@@ -4862,9 +4911,10 @@ public void handleMessage(Message msg) {
 ......
 
 }
+```
 
 [-->ActivityThread.java::handleLaunchActivity]
-
+```java
 private voidhandleLaunchActivity(ActivityClientRecord r,
 
                              Intent customIntent){
@@ -4918,6 +4968,7 @@ private voidhandleLaunchActivity(ActivityClientRecord r,
       }
 
   }
+```
 
 handleLaunchActivity的工作包括：
 
@@ -4926,7 +4977,7 @@ handleLaunchActivity的工作包括：
 -  调用handleResumeActivity，会在其内部调用目标Activity的onResume函数。除此之外，handleResumeActivity还完成了一件很重要的事情，见下面的代码：
 
 [-->ActivityThread.java::handleResumeActivity]
-
+```java
 final void handleResumeActivity(IBinder token,boolean clearHide,
 
                                      booleanisForward) {
@@ -4974,7 +5025,7 @@ final void handleResumeActivity(IBinder token,boolean clearHide,
 根据第2章对MessageQueue的分析，当消息队列中没有其他要处理的消息时，将处理以上代码中通过addIdleHandler添加的Idler对象，也就是说，Idler对象的优先级最低，这是不是说它的工作不重要呢？非也。至少在handleResumeActivity函数中添加的这个Idler并不不简单，其代码如下：
 
 [-->ActivityThread.java::Idler]
-
+```java
 private class Idler implements MessageQueue.IdleHandler{
 
     publicfinal boolean queueIdle() {
@@ -5024,13 +5075,14 @@ private class Idler implements MessageQueue.IdleHandler{
    }// queueIdle函数结束
 
  }
+```
 
 由以上代码可知，Idler将为那些已经完成onResume的Activity调用AMS的activityIdle函数。该函数是Activity成功创建并启动的流程中与AMS交互的最后一步。虽然对应用进程来说，Idler处理的优先级最低，但AMS似乎不这么认为，因为它还设置了超时等待，以处理应用进程没有及时调用activityIdle的情况。这个超时等待即由realStartActivityLocked中最后一个关键点completeResumeLocked函数设置。
 
-（2） completeResumeLocked函数分析
+##### （2） completeResumeLocked函数分析
 
 [-->ActivityStack.java::completeResumeLocked]
-
+```java
 private final voidcompleteResumeLocked(ActivityRecord next) {
 
    next.idle = false;
@@ -5054,15 +5106,16 @@ private final voidcompleteResumeLocked(ActivityRecord next) {
      ......//略去其他逻辑的代码
 
 }
+```
 
 由以上代码可知，AMS给了应用进程10秒的时间，希望它在10秒内调用activityIdle函数。这个时间不算长，和前面AMS等待应用进程启动的超时时间一样。所以，笔者有些困惑，为什么要把这么重要的操作放到idler中去做。
 
 下面来看activityIdle函数，在其内部将调用ActivityStack activityIdleInternal。
 
-（3） activityIdleInternal函数分析
+##### （3） activityIdleInternal函数分析
 
 [-->ActivityStack.java::activityIdleInternal]
-
+```java
 final ActivityRecord activityIdleInternal(IBindertoken, boolean fromTimeout,
 
                                       Configuration config) {
@@ -5214,6 +5267,7 @@ final ActivityRecord activityIdleInternal(IBindertoken, boolean fromTimeout,
    returnres;
 
  }
+```
 
 在activityIdleInternal中有一个非常重要的关键点，即处理那些因为本次Activity启动而被暂停的Activity。有两种情况需考虑：
 
@@ -5225,24 +5279,24 @@ final ActivityRecord activityIdleInternal(IBindertoken, boolean fromTimeout,
 
 提示本例的分析结束了吗？没有。因为am设置了-W选项，所以其实我们还在startActivityAndWait函数中等待结果。ActivityStack中有两个函数能够触发AMS notifyAll，一个是reportActivityLaunchedLocked，另一个是reportActivityVisibleLocked。前面介绍的activityInternal函数只在fromTimeout为true时才会调用reportActivityLaunchedLocked，而本例中fromTimeout为false，如何是好？该问题的解答非常复杂，姑且先一语带过：当Activity显示出来时，其在AMS中对应ActivityRecord对象的windowVisible函数将被调用，其内部会触发reportActivityLaunchedLocked函数，这样我们的startActivityAndWait才能被唤醒。
 
-7.  startActivity分析之后半程总结
+#### 7.  startActivity分析之后半程总结
 
 总结startActivity后半部分的流程，主要涉及目标进程和AMS的交互，如图6-15所示。
 
 
 
-图6-15  startActivity后半程总结
+![图6-15  startActivity后半程总结](/images/understand2/6-15.png)
 
 图6-15中涉及16个重要函数调用，而且这仅是startActivity后半部分的调用流程，可见整个流程有多么复杂！
 
-8. startPausingLocked函数分析
+##### 8. startPausingLocked函数分析
 
 现在我们分析图6-14中的startPausingLocked分支。根据前面的介绍，当启动一个新Activity时，系统将先行处理当前的Activity，即调用startPausingLocked函数来暂停当前Activity。
 
-（1） startPausingLocked分析
+##### （1） startPausingLocked分析
 
 [-->ActivityStack.java::startPausingLocked]
-
+```java
 private final void startPausingLocked(booleanuserLeaving, boolean uiSleeping) {
 
    //mResumedActivity保存当前正显示的Activity，
@@ -5320,13 +5374,14 @@ private final void startPausingLocked(booleanuserLeaving, boolean uiSleeping) {
     }......//else分支
 
  }
+```
 
 startPausingLocked将调用应用进程的schedulePauseActivity函数，并设置500毫秒的超时时间，所以应用进程需尽快完成相关处理。和scheduleLaunchActivity一样，schedulePauseActivity将向ActivityThread主线程发送PAUSE_ACTIVITY消息，最终该消息由handlePauseActivity来处理。
 
-（2） handlePauseActivity分析
+##### （2） handlePauseActivity分析
 
 [-->ActivityThread.java::handlePauseActivity]
-
+```java
 private void handlePauseActivity(IBinder token,boolean finished,
 
                                boolean userLeaving, int configChanges){
@@ -5360,9 +5415,10 @@ private void handlePauseActivity(IBinder token,boolean finished,
     }
 
  }
+```
 
 [-->ActivityManagerService.java::activityPaused]
-
+```java
 public final void activityPaused(IBinder token) {
 
    ......
@@ -5370,9 +5426,10 @@ public final void activityPaused(IBinder token) {
    mMainStack.activityPaused(token, false);
 
 }
+```
 
 [-->ActivityStack.java::activityPaused]
-
+```java
 final void activityPaused(IBinder token, booleantimeout) {
 
  ActivityRecord r = null;
@@ -5402,11 +5459,12 @@ final void activityPaused(IBinder token, booleantimeout) {
    }
 
  }
+```
 
-（3） completePauseLocked分析
+##### （3） completePauseLocked分析
 
 [-->ActivityStack.java::completePauseLocked]
-
+```java
 private final void completePauseLocked() {
 
   ActivityRecord prev = mPausingActivity;
@@ -5456,17 +5514,18 @@ private final void completePauseLocked() {
    ......
 
 }
+```
 
 就本例而言，以上代码还算简单，最后还是通过resumeTopActivityLocked来启动目标Activity。当然，由于之前已经设置了mPausingActivity为null，所以最终会走到图6-14中③的分支。
 
-（4） stopActivityLocked分析
+##### （4） stopActivityLocked分析
 
 根据前面的介绍，此次目标Activity将走完onCreate、onStart和onResume流程，但是被暂停的Activity才刚走完onPause流程，那么它的onStop什么时候调用呢？
 
 答案就在activityIdelInternal中，它将为mStoppingActivities中的成员调用stopActivityLocked函数。
 
 [-->ActivityStack.java::stopActivityLocked]
-
+```java
  privatefinal void stopActivityLocked(ActivityRecord r) {
 
    if((r.intent.getFlags()&Intent.FLAG_ACTIVITY_NO_HISTORY) != 0
@@ -5498,11 +5557,12 @@ private final void completePauseLocked() {
     }......
 
   }
+```
 
 对应进程的scheduleStopActivity函数将根据visible的情况，向主线程消息循环发送H. STOP_ACTIVITY_HIDE或H. STOP_ACTIVITY_SHOW消息。不论哪种情况，最终都由handleStopActivity来处理。
 
 [-->ActivityThread.java::handleStopActivity]
-
+```java
 private void handleStopActivity(IBinder token,boolean show, int configChanges) {
 
  ActivityClientRecord r = mActivities.get(token);
@@ -5528,20 +5588,21 @@ private void handleStopActivity(IBinder token,boolean show, int configChanges) {
    }
 
 }
+```
 
 AMS没有为stop设置超时消息处理。严格来说，还是有超时限制的，只是这个超时处理与activityIdleInternal结合起来了。
 
-（5） startPausingLocked总结
+##### （5） startPausingLocked总结
 
 总结startPausingLocked流程，如图6-16所示。
 
 
 
-图6-16  startPausingActivity流程总结
+![图6-16  startPausingActivity流程总结](/images/understand2/6-16.png)
 
 图6-16比较简单，读者最好结合代码再把流程走一遍，以加深理解。
 
-9.  startActivity总结
+#### 9.  startActivity总结
 
 Activity的启动就介绍到这里。这一路分析下来，相信读者也和笔者一样觉得此行绝不轻松。先回顾一下此次旅程：
 
@@ -5567,7 +5628,7 @@ Activity的启动就介绍到这里。这一路分析下来，相信读者也和
 
 建议在研究代码前，先仔细阅读SDK文档相关内容，以获取必要的感性认识，否则直接看代码很容易迷失方向。
 
-6.4  Broadcast和BroadcastReceiver分析
+## 6.4  Broadcast和BroadcastReceiver分析
 
 Broadcast，汉语意思为“广播”。它是Android平台中的一种通知机制。从广义来说，它是一种进程间通信的手段。有广播，就对应有广播接收者。Android中四大组件之一的BroadcastReceiver即代表广播接收者。目前，系统提供两种方式来声明一个广播接收者。
 
@@ -5589,14 +5650,14 @@ Broadcast，汉语意思为“广播”。它是Android平台中的一种通知�
 
 下面将以动态广播接收者为例，分析Android对广播的处理流程。
 
-6.4.1  registerReceiver流程分析
+### 6.4.1  registerReceiver流程分析
 
-1.  ContextImpl registerReceiver分析
+#### 1.  ContextImpl registerReceiver分析
 
 registerReceiver函数用于注册一个动态广播接收者，该函数在Context.java中声明。根据本章前面对Context家族的介绍（参考图6-3），其功能最终将通过ContextImpl类的registerReceiver函数来完成，可直接去看ContextImpl是如何实现此函数的。在SDK中一共定义了两个同名的registerReceiver函数，其代码如下：
 
 [-->ContextImpl.java::registerReceiver]
-
+```java
 /*
 
   在SDK中输出该函数，这也是最常用的函数。当广播到来时，BroadcastReceiver对象的onReceive
@@ -5640,11 +5701,12 @@ getOuterContext就返回这个对外代理人。一般在Activity中调用regist
                scheduler, getOuterContext());
 
 }
+```
 
 殊途同归，最终的功能由registerReceiverInternal来完成，其代码如下：
 
 [-->ContextImpl.java::registerReceiverInternal]
-
+```java
  privateIntent registerReceiverInternal(BroadcastReceiver receiver,
 
       IntentFilter filter, String broadcastPermission, Handler scheduler,
@@ -5698,6 +5760,7 @@ getOuterContext就返回这个对外代理人。一般在Activity中调用regist
         } ......
 
  }
+```
 
 以上代码列出了两个关键点：其一是准备一个IIntentReceiver对象；其二是调用AMS的registerReceiver函数。
 
@@ -5705,7 +5768,7 @@ getOuterContext就返回这个对外代理人。一般在Activity中调用regist
 
 
 
-图6-17  IIntentReceiver相关成员示意图
+![图6-17  IIntentReceiver相关成员示意图](/images/understand2/6-17.png)
 
 由图6-17可知：
 
@@ -5715,16 +5778,16 @@ getOuterContext就返回这个对外代理人。一般在Activity中调用regist
 
 接收广播的处理将放到本节最后再来分析，下面先来看AMS 的registerReceiver函数。
 
-2.  AMS的registerReceiver分析
+#### 2.  AMS的registerReceiver分析
 
 AMS的registerReceiver函数比较简单，但是由于其中将出现一些新的变量类型和成员，因此接下来按分两部分进行分析。
 
-（1） registerReceiver分析之一
+##### （1） registerReceiver分析之一
 
 registerReceiver的返回值是一个Intent，它指向一个匹配过滤条件（由filter参数指明）的Sticky Intent。即使有多个符合条件的Intent，也只返回一个。
 
 [-->ActivityManagerService.java::registerReceiver]
-
+```java
 public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
 
            IIntentReceiver receiver, IntentFilter filter, String permission) {
@@ -5844,12 +5907,13 @@ public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
      // mReceiverResolver成员变量，见下文解释
 
     mReceiverResolver.addFilter(bf);
+```
 
 以上代码的流程倒是很简单，不过其中出现的几个成员变量和数据类型却严重阻碍了我们的思维活动。先解决它们，BroadcastFilter及相关成员变量如图6-18所示。
 
 
 
-图6-18  BroadcastFilter及相关成员变量
+![图6-18  BroadcastFilter及相关成员变量](/images/understand2/6-18.png)
 
 结合代码，对图6-18中各数据类型和成员变量的作用及关系的解释如下：
 
@@ -5861,10 +5925,10 @@ public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
 
 清楚这些成员变量和数据类型之间的关系后，接着来分析registerReceiver第二阶段的工作。
 
-（2） registerReceiver分析之二
+##### （2） registerReceiver分析之二
 
 [-->ActivityManagerService.java::registerReceiver]
-
+```java
     //如果allSticky不为空，则表示有Sticky的Intent，需要立即调度广播发送
 
      if(allSticky != null) {
@@ -5906,6 +5970,7 @@ public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
    }//synchronized结束
 
 }
+```
 
 这一阶段的工作用一句话就能说清楚：为每一个满足IntentFilter的Sticky的intent创建一个BroadcastRecord对象，并将其保存到mParllelBroadcasts数组中，最后，根据情况调度AMS发送广播。
 
@@ -5919,7 +5984,7 @@ public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
 
 
 
-图6-19  BroadcastReceiver及相关变量
+![图6-19  BroadcastReceiver及相关变量](/images/understand2/6-19.png)
 
 图6-19比较简单，读者可自行研究。
 
@@ -5927,12 +5992,12 @@ public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
 
  
 
-6.4.2  sendBroadcast流程分析
+### 6.4.2  sendBroadcast流程分析
 
 在SDK中同样定义了好几个函数用于发送广播。不过，根据之前的经验，最终和AMS交互的函数可能通过一个接口就能完成。来看最简单的广播发送函数sendBroadcast，其代码如下：
 
 [-->ContextImpl.java::sendBroadcast]
-
+```java
 public void sendBroadcast(Intent intent) {
 
    StringresolvedType = intent.resolveTypeIfNeeded(getContentResolver());
@@ -5952,17 +6017,18 @@ public void sendBroadcast(Intent intent) {
         }......
 
  }
+```
 
 AMS的broadcastIntent函数的主要工作将交由AMS的broadcastIntentLocked来完成，故此处直接分析broadcastIntentLocked。
 
-1.  broadcastIntentLocked分析
+#### 1.  broadcastIntentLocked分析
 
 我们分阶段来分析broadcastIntentLocked的工作，先来看第一阶段工作。
 
-（1） broadcastIntentLocked分析之一
+##### （1） broadcastIntentLocked分析之一
 
 [-->ActivityManagerService.java::broadcastIntentLocked]
-
+```java
 private final int broadcastIntentLocked(ProcessRecordcallerApp,
 
       StringcallerPackage, Intent intent, String resolvedType,
@@ -6018,15 +6084,16 @@ private final int broadcastIntentLocked(ProcessRecordcallerApp,
                                   UPDATE_HTTP_PROXY,proxy));
 
    }
+```
 
 从以上代码可知，broadcastIntentLocked第一阶段的工作主要是处理一些特殊的广播消息。
 
 下面来看broadcastIntentLocked第二阶段的工作。
 
-（2） broadcastIntentLocked分析之二
+##### （2） broadcastIntentLocked分析之二
 
 [-->ActivityManagerService.java::broadcastIntentLocked]
-
+```java
    //处理发送sticky广播的情况
 
   if(sticky) {
@@ -6184,6 +6251,7 @@ private final int broadcastIntentLocked(ProcessRecordcallerApp,
        NR =0;
 
   }
+```
 
 broadcastIntentLocked第二阶段的工作有两项：
 
@@ -6191,12 +6259,12 @@ broadcastIntentLocked第二阶段的工作有两项：
 
 -  当本次广播不为ordered时，需要尽快发送该广播。另外，非ordered的广播都被AMS保存在mParallelBroadcasts中。
 
-（3） broadcastIntentLocked分析之三
+##### （3） broadcastIntentLocked分析之三
 
 下面来看broadcastIntentLocked最后一阶段的工作，其代码如下：
 
 [-->ActivityManagerService.java::broadcastIntentLocked]
-
+```java
    int ir = 0;
 
    if(receivers != null) {
@@ -6252,6 +6320,7 @@ broadcastIntentLocked第二阶段的工作有两项：
   returnBROADCAST_SUCCESS;
 
 }
+```
 
 由以上代码可知，AMS将动态注册者和静态注册者都合并到receivers中去了。注意，如果本次广播不是ordered，那么表明动态注册者就已经在第二阶段工作中被处理了。因此在合并时，将不会有动态注册者被加到receivers中。最终所创建的广播记录存储在mOrderedBroadcasts中，也就是说，不管是否串行化发送，静态接收者对应的广播记录都将保存在mOrderedBroadcasts中。为什么不将它们保存在mParallelBroadcasts中呢？
 
@@ -6259,14 +6328,14 @@ broadcastIntentLocked第二阶段的工作有两项：
 
 下面进入AMS的BROADCAST_INTENT_MSG消息处理函数，看看情况是否如上所说。
 
-6.4.3  BROADCAST_INTENT_MSG消息处理函数
+### 6.4.3  BROADCAST_INTENT_MSG消息处理函数
 
 BROADCAST_INTENT_MSG消息将触发processNextBroadcast函数，下面分阶段来分析它。
 
-1.  processNextBroadcast分析之一
+#### 1.  processNextBroadcast分析之一
 
 [-->ActivityManagerService.java::processNextBroadcast]
-
+```java
 private final void processNextBroadcast(booleanfromMsg) {
 
    //如果是BROADCAST_INTENT_MSG消息触发该函数，则fromMsg为true
@@ -6312,11 +6381,12 @@ private final void processNextBroadcast(booleanfromMsg) {
         addBroadcastToHistoryLocked(r);
 
   }
+```
 
 deliverToRegisteredReceiverLocked函数的功能就是派发广播给接收者，其代码如下：
 
 [-->ActivityManagerService.java::deliverToRegisteredReceiverLocked]
-
+```java
 private final voiddeliverToRegisteredReceiverLocked(BroadcastRecord r,
 
                          BroadcastFilter filter, booleanordered) {
@@ -6378,11 +6448,11 @@ private final voiddeliverToRegisteredReceiverLocked(BroadcastRecord r,
    }
 
  }
-
+```
 来看performReceiveLocked函数，其代码如下：
 
 [-->ActivityManagerService.java::performReceiveLocked]
-
+```java
 static void performReceiveLocked(ProcessRecordapp, IIntentReceiver receiver,
 
       Intentintent, int resultCode, String data, Bundle extras,
@@ -6410,17 +6480,17 @@ static void performReceiveLocked(ProcessRecordapp, IIntentReceiver receiver,
    }
 
  }
-
+```
 对于动态注册者而言，在大部分情况下会执行if分支，所以应用进程ApplicationThread的scheduleRegisteredReceiver函数将被调用。稍后再分析应用进程的广播处理流程。
 
-2.  processNextBroadcast分析之二
+#### 2.  processNextBroadcast分析之二
 
 至此，processNextBroadcast已经在一个while循环中处理完mParallelBroadcasts的所有成员了，实际上，这种处理方式也会造成惊群效应，但影响相对较少。这是因为对于动态注册者来说，它们所在的应用进程已经创建并初始化成功。此处的广播发送只是调用应用进程的一个函数而已。相比于创建进程，再初始化Android运行环境所需的工作量，调用scheduleRegisteredReceiver的工作就比较轻松了。
 
 来看processNextBroadcast第二阶段的工作，代码如下：
 
 [-->ActivityManagerService.java::processNextBroadcast]
-
+```java
    /*
 
     现在要处理mOrderedBroadcasts中的成员。如前所述，它要处理一个接一个的接受者，如果
@@ -6572,6 +6642,7 @@ static void performReceiveLocked(ProcessRecordapp, IIntentReceiver receiver,
      }
 
   } while (r== null);
+```
 
 processNextBroadcast第二阶段的工作比较简单：
 
@@ -6579,12 +6650,12 @@ processNextBroadcast第二阶段的工作比较简单：
 
 -  处理超时的广播记录。这个超时时间是2*BROADCAST_TIMEOUT*numReceivers。BROADCAST_TIMEOUT默认为10秒。由于涉及创建进程，初始化Android运行环境等重体力活，故此处超时时间还乘以一个固定倍数2。
 
-3.  processNextBroadcast分析之三
+#### 3.  processNextBroadcast分析之三
 
 来看processNextBroadcast第三阶段的工作，代码如下：
 
 [-->ActivityManagerService.java::processNextBroadcast]
-
+```java
   int recIdx= r.nextReceiver++;
 
  r.receiverTime = SystemClock.uptimeMillis();
@@ -6740,6 +6811,7 @@ processNextBroadcast第二阶段的工作比较简单：
   mPendingBroadcastRecvIndex = recIdx;
 
  }
+```
 
 对processNextBroadcast第三阶段的工作总结如下：
 
@@ -6751,16 +6823,16 @@ processNextBroadcast第二阶段的工作比较简单：
 
 此处，不再讨论新进程创建及Android运行环境初始化相关的逻辑，读者可返回阅读“attachApplicationLocked分析之三”，其中有处理mPendingBroadcast的内容。
 
-6.4.4   应用进程处理广播分析
+### 6.4.4   应用进程处理广播分析
 
 下面来分析当应用进程收到广播后的处理流程，以动态接收者为例。
 
-1.  ApplicationThreadscheduleRegisteredReceiver函数分析
+#### 1.  ApplicationThreadscheduleRegisteredReceiver函数分析
 
 如前所述，AMS将通过scheduleRegisteredReceiver函数将广播交给应用进程，该函数代码如下：
 
 [-->ActivityThread.java::scheduleRegisteredReceiver]
-
+```java
 public voidscheduleRegisteredReceiver(IIntentReceiver receiver, Intent intent,
 
        intresultCode, String dataStr, Bundle extras, boolean ordered,
@@ -6772,15 +6844,15 @@ public voidscheduleRegisteredReceiver(IIntentReceiver receiver, Intent intent,
   //的对象吗？
 
    receiver.performReceive(intent,resultCode, dataStr, extras, ordered,
-
                                sticky);
 
  }
+```
 
 就本例而言，receiver对象的真实类型为LoadedApk.ReceiverDispatcher，来看它的performReceive函数，代码如下：
 
 [-->LoadedApk.java::performReceive]
-
+```java
 public void performReceive(Intent intent, intresultCode,
 
    Stringdata, Bundle extras, boolean ordered, boolean sticky) {
@@ -6806,13 +6878,14 @@ public void performReceive(Intent intent, intresultCode,
    }
 
 }
+```
 
 scheduleRegisteredReceiver最终向主线程的Handler投递了一个Args对象，这个对象的run函数将在主线程中被调用。
 
-2.  Args.run分析
+#### 2.  Args.run分析
 
 [-->LoadedApk.java::Args.run]
-
+```java
    publicvoid run() {
 
      finalBroadcastReceiver receiver = mReceiver;
@@ -6852,15 +6925,16 @@ scheduleRegisteredReceiver最终向主线程的Handler投递了一个Args对象�
      if(receiver.getPendingResult() != null) finish();
 
     }
+```
 
 Finish的代码很简单，此处不在赘述，在其内部会通过sendFinished函数调用AMS的finishReceiver函数，以通知AMS。
 
-3.  AMS的finishReceiver函数分析
+#### 3.  AMS的finishReceiver函数分析
 
 不论ordered还是非orded广播，AMS的finishReceiver函数都会被调用，它的代码如下：
 
 [-->ActivityManagerService.java::finishReceiver]
-
+```java
 public void finishReceiver(IBinder who, intresultCode, String resultData,
 
            Bundle resultExtras, boolean resultAbort) {
@@ -6892,16 +6966,17 @@ public void finishReceiver(IBinder who, intresultCode, String resultData,
    Binder.restoreCallingIdentity(origId);
 
 }
+```
 
 由以上代码可知，finishReceiver将根据情况调度下一次广播发送。
 
-6.4.5  广播处理总结
+### 6.4.5  广播处理总结
 
 广播处理的流程及相关知识点还算比较简单，可以用图6-20来表示本例的流程。
 
 
 
-图6-20  Broadcast处理流程
+![图6-20  Broadcast处理流程](/images/understand2/6-20.png)
 
 在图6-20中，将调用函数所属的实际对象类型标注了出来，其中第11步的MyBroadcastReceiver为本例中所注册的广播接收者。
 
@@ -6909,13 +6984,13 @@ public void finishReceiver(IBinder who, intresultCode, String resultData,
 
  
 
-6.5  startService之按图索骥
+## 6.5  startService之按图索骥
 
 Service是Android的四大组件之一。和Activity，BroadcastReceiver相比，Service定位于业务层逻辑处理，而Activity定位于前端UI层逻辑处理，BroadcastReceiver定位于通知逻辑的处理。
 
 做为业务服务提供者，Service自有一套规则，先来看有关Service的介绍。
 
-6.5.1  Service知识介绍
+### 6.5.1  Service知识介绍
 
 四大组件之一的Service，其定义非常符合C/S架构中Service的概念，即为Client服务，处理Client的请求。在Android中，目前接触最多的是Binder中的C/S架构。在这种架构中，Client通过调用预先定义好的业务函数向对应的Service发送请求。作为四大组件之一Service，其响应Client的请求方式有两种：
 
@@ -6937,7 +7012,7 @@ Service是Android的四大组件之一。和Activity，BroadcastReceiver相比�
 
  
 
-6.5.2  startService流程图
+### 6.5.2  startService流程图
 
 本章不过多介绍和Service相关的知识，原因有二：
 
@@ -6949,7 +7024,7 @@ startService调用轨迹如图6-21和图6-22所示。
 
 
 
-图6-21  startService流程图之一
+![图6-21  startService流程图之一](/images/understand2/6-21.png)
 
 图6-21列出了和startService相关的调用流程。在这个流程中，可假设Service所对应的进程已经存在。
 
@@ -6957,11 +7032,11 @@ startService调用轨迹如图6-21和图6-22所示。
 
 
 
-图6-22  startService中相关Message的处理流程
+![图6-22  startService中相关Message的处理流程](/images/understand2/6-22.png)
 
 注意图6-21和图6-22中也包含了bindService的处理流程。在实际分析时，读者可分开研究bindService和startService的处理流程。
 
-6.6  AMS中的进程管理
+## 6.6  AMS中的进程管理
 
 前面曾反复提到，Android平台中很少能接触到进程的概念，取而代之的是有明确定义的四大组件。但是作为运行在Linux用户空间内的一个系统或框架，Android不仅不能脱离进程，反而要大力利用Linux OS提供的进程管理机制和手段，更好地为自己服务。作为Android平台中组件运行管理的核心服务，ActivityManagerService当仁不让地接手了这方面的工作。目前，AMS对进程的管理仅涉及两个方面：
 
@@ -6971,9 +7046,9 @@ startService调用轨迹如图6-21和图6-22所示。
 
 先来看在Linux OS中这两方面的进程管理和控制手段。
 
-6.6.1  Linux进程管理介绍[⑥]
+### 6.6.1  Linux进程管理介绍[⑥]
 
-1.  Linux进程调度优先级和调度策略
+#### 1.  Linux进程调度优先级和调度策略
 
 调度优先级和调度策略是操作系统中一个很重要的概念。简而言之，它是系统中CPU资源的管理和控制手段。如何理解？此处进行简单介绍。读者可自行阅读操作系统方面的书籍以加深理解。
 
@@ -7017,7 +7092,7 @@ int sched_setscheduler(pid_t pid, int policy,conststruct sched_param *param);
 
 出现这种现象的原因是，MediaScannerSerivce的扫描线程将调度优先级设置为11，而默认的调度优先级为0。 相比而言，MediaScannerService优先级真的很高。
 
-2.  关于Linux进程oom_adj的介绍
+#### 2.  关于Linux进程oom_adj的介绍
 
 从Linux kernel 2.6.11开始，内核提供了进程的OOM控制机制，目的是当系统出现内存不足（out of memory，简称OOM）的情况时，Kernel可根据进程的oom_adj来选择并杀死一些进程，以回收内存。简而言之，oom_adj可标示Linux进程内存资源的优先级，其可取范围从-16到15，另外有一个特殊值-17用于禁止系统在OOM情况下杀死该进程。和nicer值一样，oom_adj的值越高，那么在OOM情况下，该进程越有可能被杀掉。每个进程的oom_adj初值为0。
 
@@ -7027,9 +7102,9 @@ Linux没有提供单独的API用于设置进程的oom_adj。目前的做法就�
 
 注意这两个参数的典型设置为：
 
-minfree，2048,3072,4096,6144,7168,8192 用于描述不同级别的内存阈值，单位为KB。
+    minfree，2048,3072,4096,6144,7168,8192 用于描述不同级别的内存阈值，单位为KB。
 
-adj，0,1,2,4,7,15 用于描述对应内存阈值的oom_adj值。
+    adj，0,1,2,4,7,15 用于描述对应内存阈值的oom_adj值。
 
 表示当剩余内存为2048KB时，LMK将杀死oom_adj大于等于0的进程。
 
@@ -7037,15 +7112,15 @@ adj，0,1,2,4,7,15 用于描述对应内存阈值的oom_adj值。
 
 提示lowmemorykiller的代码在kernel/drivers/staging/android/lowmemorykiller.c中，感兴趣的读者可尝试自行阅读。
 
-6.6.2  关于Android中的进程管理的介绍
+### 6.6.2  关于Android中的进程管理的介绍
 
 前面介绍了Linux OS中进程管理（包括调度和OOM控制）方面的API，但AMS是如何利用它们的呢？这就涉及AMS中的进程管理规则了。这里简单介绍相关规则。
 
 Android将应用进程分为五大类，分别为Forground类、Visible类、Service类、Background类及Empty类。这五大类的划分各有规则。
 
-1.  进程分类
+#### 1.  进程分类
 
-（1） Forground类
+##### （1） Forground类
 
 该类中的进程重要性最高，属于该类的进程包括下面几种情况：
 
@@ -7057,7 +7132,7 @@ Android将应用进程分为五大类，分别为Forground类、Visible类、Ser
 
 -  最后一种情况是，该进程中有BroadcastReceiver实例正在执行onReceive函数。
 
-（2） Visible类
+##### （2） Visible类
 
 属于Visible类的进程中没有处于前端的组件，但是用户仍然能看到它们，例如位于一个对话框后的Activity界面。目前该类进程包括两种：
 
@@ -7065,7 +7140,7 @@ Android将应用进程分为五大类，分别为Forground类、Visible类、Ser
 
 -  或者包含一个Service，并且该Service和一个Visible（或Forground）的Activity绑定（从字面意义上看，这种情况不太好和Forground进程中第二种情况区分）。
 
-（3） Service类、Background类及Empty类
+##### （3） Service类、Background类及Empty类
 
 这三类进程都没有可见的部分，具体情况如下。
 
@@ -7079,12 +7154,12 @@ Android将应用进程分为五大类，分别为Forground类、Visible类、Ser
 
 建议读者可阅读SDK/docs/guide/topics/fundamentals/processes-and-threads.html以获取更为详细的信息。
 
-2.  Process类API介绍
+#### 2.  Process类API介绍
 
 我们先来介绍Android平台中进程调度和OOM控制的API，它们统一被封装在Process.java中，其相关代码如下：
 
 [-->Process.java]
-
+```java
 //设置线程的调度优先级，Linux kernel并不区分线程和进程，二者对应同一个数据结构Task
 
 public static final native void setThreadPriority(inttid, int priority)
@@ -7134,14 +7209,15 @@ public static final native voidsetThreadPriority(int priority)
 //调整进程的oom_adj值
 
 public static final native boolean setOomAdj(intpid, int amt);
+```
 
 Process类还为不同调度优先级定义一些非常直观的名字以避免在代码中直接使用整型，例如为最低的调度优先级19定义了整型变量THREAD_PRIORITY_LOWEST。除此之外，Process还提供了fork子进程等相关的函数。
 
 注意Process.java中的大多数函数是由JNI层实现的，其中Android在调度策略设置这一功能上还有一些特殊的地方，感兴趣的读者不妨阅读system/core/libcutils/sched_policy.c文件。
 
-3.  关于ProcessList类和ProcessRecord类的介绍
+#### 3.  关于ProcessList类和ProcessRecord类的介绍
 
-（1） ProcessList类的介绍
+##### （1） ProcessList类的介绍
 
 ProcessList类有两个主要功能：
 
@@ -7152,7 +7228,7 @@ ProcessList类有两个主要功能：
 本节主要关注ProcessList对oom_adj的定义。虽然前面介绍时将Android进程分为五大类，但是在实际代码中的划分更为细致，考虑得更为周全。
 
 [-->ProcessList.java]
-
+```java
 class ProcessList {
 
     //当一个进程连续发生Crash的间隔小于60秒时，系统认为它是为Bad进程
@@ -7316,17 +7392,17 @@ class ProcessList {
            57344, 65536, 81920
 
     };
-
+```
 从以上代码中定义的各种ADJ值可知，AMS中的进程管理规则远比想象得要复杂（读者以后见识到具体的代码，更会有这样的体会）。
 
 说明在ProcessList中定义的大部分变量在Android 2.3代码中定义于ActivityManagerService.java中，但这段代码的开发者仅把代码复制了过来，其中的注释并未随着系统升级而更新。
 
-（2） ProcessRecord中相关成员变量的介绍
+##### （2） ProcessRecord中相关成员变量的介绍
 
  ProcessRecord定义了较多成员变量用于进程管理。笔者不打算深究其中的细节。这里仅把其中的主要变量及一些注释列举出来。下文会分析到它们的作用。
 
 [-->ProcessRecord.java]
-
+```java
 //用于LRU列表控制
 
 long lastActivityTime;   // For managing the LRU list
@@ -7390,12 +7466,13 @@ String waitingToKill;       // Process is waiting to be killed whenin the bg; re
 int adjSeq;                 // Sequence id for identifyingoom_adj assignment cycles
 
 int lruSeq;                 // Sequence id for identifyingLRU update cycles
+```
 
 上面注释中提到了LRU（最近最少使用）一词，它和AMS另外一个用于管理应用进程ProcessRecord的数据结构有关。
 
 提示进程管理和调度一向比较复杂，从ProcessRecord定义的这些变量中可见一斑。需要提醒读者的是，对这部分功能的相关说明非常少，代码读起来会感觉比较晦涩。
 
-6.6.3  AMS进程管理函数分析
+### 6.6.3  AMS进程管理函数分析
 
 在AMS中，和进程管理有关的函数只要有两个，分别是updateLruProcessLocked和updateOomAdjLocked。这两个函数的调用点有多处，本节以attachApplication为切入点，尝试对它们进行分析。
 
@@ -7408,7 +7485,7 @@ int lruSeq;                 // Sequence id for identifyingLRU update cycles
 其相关代码如下：
 
 [-->ActivityManagerService.java::attachApplicationLocked]
-
+```java
 //attachApplication主要工作由attachApplicationLocked完成，故直接分析它
 
 private final booleanattachApplicationLocked(IApplicationThread thread,
@@ -7464,17 +7541,18 @@ private final booleanattachApplicationLocked(IApplicationThread thread,
       updateOomAdjLocked();
 
  }
+```
 
 在以上这段代码中有两个重要函数调用，分别是updateLruProcessLocked和updateOomAdjLocked。
 
-1.  updateLruProcessLocked函数分析
+#### 1.  updateLruProcessLocked函数分析
 
 根据前文所述，我们知道了系统中所有应用进程（同时包括SystemServer）的ProcessRecord信息都保存在mPidsSelfLocked成员中。除此之外，AMS还有一个成员变量mLruProcesses也用于保存ProcessRecord。mLruProcesses的类型虽然是ArrayList，但其内部成员却是按照ProcessRecord的lruWeight大小排序的。在运行过程中，AMS会根据lruWeight的变化调整mLruProcesses成员的位置。
 
 就本例而言，刚连接（attach）上的这个应用进程的ProcessRecord需要通过updateLruProcessLocked函数加入mLruProcesses数组中。来看它的代码，如下所示：
 
 [-->ActivityManagerService.java::updateLruProcessLocked]
-
+```java
 final void updateLruProcessLocked(ProcessRecordapp,
 
            boolean oomAdj, boolean updateActivityTime) {
@@ -7640,6 +7718,7 @@ private final voidupdateLruProcessInternalLocked(ProcessRecord app,
   if (oomAdj) updateOomAdjLocked(); //以后分析
 
 }
+```
 
 从以上代码可知，updateLruProcessLocked的主要工作是根据app的lruWeight值调整它在数组中的位置。lruWeight值越大，其在数组中的位置就越靠后。如果该app和某些Service（仅考虑通过bindService建立关系的那些Service）或ContentProvider有交互关系，那么这些Service或ContentProvider所在的进程也需要调节lruWeight值。
 
@@ -7649,14 +7728,14 @@ private final voidupdateLruProcessInternalLocked(ProcessRecord app,
 
  
 
-2.  updateOomAdjLocked函数分析
+#### 2.  updateOomAdjLocked函数分析
 
-（1） updateOomAdjLocked分析之一
+##### （1） updateOomAdjLocked分析之一
 
 分段来看updateOomAdjLocked函数。
 
 [-->ActivityManagerService.java::updateOomAdjLocked()]
-
+```java
 final void updateOomAdjLocked() {
 
   //在一般情况下，resumedAppLocked返回 mResumedActivity，即当前正处于前台的Activity
@@ -7784,6 +7863,7 @@ final void updateOomAdjLocked() {
       }//if(!app.killedBackground)判断结束
 
   }//while循环结束
+```
 
 updateOomAdjLocked第一阶段的工作看起来很简单，但是其中也包含一些较难理解的内容。
 
@@ -7797,10 +7877,10 @@ updateOomAdjLocked第一阶段的工作看起来很简单，但是其中也包�
 
 接着来看updateOomAdjLocked下一阶段的工作。
 
-（2） updateOomAdjLocked分析之二
+##### （2） updateOomAdjLocked分析之二
 
 [-->ActivityManagerService.java::updateOomAdjLocked]
-
+```java
  mNumServiceProcs = mNewNumServiceProcs;
 
  //numHidden表示处于hidden状态的进程个数
@@ -7890,6 +7970,7 @@ updateOomAdjLocked第一阶段的工作看起来很简单，但是其中也包�
        mMainStack.destroyActivitiesLocked(null, false,"always-finish");
 
  }
+```
 
 通过上述代码，可获得两个信息：
 
@@ -7899,9 +7980,9 @@ updateOomAdjLocked第一阶段的工作看起来很简单，但是其中也包�
 
 这里和读者探讨一下ComponentCallbacks2接口的意义。此接口的目的是通知应用程序根据情况做一些内存释放，但笔者觉得，这种设计方案的优劣尚有待考证，主要是出于以下下几种考虑：
 
-第一，不是所有应用程序都会实现该函数。原因有很多，主要原因是，该接口只是SDK 14才有的，之前的版本没有这个接口。另外，应用程序都会尽可能抢占资源（在不超过允许范围内）以保证运行速度，不应该考虑其他程序的事情。
+- 第一，不是所有应用程序都会实现该函数。原因有很多，主要原因是，该接口只是SDK 14才有的，之前的版本没有这个接口。另外，应用程序都会尽可能抢占资源（在不超过允许范围内）以保证运行速度，不应该考虑其他程序的事情。
 
-第二个重要原因是无法区分在不同的level下到底要释放什么样的内存。代码中的注释也是含糊其辞。到底什么样的资源可以在TRIM_MEMORY_BACKGROUND级别下释放，什么样的资源不可以在TRIM_MEMORY_BACKGROUND级别下释放？
+- 第二个重要原因是无法区分在不同的level下到底要释放什么样的内存。代码中的注释也是含糊其辞。到底什么样的资源可以在TRIM_MEMORY_BACKGROUND级别下释放，什么样的资源不可以在TRIM_MEMORY_BACKGROUND级别下释放？
 
 既然系统加了这些接口，读者不妨参考源码中的使用案例来开发自己的程序。
 
@@ -7909,10 +7990,10 @@ updateOomAdjLocked第一阶段的工作看起来很简单，但是其中也包�
 
 接下来分析在以上代码中出现的针对每个ProcessRecord都调用的updateOomAdjLocked函数。
 
-3.  第二个updateOomAdjLocked分析
+#### 3.  第二个updateOomAdjLocked分析
 
 [-->ActivityManagerService.java::updateOomAdjLocked]
-
+```java
 private final boolean updateOomAdjLocked( ProcessRecordapp, int hiddenAdj,
 
            ProcessRecord TOP_APP, boolean doingAll) {
@@ -8002,6 +8083,7 @@ private final boolean updateOomAdjLocked( ProcessRecordapp, int hiddenAdj,
    returnsuccess;
 
  }
+```
 
 上面的代码还算简单，主要完成两项工作：
 
@@ -8013,12 +8095,12 @@ private final boolean updateOomAdjLocked( ProcessRecordapp, int hiddenAdj,
 
 看来AMS调度算法的核心就在computeOomAdjLocked中。
 
-4.  computeOomAdjLocked分析
+#### 4.  computeOomAdjLocked分析
 
 这段代码较长，其核心思想是综合考虑各种情况以计算进程的oom_adj和调度策略。建议读者阅读代码时聚焦到AMS关注的几个因素上。computeOomAdjLocked的代码如下：
 
 [-->ActivityManagerService.java::computeOomAdjLocked]
-
+```java
 private final intcomputeOomAdjLocked(ProcessRecord app, int hiddenAdj,
 
            ProcessRecord TOP_APP, boolean recursed, boolean doingAll) {
@@ -8248,31 +8330,31 @@ private final intcomputeOomAdjLocked(ProcessRecord app, int hiddenAdj,
    returnapp.curRawAdj;
 
 }
-
+```
 computeOomAdjLocked的工作比较琐碎，实际上也谈不上什么算法，仅仅是简单地根据各种情况来设置几个值。随着系统的改进和完善，这部分代码变动的可能性比较大。
 
-5. updateOomAdjLocked调用点统计
+#### 5. updateOomAdjLocked调用点统计
 
 updateOomAdjLocked调用点很多，这里给出其中一个updateOomAdjLocked函数的调用点统计，如图6-23所示。
 
 
 
-图6-23  updateOomAdjLocked函数的调用点统计图
+![图6-23  updateOomAdjLocked函数的调用点统计图](/images/understand2/6-23.png)
 
 注意，图6-23统计的是updateOomAdjLocked(ProcessRecord)函数的调用点。从该图可知，此函数被调用的地方较多，这也说明AMS非常关注应用进程的状况。
 
 提示笔者觉得，AMS中这部分代码不是特别高效，不知各位读者是否有同感,？
 
-6.6.4  AMS进程管理总结
+### 6.6.4  AMS进程管理总结
 
 本节首先向读者介绍了Linux平台中和进程调度、OOM管理方面的API，然后介绍了AMS如何利用这些API完成Android平台中进程管理方面的工作，从中可以发现，AMS设置的检查点比较密集，也就是经常会进行进程调度方面的操作。
 
-6.7  App的 Crash处理
+## 6.7  App的 Crash处理
 
 在Android平台中，应用进程fork出来后会为虚拟机设置一个未截获异常处理器，即在程序运行时，如果有任何一个线程抛出了未被截获的异常，那么该异常最终会抛给未截获异常处理器去处理。设置未截获异常处理器的代码如下：
 
 [-->RuntimeInit.java::commonInit]
-
+```java
 private static final void commonInit() {
 
    //调用完毕后，该应用中所有线程抛出的未处理异常都会由UncaughtHandler来处理
@@ -8282,13 +8364,14 @@ private static final void commonInit() {
   ......
 
 }
+```
 
 应用程序有问题是再平常不过的事情了，不过，当抛出的异常没有被截获时，系统又会做什么处理呢？来看UncaughtHandler的代码。
 
-6.7.1  应用进程的Crash处理
+### 6.7.1  应用进程的Crash处理
 
 [-->RuntimeInit.java::UncaughtHandler]
-
+```java
  privatestatic class UncaughtHandler implements
 
                                            Thread.UncaughtExceptionHandler{
@@ -8326,13 +8409,14 @@ private static final void commonInit() {
    }
 
 }
+```
 
-6.7.2  AMS的handleApplicationCrash分析
+### 6.7.2  AMS的handleApplicationCrash分析
 
 AMS handleApplicationCrash函数的代码如下：
 
 [-->ActivityManagerService.java::handleApplicationCrash]
-
+```java
 public void handleApplicationCrash(IBinder app,
 
                              ApplicationErrorReport.CrashInfocrashInfo) {
@@ -8356,9 +8440,10 @@ public void handleApplicationCrash(IBinder app,
  crashApplication(r, crashInfo);
 
 }
+```
 
 [-->ActivityManagerService.java::crashApplication]
-
+```java
 private void crashApplication(ProcessRecord r,
 
                    ApplicationErrorReport.CrashInfocrashInfo) {
@@ -8492,11 +8577,12 @@ private void crashApplication(ProcessRecord r,
     }
 
  }
+```
 
 以上代码中还有一个关键函数makeAppCrashingLocked，其代码如下：
 
 [-->ActivityManagerService.java::makeAppCrashingLocked]
-
+```java
 private booleanmakeAppCrashingLocked(ProcessRecord app,
 
            String shortMsg, String longMsg, String stackTrace) {
@@ -8550,15 +8636,16 @@ private booleanmakeAppCrashingLocked(ProcessRecord app,
    returnhandleAppCrashLocked(app);
 
  }
+```
 
 当App的Crash处理完后，事情并未就此结束，因为该应用进程退出后，之前AMS为它设置的讣告接收对象将被唤醒。接下来介绍AppDeathRecipientbinderDied的处理流程。
 
-6.7.3  AppDeathRecipient binderDied分析
+### 6.7.3  AppDeathRecipient binderDied分析
 
-1.  binderDied函数分析
+#### 1.  binderDied函数分析
 
 [-->ActvityManagerService.java::AppDeathRecipientbinderDied]
-
+```java
 public void binderDied() {
 
   //注意，该函数也是通过Binder线程调用的，所以此处要加锁
@@ -8570,11 +8657,12 @@ public void binderDied() {
    }
 
  }
+```
 
 最终的处理函数是appDiedLocked，其中所传递的3个参数保存了对应死亡进程的信息。来看appDiedLocked的代码：：
 
 [-->ActvityManagerService.java::appDiedLocked]
-
+```java
 final void appDiedLocked(ProcessRecord app, intpid,
 
                                                 IApplicationThread thread) {
@@ -8660,13 +8748,14 @@ final void appDiedLocked(ProcessRecord app, intpid,
     }//if(doLowMem)判断结束
 
  }
+```
 
 以上代码中有一个关键函数handleAppDiedLocked，下面来看它的处理过程。
 
-2.  handleAppDiedLocked函数分析
+#### 2.  handleAppDiedLocked函数分析
 
 [-->ActivityManagerService.java::handleAppDiedLocked]
-
+```java
 private final voidhandleAppDiedLocked(ProcessRecord app,
 
            boolean restarting, boolean allowRestart) {
@@ -8684,13 +8773,13 @@ private final voidhandleAppDiedLocked(ProcessRecord app,
    ......//下面还有一部分代码处理和Activity相关的收尾工作，读者可自行阅读
 
 }
-
+```
 重点看上边代码中的cleanUpApplicationRecordLocked函数，该函数的主要功能就是处理Service、ContentProvider及BroadcastReceiver相关的收尾工作。先来看Service方面的工作。
 
-（1） cleanUpApplicationRecordLocked之处理Service
+##### （1） cleanUpApplicationRecordLocked之处理Service
 
 [-->ActivityManagerService.java::cleanUpApplicationRecordLocked]
-
+```java
  privatefinal void cleanUpApplicationRecordLocked(ProcessRecord app,
 
        boolean restarting, boolean allowRestart, int index) {
@@ -8728,15 +8817,16 @@ private final voidhandleAppDiedLocked(ProcessRecord app,
    //该函数是AMS Service处理流程中很重要的一环，读者要仔细阅读
 
    killServicesLocked(app,allowRestart);
+```
 
 cleanUpApplicationRecordLocked函数首先处理几个对话框（dialog），然后调用killServicesLocked函数做相关处理。作为Service流程的一部分，读者需要深入研究。
 
-（2） cleanUpApplicationRecordLocked之处理ContentProvider
+##### （2） cleanUpApplicationRecordLocked之处理ContentProvider
 
 再来看cleanUpApplicationRecordLocked下一阶段的工作，主要和ContentProvider有关。
 
 [-->ActivityManagerService.java::cleanUpApplicationRecordLocked]
-
+```java
    booleanrestart = false;
 
  
@@ -8828,15 +8918,15 @@ cleanUpApplicationRecordLocked函数首先处理几个对话框（dialog），�
    if(checkAppInLaunchingProvidersLocked(app, false)) restart = true;
 
    ......
+```
 
 从以上的描述中可知，ContentProvider所在进程和其客户端进程实际上有着非常紧密而隐晦（之所以说其隐晦，是因为SDK中没有任何说明）的关系。在目前软件开发追求模块间尽量保持松耦合关系的大趋势下，Android中的ContentProvider和其客户端这种紧耦合的设计思路似乎不够明智。不过，这种设计是否是不得已而为之呢？读者不妨探讨一下，如果有更合适的解决方案，期待能一起分享。
 
-（3） cleanUpApplicationRecordLocked之处理BroadcastReceiver
+##### （3） cleanUpApplicationRecordLocked之处理BroadcastReceiver
 
 [-->ActivityManagerService.java::cleanUpApplicationRecordLocked]
 
- 
-
+```java
   skipCurrentReceiverLocked(app);
 
     //从AMS中去除接收者
@@ -8928,22 +9018,23 @@ cleanUpApplicationRecordLocked函数首先处理几个对话框（dialog），�
      }
 
  }
+```
 
 在这段代码中，除了处理BrodcastReceiver方面的工作外，还包括其他方面的收尾工作。最后，如果要重启该应用，则需调用startProcessLocked函数进行处理。这部分代码不再详述，读者可自行阅读。
 
-6.7.4  App的Crash处理总结
+### 6.7.4  App的Crash处理总结
 
 分析完整个处理流程，有些读者或许会咂舌。应用进程的诞生是一件很麻烦的事情，没想到应用进程的善后工作居然也很费事，希望各个应用进程能活得更稳健点儿。
 
-图6-24展示了应用进程进行Crash处理的流程。
+图6-24展示了应用进程进行Crash处理的流程。](/images/understand2/6-5.png)
 
 
 
-图6-24  应用进程的Crash处理流程
+![图6-24  应用进程的Crash处理流程](/images/understand2/6-24.png)
 
  
 
-6.7  本章学习指导
+## 6.7  本章学习指导
 
 本章内容较为复杂，即使用了这么长的篇幅来讲解AMS，依然只能覆盖其中一部分内容。读者在阅读本章时，一定要注意文中的分析脉络，以搞清楚流程为主旨。以下是本章的思路总结：
 
@@ -8961,7 +9052,7 @@ cleanUpApplicationRecordLocked函数首先处理几个对话框（dialog），�
 
 由于精力和篇幅的原因，AMS中还有很多精彩的内容未能涉及，建议读者在本章学习基础上，根据具体情况继续深入研究。
 
-6.8  本章小结
+## 6.8  本章小结
 
 本章对AMS进行有针对性的分析：
 
