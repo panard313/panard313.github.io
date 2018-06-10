@@ -88,63 +88,34 @@ AMS由SystemServer的ServerThread线程创建，提取它的调用轨迹，代�
 [-->SystemServer.java::ServerThread的run函数]
 ```java
 //①调用main函数，得到一个Context对象
-
 context =ActivityManagerService.main(factoryTest);
-
  
-
 //②setSystemProcess：这样SystemServer进程可加到AMS中，并被它管理
-
 ActivityManagerService.setSystemProcess();
-
  
-
 //③installSystemProviders：将SettingsProvider放到SystemServer进程中来运行
-
 ActivityManagerService.installSystemProviders();
-
  
-
 //④在内部保存WindowManagerService（以后简称WMS）
-
 ActivityManagerService.self().setWindowManager(wm);
-
  
-
 //⑤和WMS交互，弹出“启动进度“对话框
-
 ActivityManagerNative.getDefault().showBootMessage(
-
              context.getResources().getText(
-
                //该字符串中文为：“正在启动应用程序”
-
                com.android.internal.R.string.android_upgrading_starting_apps),
-
               false);
-
  
-
 //⑥AMS是系统的核心，只有它准备好后，才能调用其他服务的systemReady
-
 //注意，有少量服务在AMS systemReady之前就绪，它们不影响此处的分析
-
 ActivityManagerService.self().systemReady(newRunnable() {
-
     publicvoid run() {
-
    startSystemUi(contextF);//启动systemUi。如此，状态栏就准备好了
-
     if(batteryF != null) batteryF.systemReady();
-
     if(networkManagementF != null) networkManagementF.systemReady();
-
     ......
-
     Watchdog.getInstance().start();//启动Watchdog
-
     ......//调用其他服务的systemReady函数
-
 }
 ```
 
@@ -159,67 +130,36 @@ AMS的main函数将返回一个Context类型的对象，该对象在SystemServer
 [-->ActivityManagerService.java::main]
 ```java
  publicstatic final Context main(int factoryTest) {
-
     AThreadthr = new AThread();//①创建一个AThread线程对象
-
     thr.start();
-
     ......//等待thr创建成功
-
     ActivityManagerServicem = thr.mService;
-
     mSelf =m;
-
     //②调用ActivityThread的systemMain函数
-
     ActivityThreadat = ActivityThread.systemMain();
-
     mSystemThread= at;
-
  
-
     //③得到一个Context对象，注意调用的函数名为getSystemContext，何为System Context
-
     Contextcontext = at.getSystemContext();
-
     context.setTheme(android.R.style.Theme_Holo);
-
     m.mContext= context;
-
     m.mFactoryTest= factoryTest;
-
  
-
     //ActivtyStack是AMS中用来管理Activity的启动和调度的核心类，以后再分析它
-
     m.mMainStack = new ActivityStack(m, context,true);
-
     //调用BSS的publish函数，我们在第5章的BSS知识中介绍过了
-
     m.mBatteryStatsService.publish(context);
-
     //另外一个service：UsageStatsService。后续再分析该服务
-
     m.mUsageStatsService.publish(context);
-
     synchronized (thr) {
-
            thr.mReady = true;
-
            thr.notifyAll();//通知thr线程，本线程工作完成
-
      }
-
  
-
     //④调用AMS的startRunning函数
-
     m.startRunning(null, null, null, null);
-
        
-
    returncontext;
-
 }
 ```
 在main函数中，我们又列出了4个关键函数，分别是：
@@ -248,57 +188,31 @@ AThread的代码如下：
 [-->ActivityManagerService.java::AThread]
 ```java
 static class AThread extends Thread {//AThread从Thread类派生
-
    ActivityManagerServicemService;
-
    booleanmReady = false;
-
    publicAThread() {
-
      super("ActivityManager");//线程名就叫“ActivityManager”
-
    }
-
    publicvoid run() {
-
      Looper.prepare();//看来，AThread线程将支持消息循环及处理功能
-
      android.os.Process.setThreadPriority(//设置线程优先级
-
                    android.os.Process.THREAD_PRIORITY_FOREGROUND);
-
      android.os.Process.setCanSelfBackground(false);
-
       //创建AMS对象
-
      ActivityManagerService m = new ActivityManagerService();
-
      synchronized (this) {
-
            mService= m;//赋值AThread内部成员变量mService，指向AMS
-
           notifyAll();  //通知main函数所在线程
-
       }
-
      synchronized (this) {
-
         while (!mReady) {
-
            try{
-
                  wait();//等待main函数所在线程的notifyAll
-
                }......
-
            }
-
        }......
-
     Looper.loop();//进入消息循环
-
  }
-
  }
 ```
 
@@ -311,83 +225,44 @@ AMS的构造函数的代码如下：
 [-->ActivityManagerService.java::ActivityManagerService构造]
 ```java
 private ActivityManagerService() {
-
     FiledataDir = Environment.getDataDirectory();//指向/data/目录
-
     FilesystemDir = new File(dataDir, "system");//指向/data/system/目录
-
    systemDir.mkdirs();//创建/data/system/目录
-
  
-
     //创建BatteryStatsService（以后简称BSS）和UsageStatsService（以后简称USS）
-
    //我们在分析PowerManageService时已经见过BSS了
-
    mBatteryStatsService = new BatteryStatsService(new File(
-
                systemDir, "batterystats.bin").toString());
-
    mBatteryStatsService.getActiveStatistics().readLocked();
-
     mBatteryStatsService.getActiveStatistics().writeAsyncLocked();
-
    mOnBattery = DEBUG_POWER ? true
-
                : mBatteryStatsService.getActiveStatistics().getIsOnBattery();
-
    mBatteryStatsService.getActiveStatistics().setCallback(this);
-
  
-
     //创建USS
-
     mUsageStatsService= new UsageStatsService(new File(
-
                systemDir, "usagestats").toString());
-
     //获取OpenGl版本
-
    GL_ES_VERSION = SystemProperties.getInt("ro.opengles.version",
-
            ConfigurationInfo.GL_ES_VERSION_UNDEFINED);
-
      //mConfiguration类型为Configuration，用于描述资源文件的配置属性，例如
-
      //字体、语言等。后文再讨论这方面的内容
-
     mConfiguration.setToDefaults();
-
     mConfiguration.locale = Locale.getDefault();
-
      //mProcessStats为ProcessStats类型，用于统计CPU、内存等信息。其内部工作原理就是
-
     //读取并解析/proc/stat文件的内容。该文件由内核生成，用于记录kernel及system
-
     //一些运行时的统计信息。读者可在Linux系统上通过man proc命令查询详细信息
-
     mProcessStats.init();
-
  
-
      //解析/data/system/packages-compat.xml文件，该文件用于存储那些需要考虑屏幕尺寸
-
     //的APK的一些信息。读者可参考AndroidManifest.xml中compatible-screens相关说明。
-
     //当APK所运行的设备不满足要求时，AMS会根据设置的参数以采用屏幕兼容的方式去运行它
-
     mCompatModePackages = new CompatModePackages(this, systemDir);
-
  
-
      Watchdog.getInstance().addMonitor(this);
-
      //创建一个新线程，用于定时更新系统信息（和mProcessStats交互）
-
     mProcessStatsThread = new Thread("ProcessStats") {...//先略去该段代码}
-
     mProcessStatsThread.start();
-
  }
 ```
 
@@ -410,17 +285,11 @@ ActivityThread是Android Framework中一个非常重要的类，它代表一个�
 [-->ActivityThread.java::systemMain]
 ```java
 public static final ActivityThread systemMain() {
-
    HardwareRenderer.disable(true);//禁止硬件渲染加速
-
    //创建一个ActivityThread对象，其构造函数非常简单
-
   ActivityThread thread = new ActivityThread();
-
   thread.attach(true);//调用它的attach函数，注意传递的参数为true
-
    returnthread;
-
  }
 ```
 
@@ -437,69 +306,37 @@ public static final ActivityThread systemMain() {
 [-->ActivityThread.java::attach]
 ```java
 private void attach(boolean system) {
-
     sThreadLocal.set(this);
-
     mSystemThread= system;//判断是否为系统进程
-
     if(!system) {
-
         ......//应用进程的处理流程
-
      } else {//系统进程的处理流程，该情况只在SystemServer中处理
-
        //设置DDMS时看到的systemserver进程名为system_process
-
        android.ddm.DdmHandleAppName.setAppName("system_process");
-
        try {
-
             //ActivityThread的几员大将出场，见后文的分析
-
             mInstrumentation = new Instrumentation();
-
             ContextImpl context = new ContextImpl();
-
             //初始化context，注意第一个参数值为getSystemContext
-
             context.init(getSystemContext().mPackageInfo, null, this);
-
             Application app = //利用Instrumentation创建一个Application对象
-
                     Instrumentation.newApplication(Application.class,context);
-
              //一个进程支持多个Application，mAllApplications用于保存该进程中
-
             //的Application对象
-
             mAllApplications.add(app);
-
              mInitialApplication = app;//设置mInitialApplication
-
             app.onCreate();//调用Application的onCreate函数
-
            }......//try/catch结束
-
       }//if(!system)判断结束
-
  
-
      //注册Configuration变化的回调通知
-
      ViewRootImpl.addConfigCallback(newComponentCallbacks2() {
-
           publicvoid onConfigurationChanged(Configuration newConfig) {
-
             ......//当系统配置发生变化（如语言切换等）时，需要调用该回调
-
           }
-
            public void onLowMemory() {}
-
            public void onTrimMemory(int level) {}
-
         });
-
  }
 ```
 
@@ -521,39 +358,22 @@ Context是一个抽象类，而由AMS创建的将是它的子类ContextImpl。�
 [-->ActivityThread.java::getSystemContext]
 ```java
 public ContextImpl getSystemContext() {
-
   synchronized(this) {
-
    if(mSystemContext == null) {//单例模式
-
        ContextImplcontext =  ContextImpl.createSystemContext(this);
-
        //LoadedApk是2.3引入的一个新类，代表一个加载到系统中的APK
-
        LoadedApkinfo = new LoadedApk(this, "android", context, null,
-
                        CompatibilityInfo.DEFAULT_COMPATIBILITY_INFO);
-
        //初始化该ContextImpl对象
-
       context.init(info, null, this);
-
       //初始化资源信息
-
       context.getResources().updateConfiguration(
-
                         getConfiguration(),getDisplayMetricsLocked(
-
                        CompatibilityInfo.DEFAULT_COMPATIBILITY_INFO, false));
-
        mSystemContext = context;//保存这个特殊的ContextImpl对象
-
       }
-
    }
-
     returnmSystemContext;
-
 }
 ```
 
@@ -612,35 +432,20 @@ Android运行环境是构建在进程之上的。有Android开发经验的读者
 [-->ActivityManagerService.java::startRunning]
 ```java
 //注意调用该函数时所传递的4个参数全为null
-
 public final void startRunning(String pkg, Stringcls, String action,
-
                                     String data) {
-
   synchronized(this) {
-
      if (mStartRunning) return;  //如果已经调用过该函数，则直接返回
-
  
-
     mStartRunning = true;
-
      //mTopComponent最终赋值为null
-
     mTopComponent = pkg != null && cls != null
-
                    ? new ComponentName(pkg, cls) : null;
-
     mTopAction = action != null ? action : Intent.ACTION_MAIN;
-
     mTopData = data; //mTopData最终为null
-
      if(!mSystemReady) return; //此时mSystemReady为false，所以直接返回
-
     }
-
    systemReady(null);//这个函数很重要，可惜不在本次startRunning中调用
-
 }
 ```
 
@@ -677,103 +482,54 @@ AMS的setSystemProcess的代码如下：
 [-->ActivityManagerService.java::setSystemProcess]
 ```java
 public static void setSystemProcess() {
-
   try {
-
       ActivityManagerService m = mSelf;
-
        //向ServiceManager注册几个服务
-
        ServiceManager.addService("activity",m);
-
        //用于打印内存信息
-
       ServiceManager.addService("meminfo", new MemBinder(m));
-
  
-
        /*
-
         Android4.0新增的，用于打印应用进程使用硬件显示加速方面的信息（Applications
-
          Graphics Acceleration Info）。读者通过adb shell dumpsys gfxinfo看看具体的
-
          输出
-
        */
-
       ServiceManager.addService("gfxinfo", new GraphicsBinder(m));
-
  
-
         if(MONITOR_CPU_USAGE)//该值默认为true，添加cpuinfo服务
-
             ServiceManager.addService("cpuinfo", new CpuBinder(m));
-
  
-
         //向SM注册权限管理服务PermissionController
-
        ServiceManager.addService("permission", newPermissionController(m));
-
  
-
       /*    重要说明：
-
         向PackageManagerService查询package名为"android"的ApplicationInfo。
-
         注意这句调用：虽然PKMS和AMS同属一个进程，但是二者交互仍然借助Context。
-
         其实，此处完全可以直接调用PKMS的函数。为什么要费如此周折呢
-
       */
-
       ApplicationInfo info = //使用AMS的mContext对象
-
                mSelf.mContext.getPackageManager().getApplicationInfo(
-
                         "android",STOCK_PM_FLAGS);
-
  
-
           //①调用ActivityThread的installSystemApplicationInfo函数
-
             mSystemThread.installSystemApplicationInfo(info);
-
            synchronized (mSelf) {
-
                //②此处涉及AMS对进程的管理，见下文分析
-
                ProcessRecord app = mSelf.newProcessRecordLocked(
-
                        mSystemThread.getApplicationThread(), info,
-
                         info.processName);//注意，最后一个参数为字符串，值为“system”
-
                app.persistent = true;
-
                app.pid = MY_PID;
-
                app.maxAdj = ProcessList.SYSTEM_ADJ;
-
                //③保存该ProcessRecord对象
-
                mSelf.mProcessNames.put(app.processName, app.info.uid, app);
-
                synchronized (mSelf.mPidsSelfLocked) {
-
                    mSelf.mPidsSelfLocked.put(app.pid, app);
-
                }
-
                //根据系统当前状态，调整进程的调度优先级和OOM_Adj，后续将详细分析该函数
-
                 mSelf.updateLruProcessLocked(app, true,true);
-
            }
-
         } ......//抛异常
-
     }
 ```
 
@@ -797,25 +553,15 @@ installSystemApplicationInfo函数的参数为一个ApplicationInfo对象，该�
 [-->ActivityThread.java::installSystemApplicationInfo]
 ```java
 public voidinstallSystemApplicationInfo(ApplicationInfo info) {
-
  synchronized (this) {
-
    //返回的ContextImpl对象即之前在AMS的main函数一节中创建的那个对象
-
    ContextImpl context = getSystemContext();
-
     //又调用init初始化该Context，是不是重复调用init了？
-
    context.init(new LoadedApk(this, "android", context, info,
-
               CompatibilityInfo.DEFAULT_COMPATIBILITY_INFO), null, this);
-
      //创建一个Profiler对象，用于性能统计
-
      mProfiler = new Profiler();
-
      }
-
  }
 ```
 
@@ -868,15 +614,10 @@ IApplicationThread的Binder服务端在应用进程中还是在AMS中？
 [-->ActivityThread.java::scheduleStopActivity]
 ```java
 public final void scheduleStopActivity(IBindertoken, boolean showWindow,
-
                                      intconfigChanges) {
-
   queueOrSendMessage(//该函数内部将给一个Handler发送对应的消息
-
                showWindow ? H.STOP_ACTIVITY_SHOW : H.STOP_ACTIVITY_HIDE,
-
                token, 0, configChanges);
-
  }
 ```
 
@@ -889,27 +630,16 @@ IApplicationThread仅仅是AMS和另外一个进程交互的接口，除此之�
 [-->ActivityManagerService.java::newProcessRecordLocked]
 ```java
 final ProcessRecordnewProcessRecordLocked(IApplicationThread thread,
-
                 ApplicationInfo info, String customProcess) {
-
    Stringproc = customProcess != null ? customProcess : info.processName;
-
   BatteryStatsImpl.Uid.Proc ps = null;
-
   BatteryStatsImpl stats = mBatteryStatsService.getActiveStatistics();
-
   synchronized (stats) {
-
         //BSImpl将为该进程创建一个耗电量统计项
-
         ps =stats.getProcessStatsLocked(info.uid, proc);
-
    }
-
    //创建一个ProcessRecord对象，用于和其他进程通信的thread作为第一个参数
-
    returnnew ProcessRecord(ps, thread, info, proc);
-
  }
 ```
 
@@ -918,39 +648,22 @@ ProcessRecord的成员变量较多，先来看看再其构造函数中都初始�
 [-->ProcessRecord.java::ProcessRecord]
 ```java
 ProcessRecord(BatteryStatsImpl.Uid.Proc_batteryStats,
-
         IApplicationThread_thread,ApplicationInfo _info, String _processName) {
-
     batteryStats = _batteryStats; //用于电量统计
-
      info =_info; //保存ApplicationInfo
-
     processName = _processName; //保存进程名
-
       //一个进程能运行多个Package，pkgList用于保存package名
-
     pkgList.add(_info.packageName);
-
      thread= _thread;//保存IApplicationThread,通过它可以和应用进程交互
-
  
-
      //下面这些xxxAdj成员变量和进程调度优先级及OOM_adj有关。以后再分析它的作用
-
      maxAdj= ProcessList.EMPTY_APP_ADJ;
-
     hiddenAdj = ProcessList.HIDDEN_APP_MIN_ADJ;
-
     curRawAdj = setRawAdj = -100;
-
      curAdj= setAdj = -100;
-
    //用于控制该进程是否常驻内存（即使被杀掉，系统也会重启它），只有重要的进程才会有此待遇
-
     persistent = false;
-
      removed= false;
-
 }
 ```
 
@@ -959,11 +672,8 @@ ProcessRecord除保存和应用进程通信的IApplicationThread对象外，还�
 至此，已经创建了一个ProcessRecord对象，和其他应用进程不同的是，该对象对应的进程为SystemServer。为了彰显其特殊性，AMS为其中的一些成员变量设置了特定的值：
 ```java
    app.persistent = true;//设置该值为true
-
    app.pid =MY_PID;//设置pid为SystemServer的进程号
-
    app.maxAdj= ProcessList.SYSTEM_ADJ;//设置最大OOM_Adj，系统进程默认值为-16
-
    //另外，app的processName被设置成“system”
 ```
 这时，一个针对SystemServer的ProcessRecord对象就创建完成了。此后AMS将把它并入自己的势力范围内。
