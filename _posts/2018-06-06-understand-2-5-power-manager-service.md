@@ -82,16 +82,16 @@ PMS由SystemServer在ServerThread线程中创建。这里从中提取了4个关�
 
 [-->SystemServer.java]
 ```java
-    ......//ServerThread的run函数
-    power =new PowerManagerService();//①创建PMS对象
-   ServiceManager.addService(Context.POWER_SERVICE, power);//注册到SM中
-   ......
-   //②调用PMS的init函数
-   power.init(context,lights, ActivityManagerService.self(), battery);
-   ......//其他服务
-   power.systemReady();//③调用PMS的systemReady
-   ......//系统启动完毕，会收到ACTION_BOOT_COMPLETED广播
-   //④PMS处理ACTION_BOOT_COMPLETED广播
+......//ServerThread的run函数
+power =new PowerManagerService();//①创建PMS对象
+ServiceManager.addService(Context.POWER_SERVICE, power);//注册到SM中
+......
+//②调用PMS的init函数
+power.init(context,lights, ActivityManagerService.self(), battery);
+......//其他服务
+power.systemReady();//③调用PMS的systemReady
+......//系统启动完毕，会收到ACTION_BOOT_COMPLETED广播
+//④PMS处理ACTION_BOOT_COMPLETED广播
 ```
 
 先从第一个关键点即PMS的构造函数开始分析。
@@ -105,14 +105,14 @@ PowerManagerService() {
     longtoken = Binder.clearCallingIdentity();
     MY_UID =Process.myUid();//取本进程（即SystemServer）的uid及pid
     MY_PID =Process.myPid();
-   Binder.restoreCallingIdentity(token);
+    Binder.restoreCallingIdentity(token);
     //设置超时时间为1周。Power类封装了同Linux内核交互的接口。本章最后再来分析它
-   Power.setLastUserActivityTimeout(7*24*3600*1000);
+    Power.setLastUserActivityTimeout(7*24*3600*1000);
     //初始化两个状态变量，它们非常有意义。其具体作用后续再分析
     mUserState= mPowerState = 0;
     //将自己添加到看门狗的监控管理队列中
-   Watchdog.getInstance().addMonitor(this);
- }
+    Watchdog.getInstance().addMonitor(this);
+}
 ```
 
 PMS的构造函数比较简单。值得注意的是mUserState和mPowerState两个成员，至于它们的具体作用，后续分析时自会知晓。
@@ -129,24 +129,24 @@ PMS的构造函数比较简单。值得注意的是mUserState和mPowerState两�
 [-->PowerManagerService.java::init函数]
 ```java
 void init(Context context, LightsService lights,IActivityManager activity,
-    BatteryService battery) {
-   //①保存几个成员变量
-  mLightsService = lights;//保存LightService
-   mContext= context;
-  mActivityService = activity;//保存ActivityManagerService
-   //保存BatteryStatsService
-  mBatteryStats = BatteryStatsService.getService();//
-  mBatteryService = battery;//保存BatteryService
-   //从LightService中获取代表不同硬件Light的Light对象
-   mLcdLight= lights.getLight(LightsService.LIGHT_ID_BACKLIGHT);
-  mButtonLight = lights.getLight(LightsService.LIGHT_ID_BUTTONS);
-  mKeyboardLight = lights.getLight(LightsService.LIGHT_ID_KEYBOARD);
-  mAttentionLight = lights.getLight(LightsService.LIGHT_ID_ATTENTION);
-   //②调用nativeInit函数
-  nativeInit();
-  synchronized (mLocks) {
-     updateNativePowerStateLocked();//③更新Native层的电源状态
-  }
+        BatteryService battery) {
+    //①保存几个成员变量
+    mLightsService = lights;//保存LightService
+    mContext= context;
+    mActivityService = activity;//保存ActivityManagerService
+    //保存BatteryStatsService
+    mBatteryStats = BatteryStatsService.getService();//
+    mBatteryService = battery;//保存BatteryService
+    //从LightService中获取代表不同硬件Light的Light对象
+    mLcdLight= lights.getLight(LightsService.LIGHT_ID_BACKLIGHT);
+    mButtonLight = lights.getLight(LightsService.LIGHT_ID_BUTTONS);
+    mKeyboardLight = lights.getLight(LightsService.LIGHT_ID_KEYBOARD);
+    mAttentionLight = lights.getLight(LightsService.LIGHT_ID_ATTENTION);
+    //②调用nativeInit函数
+    nativeInit();
+    synchronized (mLocks) {
+        updateNativePowerStateLocked();//③更新Native层的电源状态
+    }
 ```
 
 第一阶段工作可分为三步：
@@ -190,38 +190,38 @@ init第二阶段工作将创建两个HandlerThread对象，即创建两个带消
 [-->PowerManagerService.java::init函数]
 ```java
 ......
- mScreenOffThread= new HandlerThread("PowerManagerService.mScreenOffThread") {
-   protected void onLooperPrepared() {
-  mScreenOffHandler = new Handler();//向这个handler发送的消息，将由此线程处理
-   synchronized (mScreenOffThread) {
-      mInitComplete = true;
-      mScreenOffThread.notifyAll();
-      }
+mScreenOffThread= new HandlerThread("PowerManagerService.mScreenOffThread") {
+    protected void onLooperPrepared() {
+        mScreenOffHandler = new Handler();//向这个handler发送的消息，将由此线程处理
+        synchronized (mScreenOffThread) {
+            mInitComplete = true;
+            mScreenOffThread.notifyAll();
+        }
     }
-   };
- mScreenOffThread.start();//创建对应的工作线程
- synchronized (mScreenOffThread) {
+};
+mScreenOffThread.start();//创建对应的工作线程
+synchronized (mScreenOffThread) {
     while(!mInitComplete) {
-       try {//等待mScreenOffThread线程创建完成
-             mScreenOffThread.wait();
+        try {//等待mScreenOffThread线程创建完成
+            mScreenOffThread.wait();
         } ......
-       }
     }
+}
 ```
 注意，在Android代码中经常出现“线程A创建线程B，然后线程A等待线程B创建完成”的情况，读者了解它们的作用即可。接着看以下代码。
 
 [-->PowerManagerService.java::init函数]
 ```java
-   mInitComplete= false;
-   //创建 mHandlerThread
-  mHandlerThread = new HandlerThread("PowerManagerService") {
-   protectedvoid onLooperPrepared() {
-      super.onLooperPrepared();
-      initInThread();//①初始化另外一些成员变量
-     }
-   };
- mHandlerThread.start();
-        ......//等待mHandlerThread创建完成
+mInitComplete= false;
+//创建 mHandlerThread
+mHandlerThread = new HandlerThread("PowerManagerService") {
+    protectedvoid onLooperPrepared() {
+        super.onLooperPrepared();
+        initInThread();//①初始化另外一些成员变量
+    }
+};
+mHandlerThread.start();
+......//等待mHandlerThread创建完成
 ```
 
 由于mHandlerThread承担了PMS的主要工作任务，因此需要先做一些初始化工作，相关的代码在initInThread中，拟放在单独一节中进行讨论。
@@ -238,54 +238,54 @@ initInThread本身比较简单，涉及三个方面的工作，总结如下：
 [-->PowerManagerService.java::initInThread]
 ```java
 void initInThread() {
-   mHandler= new Handler();
-   //PMS内部也需要使用WakeLock，此处定义了几种不同的UnsynchronizedWakeLock。它们的
-   //作用见后文分析
-   mBroadcastWakeLock = newUnsynchronizedWakeLock(
-              PowerManager.PARTIAL_WAKE_LOCK, "sleep_broadcast", true);
-   //创建广播通知的Intent，用于通知SCREEN_ON和SCREEN_OFF消息
-  mScreenOnIntent = new Intent(Intent.ACTION_SCREEN_ON);
-  mScreenOnIntent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
-  mScreenOffIntent = new Intent(Intent.ACTION_SCREEN_OFF);
-  mScreenOffIntent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
-   //取配置参数，这些参数是编译时确定的，运行过程中无法修改
-   Resourcesresources = mContext.getResources();
-  mAnimateScreenLights = resources.getBoolean(
-               com.android.internal.R.bool.config_animateScreenLights);
-        ......//见下文的配置参数汇总
+    mHandler= new Handler();
+    //PMS内部也需要使用WakeLock，此处定义了几种不同的UnsynchronizedWakeLock。它们的
+    //作用见后文分析
+    mBroadcastWakeLock = newUnsynchronizedWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK, "sleep_broadcast", true);
+    //创建广播通知的Intent，用于通知SCREEN_ON和SCREEN_OFF消息
+    mScreenOnIntent = new Intent(Intent.ACTION_SCREEN_ON);
+    mScreenOnIntent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
+    mScreenOffIntent = new Intent(Intent.ACTION_SCREEN_OFF);
+    mScreenOffIntent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
+    //取配置参数，这些参数是编译时确定的，运行过程中无法修改
+    Resourcesresources = mContext.getResources();
+    mAnimateScreenLights = resources.getBoolean(
+            com.android.internal.R.bool.config_animateScreenLights);
+    ......//见下文的配置参数汇总
         //通过数据库设置的配置参数
-   ContentResolver resolver =mContext.getContentResolver();
-   Cursor settingsCursor =resolver.query(Settings.System.CONTENT_URI, null,
-               ......//设置查询条件和查询项的名字，见后文的配置参数汇总
-               null);
-   //ContentQueryMap是一个常用类，简化了数据库查询工作。读者可参考SDK中该类的说明文档
-   mSettings= new ContentQueryMap(settingsCursor, Settings.System.NAME,
-                                   true, mHandler);
-   //监视上边创建的ContentQueryMap中内容的变化
-  SettingsObserver settingsObserver = new SettingsObserver();
-   mSettings.addObserver(settingsObserver);
-   settingsObserver.update(mSettings, null);
-   //注册接收通知的BroadcastReceiver
-  IntentFilter filter = new IntentFilter();
-  filter.addAction(Intent.ACTION_BATTERY_CHANGED);
-  mContext.registerReceiver(new BatteryReceiver(), filter);
-   filter =new IntentFilter();
-  filter.addAction(Intent.ACTION_BOOT_COMPLETED);
-  mContext.registerReceiver(new BootCompletedReceiver(), filter);
-   filter =new IntentFilter();
-  filter.addAction(Intent.ACTION_DOCK_EVENT);
-  mContext.registerReceiver(new DockReceiver(), filter);
+        ContentResolver resolver =mContext.getContentResolver();
+    Cursor settingsCursor =resolver.query(Settings.System.CONTENT_URI, null,
+            ......//设置查询条件和查询项的名字，见后文的配置参数汇总
+            null);
+    //ContentQueryMap是一个常用类，简化了数据库查询工作。读者可参考SDK中该类的说明文档
+    mSettings= new ContentQueryMap(settingsCursor, Settings.System.NAME,
+            true, mHandler);
+    //监视上边创建的ContentQueryMap中内容的变化
+    SettingsObserver settingsObserver = new SettingsObserver();
+    mSettings.addObserver(settingsObserver);
+    settingsObserver.update(mSettings, null);
+    //注册接收通知的BroadcastReceiver
+    IntentFilter filter = new IntentFilter();
+    filter.addAction(Intent.ACTION_BATTERY_CHANGED);
+    mContext.registerReceiver(new BatteryReceiver(), filter);
+    filter =new IntentFilter();
+    filter.addAction(Intent.ACTION_BOOT_COMPLETED);
+    mContext.registerReceiver(new BootCompletedReceiver(), filter);
+    filter =new IntentFilter();
+    filter.addAction(Intent.ACTION_DOCK_EVENT);
+    mContext.registerReceiver(new DockReceiver(), filter);
     //监视Settings数据中secure表的变化
-  mContext.getContentResolver().registerContentObserver(
+    mContext.getContentResolver().registerContentObserver(
             Settings.Secure.CONTENT_URI, true,
-           new ContentObserver(new Handler()) {
-               public void onChange(boolean selfChange) {
-                   updateSettingsValues();
-               }
-           });
-   updateSettingsValues();
+            new ContentObserver(new Handler()) {
+            public void onChange(boolean selfChange) {
+            updateSettingsValues();
+            }
+            });
+    updateSettingsValues();
     ......//通知其他线程
- }
+}
 ```
 在上述代码中，很大一部分用于获取配置参数。同时，对于数据库中的配置值，还需要建立监测机制，细节部分请读者自己阅读相关代码，这里总结一下常用的配置参数，如表5-2所示。
 
@@ -309,12 +309,12 @@ SCREEN_BRIGHTNESS_MODE:int |Settings.db |屏幕亮度模式（自动还是手动
 #### 3.  init分析之三
 [-->PowerManagerService.java::init函数]
 ```java
-  nativeInit();//不知道此处为何还要调用一次nativeInit，笔者怀疑此处为bug
-  synchronized (mLocks) {
-     updateNativePowerStateLocked();//更新native层power状态，以后分析
-     forceUserActivityLocked();//强制触发一次用户事件
+nativeInit();//不知道此处为何还要调用一次nativeInit，笔者怀疑此处为bug
+synchronized (mLocks) {
+    updateNativePowerStateLocked();//更新native层power状态，以后分析
+    forceUserActivityLocked();//强制触发一次用户事件
     mInitialized = true;
- }//init函数完毕
+}//init函数完毕
 ```
 
 forceUserActivityLocked表示强制触发一次用户事件。这个解释是否会让读者丈二和尚摸不着头？先来看它的代码：
@@ -322,15 +322,15 @@ forceUserActivityLocked表示强制触发一次用户事件。这个解释是否
 [-->PowerManagerService.java:: forceUserActivityLocked]
 ```java
 private void forceUserActivityLocked() {
-   if(isScreenTurningOffLocked()) {
-    mScreenBrightness.animating = false;
-  }
-   boolean savedActivityAllowed =mUserActivityAllowed;
-  mUserActivityAllowed = true;
-  //下面这个函数以后会分析， SDK中有对应的API
-  userActivity(SystemClock.uptimeMillis(), false);
-   mUserActivityAllowed= savedActivityAllowed;
- }
+    if(isScreenTurningOffLocked()) {
+        mScreenBrightness.animating = false;
+    }
+    boolean savedActivityAllowed =mUserActivityAllowed;
+    mUserActivityAllowed = true;
+    //下面这个函数以后会分析， SDK中有对应的API
+    userActivity(SystemClock.uptimeMillis(), false);
+    mUserActivityAllowed= savedActivityAllowed;
+}
 ```
 
 forceUserActivityLocked内部就是为调用userActivity扫清一切障碍。对于SDK中PowerManager.userActivity的说明文档“User activity happened.Turnsthe device from whatever state it's in to full on, and resets the auto-offtimer.”简单翻译过来是：调用此函数后，手机将被唤醒。屏幕超时时间将重新计算。
@@ -346,30 +346,30 @@ PMS的init函数比较简单，但是其众多的成员变量让人感到有点�
 [-->PowerManagerService.java::systemReady]
 ```java
 void systemReady() {
-  /*
-  创建一个SensorManager，用于和系统中的传感器系统交互，由于该部分涉及较多的native层
-  代码，因此将相关内容放到本书后续章节进行讨论
-  */
- mSensorManager = new SensorManager(mHandlerThread.getLooper());
- mProximitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
-  if(mUseSoftwareAutoBrightness) {
-      mLightSensor =mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-  }
-  if(mUseSoftwareAutoBrightness) {
-     setPowerState(SCREEN_BRIGHT);
+    /*
+       创建一个SensorManager，用于和系统中的传感器系统交互，由于该部分涉及较多的native层
+       代码，因此将相关内容放到本书后续章节进行讨论
+     */
+    mSensorManager = new SensorManager(mHandlerThread.getLooper());
+    mProximitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+    if(mUseSoftwareAutoBrightness) {
+        mLightSensor =mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+    }
+    if(mUseSoftwareAutoBrightness) {
+        setPowerState(SCREEN_BRIGHT);
     } else {//不考虑软件自动亮度调节，所以执行下面这个分支
-   setPowerState(ALL_BRIGHT);//设置手机电源状态为ALL_BRIGHT，即屏幕、按键灯都打开
- }
- synchronized (mLocks) {
- mDoneBooting = true;
-  //根据情况启用LightSensor
- enableLightSensorLocked(mUseSoftwareAutoBrightness&&mAutoBrightessEnabled);
-  longidentity = Binder.clearCallingIdentity();
-  try {//通知BatteryStatsService，它将统计相关的电量使用情况，后续再分析它
-    mBatteryStats.noteScreenBrightness(getPreferredBrightness());
-    mBatteryStats.noteScreenOn();
-  }......
-}
+        setPowerState(ALL_BRIGHT);//设置手机电源状态为ALL_BRIGHT，即屏幕、按键灯都打开
+    }
+    synchronized (mLocks) {
+        mDoneBooting = true;
+        //根据情况启用LightSensor
+        enableLightSensorLocked(mUseSoftwareAutoBrightness&&mAutoBrightessEnabled);
+        longidentity = Binder.clearCallingIdentity();
+        try {//通知BatteryStatsService，它将统计相关的电量使用情况，后续再分析它
+            mBatteryStats.noteScreenBrightness(getPreferredBrightness());
+            mBatteryStats.noteScreenOn();
+        }......
+    }
 ```
 
 **systemReady主要工作为：**
@@ -383,41 +383,41 @@ void systemReady() {
 [-->PowerManagerService.java::BootCompletedReceiver]
 ```java
 private final class BootCompletedReceiver extendsBroadcastReceiver {
-  publicvoid onReceive(Context context, Intent intent) {
-  bootCompleted();//调用PMS的bootCompleted函数
-  }
+    publicvoid onReceive(Context context, Intent intent) {
+        bootCompleted();//调用PMS的bootCompleted函数
+    }
 }
 ```
 
 [-->PowerManagerService.java::bootCompleted函数]
 ```java
 void bootCompleted() {
- synchronized (mLocks) {
-  mBootCompleted = true;
-   //再次碰见userActivity，根据前面的描述，此时将重新计算屏幕超时时间
-  userActivity(SystemClock.uptimeMillis(), false, BUTTON_EVENT, true);
-  updateWakeLockLocked();//此处先分析这个函数
-  mLocks.notifyAll();
-   }
- }
+    synchronized (mLocks) {
+        mBootCompleted = true;
+        //再次碰见userActivity，根据前面的描述，此时将重新计算屏幕超时时间
+        userActivity(SystemClock.uptimeMillis(), false, BUTTON_EVENT, true);
+        updateWakeLockLocked();//此处先分析这个函数
+        mLocks.notifyAll();
+    }
+}
 ```
 
 在以上代码中，再一次遇见了userActivity，暂且对其置之不理。先分析updateWakeLockLocked函数，其代码如下：
 ```java
 private void updateWakeLockLocked() {
-  /*
-    mStayOnConditions用于控制当插上USB时，手机是否保持唤醒状态。
-    mBatteryService的isPowered用于判断当前是否处于USB充电状态。
-    如果满足下面的if条件满，则PMS需要使用wakeLock来确保系统不会掉电
-  */
-  if(mStayOnConditions != 0 &&mBatteryService.isPowered(mStayOnConditions)) {
-     mStayOnWhilePluggedInScreenDimLock.acquire();
-     mStayOnWhilePluggedInPartialLock.acquire();
-  } else {
-      //如果不满足if条件，则释放对应的wakeLock，这样系统就可以进入休眠状态
-     mStayOnWhilePluggedInScreenDimLock.release();
-     mStayOnWhilePluggedInPartialLock.release();
-  }
+    /*
+       mStayOnConditions用于控制当插上USB时，手机是否保持唤醒状态。
+       mBatteryService的isPowered用于判断当前是否处于USB充电状态。
+       如果满足下面的if条件满，则PMS需要使用wakeLock来确保系统不会掉电
+     */
+    if(mStayOnConditions != 0 &&mBatteryService.isPowered(mStayOnConditions)) {
+        mStayOnWhilePluggedInScreenDimLock.acquire();
+        mStayOnWhilePluggedInPartialLock.acquire();
+    } else {
+        //如果不满足if条件，则释放对应的wakeLock，这样系统就可以进入休眠状态
+        mStayOnWhilePluggedInScreenDimLock.release();
+        mStayOnWhilePluggedInPartialLock.release();
+    }
 }
 ```
 
@@ -434,12 +434,12 @@ WakeLock是Android提供给应用程序获取电力资源的唯一方法。只�
 WakeLock的一般使用方法如下：
 ```java
 PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
- //①创建一个WakeLock，注意它的参数
- PowerManager.WakeLock wl =pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK,
-                                              "MyTag");
- wl.acquire();//②获取该锁
-   ......//工作
- wl.release();//③释放该锁
+//①创建一个WakeLock，注意它的参数
+PowerManager.WakeLock wl =pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK,
+        "MyTag");
+wl.acquire();//②获取该锁
+......//工作
+wl.release();//③释放该锁
 ```
 
 以上代码中共列出三个关键点，本章将分析前两个（在此基础上，读者可自行分析release函数）。
@@ -453,9 +453,9 @@ PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
 ```java
 public WakeLock newWakeLock(int flags, String tag)
 {
-  //tag不能为null，否则抛异常
-  return new WakeLock(flags, tag);//WakeLock为PM的内部类，第一个参数flags很关键
- }
+    //tag不能为null，否则抛异常
+    return new WakeLock(flags, tag);//WakeLock为PM的内部类，第一个参数flags很关键
+}
 ```
 
 WakeLock的第一个参数flags很关键，它用于控制CPU/Screen/Keyboard的休眠状态。flags的可选值如表5-3所示。
@@ -484,12 +484,12 @@ ON_AFTER_RELEASE |说明：和用户体验有关，当WakeLock释放后，如没
 ```java
 WakeLock(int flags, String tag)
 {
-     //检查flags参数是否非法
+    //检查flags参数是否非法
     mFlags =flags;
     mTag =tag;
     //创建一个Binder对象，除了做Token外，PMS需要监视客户端的生死状况，否则有可能导致
     //WakeLock不能被释放
-     mToken= new Binder();
+    mToken= new Binder();
 }
 ```
 
@@ -498,21 +498,21 @@ WakeLock(int flags, String tag)
 [-->PowerManager.java::WakeLock.acquire函数]
 ```java
 public void acquire()
- {
- synchronized (mToken) {
-  acquireLocked();//调用acquireLocked函数
-  }
- }
+{
+    synchronized (mToken) {
+        acquireLocked();//调用acquireLocked函数
+    }
+}
 //acquireLoced函数
 private void acquireLocked() {
-  if(!mRefCounted || mCount++ == 0) {
-     mHandler.removeCallbacks(mReleaser);//引用计数控制
-  try {
-      //调用PMS的acquirewakeLock，注意这里传递的参数，其中mWorkSource为空
-     mService.acquireWakeLock(mFlags, mToken, mTag, mWorkSource);
-  }......
-    mHeld =true;
-   }
+    if(!mRefCounted || mCount++ == 0) {
+        mHandler.removeCallbacks(mReleaser);//引用计数控制
+        try {
+            //调用PMS的acquirewakeLock，注意这里传递的参数，其中mWorkSource为空
+            mService.acquireWakeLock(mFlags, mToken, mTag, mWorkSource);
+        }......
+        mHeld =true;
+    }
 }
 ```
 上边代码中调用PMS的acquireWakeLock函数与PMS交互，该函数最后一个参数为WorkSource类。这个类从Android 2.2开始就存在，但一直没有明确的作用，下面是关于它的一段说明。
@@ -531,23 +531,23 @@ private void acquireLocked() {
 [-->PowerManagerService.java::acquireWakeLock]
 ```java
 public void acquireWakeLock(int flags, IBinderlock, String tag, WorkSource ws) {
-        intuid = Binder.getCallingUid();
-        intpid = Binder.getCallingPid();
-        if(uid != Process.myUid()) {
-           mContext.enforceCallingOrSelfPermission(//检查WAKE_LOCK权限
-                          android.Manifest.permission.WAKE_LOCK,null);
-        }
-        if(ws != null) {
-            //如果ws不为空，需要检查调用进程是否有UPDATE_DEVICE_STATS的权限
-           enforceWakeSourcePermission(uid, pid);
-        }
-        longident = Binder.clearCallingIdentity();
-        try{
-           synchronized (mLocks) {调用acquireWakeLockLocked函数
-               acquireWakeLockLocked(flags, lock, uid, pid, tag, ws);
-           }
-        } ......
+    intuid = Binder.getCallingUid();
+    intpid = Binder.getCallingPid();
+    if(uid != Process.myUid()) {
+        mContext.enforceCallingOrSelfPermission(//检查WAKE_LOCK权限
+                android.Manifest.permission.WAKE_LOCK,null);
     }
+    if(ws != null) {
+        //如果ws不为空，需要检查调用进程是否有UPDATE_DEVICE_STATS的权限
+        enforceWakeSourcePermission(uid, pid);
+    }
+    longident = Binder.clearCallingIdentity();
+    try{
+        synchronized (mLocks) {调用acquireWakeLockLocked函数
+            acquireWakeLockLocked(flags, lock, uid, pid, tag, ws);
+        }
+    } ......
+}
 ```
 
 接下来分析acquireWakeLockLocked函数。由于此段代码较长，宜分段来看。
@@ -565,52 +565,52 @@ PMS的WakeLock实现了DeathRecipient接口。根据前面Binder系统的知识�
 [-->PowerManagerService.java::acquireWakeLockLocked]
 ```java
 public void acquireWakeLockLocked(int flags,IBinder lock, int uid,
-                        int pid, Stringtag,WorkSource ws) {
-  ......
-  //mLocks是一个ArrayList，保存PMS.WakeLock对象
-  int index= mLocks.getIndex(lock);
-  WakeLockwl;
-  booleannewlock;
-  booleandiffsource;
-  WorkSourceoldsource;
-  if (index< 0) {
-     //创建一个PMS.WakeLock对象，保存客户端acquire传来的参数
-    wl = new WakeLock(flags, lock, tag, uid, pid);
-    switch(wl.flags & LOCK_MASK)
-    {    //将flags转换成对应的minState
-      casePowerManager.FULL_WAKE_LOCK:
-       if(mUseSoftwareAutoBrightness) {
-        wl.minState = SCREEN_BRIGHT;
-       }else {
-         wl.minState = (mKeyboardVisible ? ALL_BRIGHT: SCREEN_BUTTON_BRIGHT);
+        int pid, Stringtag,WorkSource ws) {
+    ......
+        //mLocks是一个ArrayList，保存PMS.WakeLock对象
+        int index= mLocks.getIndex(lock);
+    WakeLockwl;
+    booleannewlock;
+    booleandiffsource;
+    WorkSourceoldsource;
+    if (index< 0) {
+        //创建一个PMS.WakeLock对象，保存客户端acquire传来的参数
+        wl = new WakeLock(flags, lock, tag, uid, pid);
+        switch(wl.flags & LOCK_MASK)
+        {    //将flags转换成对应的minState
+            casePowerManager.FULL_WAKE_LOCK:
+                if(mUseSoftwareAutoBrightness) {
+                    wl.minState = SCREEN_BRIGHT;
+                }else {
+                    wl.minState = (mKeyboardVisible ? ALL_BRIGHT: SCREEN_BUTTON_BRIGHT);
+                }
+            break;
+            casePowerManager.SCREEN_BRIGHT_WAKE_LOCK:
+                wl.minState = SCREEN_BRIGHT;
+            break;
+            casePowerManager.SCREEN_DIM_WAKE_LOCK:
+                wl.minState = SCREEN_DIM;
+            break;
+            case PowerManager.PARTIAL_WAKE_LOCK:
+            //PROXIMITY_SCREEN_OFF_WAKE_LOCK在SDK中并未输出，原因是有部分手机并没有接近
+            //传感器
+            casePowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK:
+                break;
+            default:
+            return;
         }
-       break;
-      casePowerManager.SCREEN_BRIGHT_WAKE_LOCK:
-        wl.minState = SCREEN_BRIGHT;
-         break;
-       casePowerManager.SCREEN_DIM_WAKE_LOCK:
-        wl.minState = SCREEN_DIM;
-        break;
-       case PowerManager.PARTIAL_WAKE_LOCK:
-       //PROXIMITY_SCREEN_OFF_WAKE_LOCK在SDK中并未输出，原因是有部分手机并没有接近
-       //传感器
-       casePowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK:
-        break;
-      default:
-         return;
-      }
-   mLocks.addLock(wl);//将PMS.WakeLock对象保存到mLocks中
-    if (ws!= null) {
-       wl.ws = new WorkSource(ws);
-     }
-     newlock= true;  //设置几个参数信息，newlock表示新创建了一个PMS.WakeLock对象
-    diffsource = false;
-    oldsource = null;
- }else{
-   //如果之前保存有PMS.WakeLock，则要判断新传入的WorkSource和之前保存的WorkSource
-   //是否一样。此处不讨论这种情况
-   ......
-}
+        mLocks.addLock(wl);//将PMS.WakeLock对象保存到mLocks中
+        if (ws!= null) {
+            wl.ws = new WorkSource(ws);
+        }
+        newlock= true;  //设置几个参数信息，newlock表示新创建了一个PMS.WakeLock对象
+        diffsource = false;
+        oldsource = null;
+    }else{
+        //如果之前保存有PMS.WakeLock，则要判断新传入的WorkSource和之前保存的WorkSource
+        //是否一样。此处不讨论这种情况
+        ......
+    }
 ```
 
 在上面代码中，很重要一部分是将前面flags信息转成PMS.WakeLock的成员变量minState，下面是对转换关系的总结。
@@ -625,41 +625,41 @@ public void acquireWakeLockLocked(int flags,IBinder lock, int uid,
 #### 2.  acquireWakeLockLocked分析之二
 代码如下：
 ```java
-  //isScreenLock用于判断flags是否和屏幕有关，除PARTIAL_WAKE_LOCK外，其他WAKE_LOCK
-  //都和屏幕有关
+//isScreenLock用于判断flags是否和屏幕有关，除PARTIAL_WAKE_LOCK外，其他WAKE_LOCK
+//都和屏幕有关
 if (isScreenLock(flags)) {
-  if ((flags& LOCK_MASK) == PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK) {
-      mProximityWakeLockCount++;//引用计数控制
-       if(mProximityWakeLockCount == 1) {
-        enableProximityLockLocked();//使能Proximity传感器
+    if ((flags& LOCK_MASK) == PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK) {
+        mProximityWakeLockCount++;//引用计数控制
+        if(mProximityWakeLockCount == 1) {
+            enableProximityLockLocked();//使能Proximity传感器
         }
-   } else {
-   if((wl.flags & PowerManager.ACQUIRE_CAUSES_WAKEUP) != 0) {
-     ......//ACQUIRE_CAUSES_WAKEUP标志处理
-  } else {
-   //①gatherState返回一个状态，稍后分析该函数
-  mWakeLockState = (mUserState | mWakeLockState) &mLocks.gatherState();
-  }
-   //②设置电源状态，
-   setPowerState(mWakeLockState | mUserState);
-   }
- }
+    } else {
+        if((wl.flags & PowerManager.ACQUIRE_CAUSES_WAKEUP) != 0) {
+            ......//ACQUIRE_CAUSES_WAKEUP标志处理
+        } else {
+            //①gatherState返回一个状态，稍后分析该函数
+            mWakeLockState = (mUserState | mWakeLockState) &mLocks.gatherState();
+        }
+        //②设置电源状态，
+        setPowerState(mWakeLockState | mUserState);
+    }
+}
 以上代码列出了两个关键函数，一个是gatherState，另外一个是setPowerState，下面来分析它们。
 （1） gatherState分析
 gatherState函数的代码如下：
-[-->PowerManagerService.java::gatherState]
+    [-->PowerManagerService.java::gatherState]
 int gatherState()
 {
     intresult = 0;
     int N =this.size();
     for (inti=0; i<N; i++) {
-     WakeLock wl = this.get(i);
-     if(wl.activated)
-        if(isScreenLock(wl.flags))
-          result |= wl.minState;//对系统中所有活跃PMS.WakeLock的状态进行或操作
-  }
-   returnresult;
- }
+        WakeLock wl = this.get(i);
+        if(wl.activated)
+            if(isScreenLock(wl.flags))
+                result |= wl.minState;//对系统中所有活跃PMS.WakeLock的状态进行或操作
+    }
+    returnresult;
+}
 ```
 
 由以上代码可知，gatherState将统计当前系统内部活跃WakeLock的minState。这里为什么要“使用”或“操作”呢？举个例子，假如WakeLock A的minState为SCREEN_DIM，而WakeLock B的minState为SCREEN_BRIGHT，二者共同作用，最终的屏幕状态显然应该是SCREEN_BRIGHT。
@@ -686,60 +686,60 @@ mUserState代表用户触发事件导致的电源状态。例如，按Home键后
 ```java
 private void setPowerState(int state)
 {//调用另外一个同名函数
- setPowerState(state, false,WindowManagerPolicy.OFF_BECAUSE_OF_TIMEOUT);
+    setPowerState(state, false,WindowManagerPolicy.OFF_BECAUSE_OF_TIMEOUT);
 }
 //setPowerState
 private void setPowerState(int newState, booleannoChangeLights, int reason)
 {
- synchronized (mLocks) {
-  int err;
-  if (noChangeLights)//在这种情况中，noChangeLights为false
-    newState = (newState & ~LIGHTS_MASK) | (mPowerState &LIGHTS_MASK);
-  if(mProximitySensorActive)//如果打开了接近感应器，就不需要在这里点亮屏幕了
-    newState = (newState & ~SCREEN_BRIGHT);
-  if(batteryIsLow())//判断是否处于低电状态
-     newState |= BATTERY_LOW_BIT;
-   else
-     newState &= ~BATTERY_LOW_BIT;
- ......
-  //如果还没启动完成，则需要将newState置为ALL_BRIGHT。细心的读者有没有发现，在手机开机过程中
-  //键盘、屏幕、按键等都会全部点亮一会儿呢？
-  if(!mBootCompleted && !mUseSoftwareAutoBrightness)
-      newState |= ALL_BRIGHT;
-   booleanoldScreenOn = (mPowerState & SCREEN_ON_BIT) != 0;
-   boolean newScreenOn = (newState &SCREEN_ON_BIT) != 0;
-   finalboolean stateChanged = mPowerState != newState;
+    synchronized (mLocks) {
+        int err;
+        if (noChangeLights)//在这种情况中，noChangeLights为false
+            newState = (newState & ~LIGHTS_MASK) | (mPowerState &LIGHTS_MASK);
+        if(mProximitySensorActive)//如果打开了接近感应器，就不需要在这里点亮屏幕了
+            newState = (newState & ~SCREEN_BRIGHT);
+        if(batteryIsLow())//判断是否处于低电状态
+            newState |= BATTERY_LOW_BIT;
+        else
+            newState &= ~BATTERY_LOW_BIT;
+        ......
+            //如果还没启动完成，则需要将newState置为ALL_BRIGHT。细心的读者有没有发现，在手机开机过程中
+            //键盘、屏幕、按键等都会全部点亮一会儿呢？
+            if(!mBootCompleted && !mUseSoftwareAutoBrightness)
+                newState |= ALL_BRIGHT;
+        booleanoldScreenOn = (mPowerState & SCREEN_ON_BIT) != 0;
+        boolean newScreenOn = (newState &SCREEN_ON_BIT) != 0;
+        finalboolean stateChanged = mPowerState != newState;
 ```
 第一段代码主要用于得到一些状态值，例如在新状态下屏幕是否需要点亮（newScreenOn）等。再来看第二段代码，它将根据第一段的状态值完成对应的工作。
 
 [-->PowerManagerService::setPowerState]
 ```java
-   if(oldScreenOn != newScreenOn) {
-      if(newScreenOn) {
-         if(mStillNeedSleepNotification) {
+if(oldScreenOn != newScreenOn) {
+    if(newScreenOn) {
+        if(mStillNeedSleepNotification) {
             //对sendNotificationLocked函数的分析见后文
             sendNotificationLocked(false,
-                                      WindowManagerPolicy.OFF_BECAUSE_OF_USER);
+                    WindowManagerPolicy.OFF_BECAUSE_OF_USER);
         }// mStillNeedSleepNotification判断
-     booleanreallyTurnScreenOn = true;
-     if(mPreventScreenOn)// mPreventScreenOn是何方神圣？
-         reallyTurnScreenOn= false;
-    if(reallyTurnScreenOn) {
-     err = setScreenStateLocked(true);//点亮屏幕
-     ......//通知mBatteryStats做电量统计
-       mBatteryStats.noteScreenBrightness(getPreferredBrightness());
-      mBatteryStats.noteScreenOn();
-   } else {//reallyTurnScreenOn为false
-      setScreenStateLocked(false);//关闭屏幕
-       err =0;
-   }
-    if (err == 0) {
-     sendNotificationLocked(true, -1);
-      if(stateChanged)
-          updateLightsLocked(newState, 0);//点亮按键灯或者键盘灯
-     mPowerState |= SCREEN_ON_BIT;
-  }
- }
+        booleanreallyTurnScreenOn = true;
+        if(mPreventScreenOn)// mPreventScreenOn是何方神圣？
+            reallyTurnScreenOn= false;
+        if(reallyTurnScreenOn) {
+            err = setScreenStateLocked(true);//点亮屏幕
+            ......//通知mBatteryStats做电量统计
+                mBatteryStats.noteScreenBrightness(getPreferredBrightness());
+            mBatteryStats.noteScreenOn();
+        } else {//reallyTurnScreenOn为false
+            setScreenStateLocked(false);//关闭屏幕
+            err =0;
+        }
+        if (err == 0) {
+            sendNotificationLocked(true, -1);
+            if(stateChanged)
+                updateLightsLocked(newState, 0);//点亮按键灯或者键盘灯
+            mPowerState |= SCREEN_ON_BIT;
+        }
+    }
 ```
 
 以上代码看起来比较简单，就是根据情况点亮或关闭屏幕。事实果真的如此吗？的还记得前面所说“一个小小的变量背后代表一个很重要的case”这句话吗？是的，这里也有一个很重要的case，由mPreventScreenOn表达。这是什么意思呢？
@@ -752,20 +752,20 @@ Google怎么会写这种代码？还好，代码开发者也意识到这是一�
 
 继续看setPowerState最后的代码：
 ```java
-  else {//newScreenOn为false的情况
-    ......//更新键盘灯、按键灯的状态
-   //从mHandler中移除mAutoBrightnessTask，这和光传感器有关。此处不讨论
-    mHandler.removeCallbacks(mAutoBrightnessTask);
-    mBatteryStats.noteScreenOff();//通知BatteryStatsService,屏幕已关
-   mPowerState = (mPowerState & ~LIGHTS_MASK) | (newState & LIGHTS_MASK);
-   updateNativePowerStateLocked();
-   }
-  }//if(oldScreenOn != newScreenOn)判断结束
-  else if(stateChanged) {//屏幕的状态不变，但是light的状态有可能变化，所以
-  updateLightsLocked(newState, 0);//单独更新light的状态
-   }
-  mPowerState= (mPowerState & ~LIGHTS_MASK) | (newState & LIGHTS_MASK);
-  updateNativePowerStateLocked();
+    else {//newScreenOn为false的情况
+        ......//更新键盘灯、按键灯的状态
+            //从mHandler中移除mAutoBrightnessTask，这和光传感器有关。此处不讨论
+            mHandler.removeCallbacks(mAutoBrightnessTask);
+        mBatteryStats.noteScreenOff();//通知BatteryStatsService,屏幕已关
+        mPowerState = (mPowerState & ~LIGHTS_MASK) | (newState & LIGHTS_MASK);
+        updateNativePowerStateLocked();
+    }
+}//if(oldScreenOn != newScreenOn)判断结束
+else if(stateChanged) {//屏幕的状态不变，但是light的状态有可能变化，所以
+    updateLightsLocked(newState, 0);//单独更新light的状态
+}
+mPowerState= (mPowerState & ~LIGHTS_MASK) | (newState & LIGHTS_MASK);
+updateNativePowerStateLocked();
 }//setPowerState完毕
 ```
 
@@ -777,51 +777,51 @@ sendNotificationLocked函数用于触发SCREEN_ON/OFF广播的发送，来看以
 [-->PowerManagerService.java::sendNotificationLocked]
 ```java
 private void sendNotificationLocked(boolean on,int why) {
-  ......
-  if (!on) {
-    mStillNeedSleepNotification = false;
-  }
-  int index= 0;
-  while(mBroadcastQueue[index] != -1) {
-       index++;
-  }
-  // mBroadcastQueue和mBroadcastWhy均定义为int数组，成员个数为3，它们有什么作用呢
-  mBroadcastQueue[index] = on ? 1 : 0;
-  mBroadcastWhy[index] = why;
-  /* mBroadcastQueue数组一共有3个元素，根据代码中的注释，其作用如下：
-    当取得的index为2时，即0,1元素已经有值，由于屏幕ON/OFF请求是配对的，所以在这种情况
-    下只需要处理最后一次的请求。例如0元素为ON，1元素为OFF，2元素为ON，则可以去掉0，
-    1的请求，而直接处理2的请求，即屏幕ON。对于那种频繁按Power键的操作，通过这种方式可以
-    节省一次切换操作
-  */
-  if (index== 2) {
-     if (!on&& mBroadcastWhy[0] > why) mBroadcastWhy[0] = why;
-     //处理index为2的情况，见上文的说明
-    mBroadcastQueue[0] = on ? 1 : 0;
-    mBroadcastQueue[1] = -1;
-    mBroadcastQueue[2] = -1;
-     mBroadcastWakeLock.release();
-     index =0;
-   }
-   /*
-     如果index为1，on为false，即屏幕发出关闭请求，则无需处理。根据注释中的说明，
-     在此种情况，屏幕已经处于OFF状态，所以无需处理。为什么在此种情况下屏幕已经关闭了呢？
-   */
-   if (index== 1 && !on) {
-       mBroadcastQueue[0] = -1;
-       mBroadcastQueue[1] = -1;
-       index = -1;
-       mBroadcastWakeLock.release();
-   }
-   if(mSkippedScreenOn) {
-      updateLightsLocked(mPowerState, SCREEN_ON_BIT);
+    ......
+        if (!on) {
+            mStillNeedSleepNotification = false;
+        }
+    int index= 0;
+    while(mBroadcastQueue[index] != -1) {
+        index++;
     }
-   //如果index不为负数，则抛送mNotificationTask给mHandler处理
-   if (index>= 0) {
-      mBroadcastWakeLock.acquire();
-       mHandler.post(mNotificationTask);
+    // mBroadcastQueue和mBroadcastWhy均定义为int数组，成员个数为3，它们有什么作用呢
+    mBroadcastQueue[index] = on ? 1 : 0;
+    mBroadcastWhy[index] = why;
+    /* mBroadcastQueue数组一共有3个元素，根据代码中的注释，其作用如下：
+       当取得的index为2时，即0,1元素已经有值，由于屏幕ON/OFF请求是配对的，所以在这种情况
+       下只需要处理最后一次的请求。例如0元素为ON，1元素为OFF，2元素为ON，则可以去掉0，
+       1的请求，而直接处理2的请求，即屏幕ON。对于那种频繁按Power键的操作，通过这种方式可以
+       节省一次切换操作
+     */
+    if (index== 2) {
+        if (!on&& mBroadcastWhy[0] > why) mBroadcastWhy[0] = why;
+        //处理index为2的情况，见上文的说明
+        mBroadcastQueue[0] = on ? 1 : 0;
+        mBroadcastQueue[1] = -1;
+        mBroadcastQueue[2] = -1;
+        mBroadcastWakeLock.release();
+        index =0;
     }
- }
+    /*
+       如果index为1，on为false，即屏幕发出关闭请求，则无需处理。根据注释中的说明，
+       在此种情况，屏幕已经处于OFF状态，所以无需处理。为什么在此种情况下屏幕已经关闭了呢？
+     */
+    if (index== 1 && !on) {
+        mBroadcastQueue[0] = -1;
+        mBroadcastQueue[1] = -1;
+        index = -1;
+        mBroadcastWakeLock.release();
+    }
+    if(mSkippedScreenOn) {
+        updateLightsLocked(mPowerState, SCREEN_ON_BIT);
+    }
+    //如果index不为负数，则抛送mNotificationTask给mHandler处理
+    if (index>= 0) {
+        mBroadcastWakeLock.acquire();
+        mHandler.post(mNotificationTask);
+    }
+}
 ```
 
 sendNotificationLocked函数相当诡异，主要是mBroadcastQueue数组的使用让人感到困惑。其目的在于减少不必要的屏幕切换和广播发送，但是为什么index为1时，屏幕处于OFF状态呢？下面来分析mNotificationTask，希望它能回答这个问题。
@@ -830,48 +830,48 @@ sendNotificationLocked函数相当诡异，主要是mBroadcastQueue数组的使�
 ```java
 private Runnable mNotificationTask = newRunnable()
 {
-  publicvoid run()
- {
-   while(true) {//此处是一个while循环
-    intvalue;
-    int why;
-   WindowManagerPolicy policy;
-   synchronized (mLocks) {
-       value =mBroadcastQueue[0];//取mBroadcastQueue第一个元素
-       why= mBroadcastWhy[0];
-       for(int i=0; i<2; i++) {//将后面的元素往前挪一位
-           mBroadcastQueue[i] = mBroadcastQueue[i+1];
-           mBroadcastWhy[i] = mBroadcastWhy[i+1];
+    publicvoid run()
+    {
+        while(true) {//此处是一个while循环
+            intvalue;
+            int why;
+            WindowManagerPolicy policy;
+            synchronized (mLocks) {
+                value =mBroadcastQueue[0];//取mBroadcastQueue第一个元素
+                why= mBroadcastWhy[0];
+                for(int i=0; i<2; i++) {//将后面的元素往前挪一位
+                    mBroadcastQueue[i] = mBroadcastQueue[i+1];
+                    mBroadcastWhy[i] = mBroadcastWhy[i+1];
+                }
+                policy = getPolicyLocked();//policy指向PhoneWindowManager
+                if(value == 1 && !mPreparingForScreenOn) {
+                    mPreparingForScreenOn = true;
+                    mBroadcastWakeLock.acquire();
+                }
+            }// synchronized结束
+            if(value == 1) {//value为1，表示发出屏幕ON请求
+                mScreenOnStart = SystemClock.uptimeMillis();
+                //和WindowManagerService交互，和锁屏界面有关
+                //mScreenOnListener为回调通知对象
+                policy.screenTurningOn(mScreenOnListener);
+                ActivityManagerNative.getDefault().wakingUp();//和AMS交互
+                if (mContext != null &&ActivityManagerNative.isSystemReady()) {
+                    //发送SCREEN_ON广播
+                    mContext.sendOrderedBroadcast(mScreenOnIntent,null,
+                            mScreenOnBroadcastDone, mHandler, 0, null, null);
+                }......
+            }elseif (value == 0) {
+                mScreenOffStart = SystemClock.uptimeMillis();
+                policy.screenTurnedOff(why);//通知WindowManagerService
+                ActivityManagerNative.getDefault().goingToSleep();//和AMS交互
+                if(mContext != null && ActivityManagerNative.isSystemReady()) {
+                    //发送屏幕OFF广播
+                    mContext.sendOrderedBroadcast(mScreenOffIntent, null,
+                            mScreenOffBroadcastDone, mHandler, 0, null,null);
+                }
+            }elsebreak；
         }
-      policy = getPolicyLocked();//policy指向PhoneWindowManager
-      if(value == 1 && !mPreparingForScreenOn) {
-             mPreparingForScreenOn = true;
-              mBroadcastWakeLock.acquire();
-         }
-      }// synchronized结束
-    if(value == 1) {//value为1，表示发出屏幕ON请求
-       mScreenOnStart = SystemClock.uptimeMillis();
-        //和WindowManagerService交互，和锁屏界面有关
-         //mScreenOnListener为回调通知对象
-         policy.screenTurningOn(mScreenOnListener);
-         ActivityManagerNative.getDefault().wakingUp();//和AMS交互
-         if (mContext != null &&ActivityManagerNative.isSystemReady()) {
-           //发送SCREEN_ON广播
-            mContext.sendOrderedBroadcast(mScreenOnIntent,null,
-              mScreenOnBroadcastDone, mHandler, 0, null, null);
-        }......
-      }elseif (value == 0) {
-         mScreenOffStart = SystemClock.uptimeMillis();
-          policy.screenTurnedOff(why);//通知WindowManagerService
-          ActivityManagerNative.getDefault().goingToSleep();//和AMS交互
-           if(mContext != null && ActivityManagerNative.isSystemReady()) {
-                        //发送屏幕OFF广播
-                mContext.sendOrderedBroadcast(mScreenOffIntent, null,
-                                mScreenOffBroadcastDone, mHandler, 0, null,null);
-            }
-       }elsebreak；
-     }
- };
+    };
 ```
 
 mNotificationTask比较复杂，但是它对mBroadcastQueue的处理比较有意思，每次取出第一个元素值后，将后续元素往前挪一位。这种处理方式能解决之前提出的那个问题吗？
@@ -891,17 +891,17 @@ acquireWakeLocked处理WAKE_LOCK为PARTIAL_WAKE_LOCK的情况。来看以下代�
 ```java
 else if ((flags & LOCK_MASK) == PowerManager.PARTIAL_WAKE_LOCK){
     if(newlock) {
-   mPartialCount++;
-   }
-   //获取kernel层的PARTIAL_WAKE_LOCK，该函数后续再分析
-   Power.acquireWakeLock(Power.PARTIAL_WAKE_LOCK,PARTIAL_NAME);
-  }//else if判断结束
-   if(diffsource) {
-   noteStopWakeLocked(wl, oldsource);
-  }
-  if(newlock || diffsource) {
-      noteStartWakeLocked(wl, ws);//通知BatteryStatsService做电量统计
- }
+        mPartialCount++;
+    }
+    //获取kernel层的PARTIAL_WAKE_LOCK，该函数后续再分析
+    Power.acquireWakeLock(Power.PARTIAL_WAKE_LOCK,PARTIAL_NAME);
+}//else if判断结束
+if(diffsource) {
+    noteStopWakeLocked(wl, oldsource);
+}
+if(newlock || diffsource) {
+    noteStartWakeLocked(wl, ws);//通知BatteryStatsService做电量统计
+}
 ```
 当客户端使用PARTIAL_WAKE_LOCK时，PMS会调用Power.acquireWakeLock申请一个内核的WakeLock。
 
@@ -933,15 +933,15 @@ void releaseWakeLock(String id);//释放Kernel层的WakeLock
 ```java
 static void acquireWakeLock(JNIEnv *env, jobjectclazz, jint lock, jstring idObj)
 {
- ......
-    constchar *id = env->GetStringUTFChars(idObj, NULL);
-   acquire_wake_lock(lock, id);//调用此函数和Kernel层交互
-   env->ReleaseStringUTFChars(idObj, id);
+    ......
+        constchar *id = env->GetStringUTFChars(idObj, NULL);
+    acquire_wake_lock(lock, id);//调用此函数和Kernel层交互
+    env->ReleaseStringUTFChars(idObj, id);
 }
 static void releaseWakeLock(JNIEnv *env, jobjectclazz, jstring idObj)
 {
     constchar *id = env->GetStringUTFChars(idObj, NULL);
-   release_wake_lock(id);//释放Kernel层的WakeLock
+    release_wake_lock(id);//释放Kernel层的WakeLock
     env->ReleaseStringUTFChars(idObj,id);
 }
 static int setLastUserActivityTimeout(JNIEnv *env,jobject clazz, jlong timeMS)
@@ -954,18 +954,18 @@ static int setScreenState(JNIEnv *env, jobjectclazz, jboolean on)
 }
 static void android_os_Power_shutdown(JNIEnv *env,jobject clazz)
 {
-   android_reboot(ANDROID_RB_POWEROFF, 0, 0);//关机
+    android_reboot(ANDROID_RB_POWEROFF, 0, 0);//关机
 }
 static void android_os_Power_reboot(JNIEnv *env,jobject clazz, jstring reason)
 {
     if (reason== NULL) {
-       android_reboot(ANDROID_RB_RESTART, 0, 0);//重启
+        android_reboot(ANDROID_RB_RESTART, 0, 0);//重启
     } else {
-       const char *chars = env->GetStringUTFChars(reason, NULL);
-       android_reboot(ANDROID_RB_RESTART2, 0, (char *) chars);//重启
-       env->ReleaseStringUTFChars(reason, chars);
+        const char *chars = env->GetStringUTFChars(reason, NULL);
+        android_reboot(ANDROID_RB_RESTART2, 0, (char *) chars);//重启
+        env->ReleaseStringUTFChars(reason, chars);
     }
-   jniThrowIOException(env, errno);
+    jniThrowIOException(env, errno);
 }
 ```
 Power类提供了和内核交互的通道，读者仅作了解即可。
@@ -981,31 +981,31 @@ LightService.java比较简单，这里直接介绍Native层的实现，主要关
 static jint init_native(JNIEnv *env, jobjectclazz)
 {
     int err;
-   hw_module_t* module;
+    hw_module_t* module;
     Devices*devices;
     devices= (Devices*)malloc(sizeof(Devices));
     //初始化硬件相关的模块，模块名为“lights”
     err =hw_get_module(LIGHTS_HARDWARE_MODULE_ID,
-                             (hw_module_tconst**)&module);
+            (hw_module_tconst**)&module);
     if (err== 0) {
-       devices->lights[LIGHT_INDEX_BACKLIGHT]//背光
-               = get_device(module, LIGHT_ID_BACKLIGHT);
-       devices->lights[LIGHT_INDEX_KEYBOARD]//键盘灯
-               = get_device(module, LIGHT_ID_KEYBOARD);
-       devices->lights[LIGHT_INDEX_BUTTONS]//按键灯
-               = get_device(module, LIGHT_ID_BUTTONS);
-       devices->lights[LIGHT_INDEX_BATTERY]//电源指示灯
-               = get_device(module, LIGHT_ID_BATTERY);
-       devices->lights[LIGHT_INDEX_NOTIFICATIONS] //通知灯
-               = get_device(module, LIGHT_ID_NOTIFICATIONS);
-       devices->lights[LIGHT_INDEX_ATTENTION] //警示灯
-               = get_device(module, LIGHT_ID_ATTENTION);
-       devices->lights[LIGHT_INDEX_BLUETOOTH] //蓝牙提示灯
-               = get_device(module, LIGHT_ID_BLUETOOTH);
-       devices->lights[LIGHT_INDEX_WIFI] //WIFI提示灯
-               = get_device(module, LIGHT_ID_WIFI);
+        devices->lights[LIGHT_INDEX_BACKLIGHT]//背光
+            = get_device(module, LIGHT_ID_BACKLIGHT);
+        devices->lights[LIGHT_INDEX_KEYBOARD]//键盘灯
+            = get_device(module, LIGHT_ID_KEYBOARD);
+        devices->lights[LIGHT_INDEX_BUTTONS]//按键灯
+            = get_device(module, LIGHT_ID_BUTTONS);
+        devices->lights[LIGHT_INDEX_BATTERY]//电源指示灯
+            = get_device(module, LIGHT_ID_BATTERY);
+        devices->lights[LIGHT_INDEX_NOTIFICATIONS] //通知灯
+            = get_device(module, LIGHT_ID_NOTIFICATIONS);
+        devices->lights[LIGHT_INDEX_ATTENTION] //警示灯
+            = get_device(module, LIGHT_ID_ATTENTION);
+        devices->lights[LIGHT_INDEX_BLUETOOTH] //蓝牙提示灯
+            = get_device(module, LIGHT_ID_BLUETOOTH);
+        devices->lights[LIGHT_INDEX_WIFI] //WIFI提示灯
+            = get_device(module, LIGHT_ID_WIFI);
     } else {
-       memset(devices, 0, sizeof(Devices));
+        memset(devices, 0, sizeof(Devices));
     }
     return(jint)devices;
 }
@@ -1022,16 +1022,16 @@ static void setLight_native(JNIEnv *env, jobjectclazz, int ptr,
         intbrightnessMode)
 {
     Devices*devices = (Devices*)ptr;
-   light_state_t state;
+    light_state_t state;
     ......
-   memset(&state, 0, sizeof(light_state_t));
-   state.color = colorARGB;   //设置颜色
-   state.flashMode = flashMode; //设置闪光模式
-   state.flashOnMS = onMS;  //和闪光模式有关，例如亮2秒，灭2秒
-   state.flashOffMS = offMS;
-   state.brightnessMode = brightnessMode;//
+        memset(&state, 0, sizeof(light_state_t));
+    state.color = colorARGB;   //设置颜色
+    state.flashMode = flashMode; //设置闪光模式
+    state.flashOnMS = onMS;  //和闪光模式有关，例如亮2秒，灭2秒
+    state.flashOffMS = offMS;
+    state.brightnessMode = brightnessMode;//
     //传递给HAL层模块进行处理
-   devices->lights[light]->set_light(devices->lights[light],&state);
+    devices->lights[light]->set_light(devices->lights[light],&state);
 }
 ```
 
@@ -1046,16 +1046,16 @@ static void setLight_native(JNIEnv *env, jobjectclazz, int ptr,
 另外，PMS在JNI层也保存了当前屏幕状态信息，这是通过updateNativePowerStateLocked完成的，其代码如下：
 ```java
 private void updateNativePowerStateLocked() {
-       nativeSetPowerState(//调用native函数，传入两个参数
-               (mPowerState & SCREEN_ON_BIT) != 0,
-               (mPowerState & SCREEN_BRIGHT) == SCREEN_BRIGHT);
-    }
+    nativeSetPowerState(//调用native函数，传入两个参数
+            (mPowerState & SCREEN_ON_BIT) != 0,
+            (mPowerState & SCREEN_BRIGHT) == SCREEN_BRIGHT);
+}
 //jni层实现代码如下
 static void android_server_PowerManagerService_nativeSetPowerState(
-       JNIEnv* env,jobject serviceObj, jboolean screenOn, jbooleanscreenBright) {
-   AutoMutex _l(gPowerManagerLock);
-   gScreenOn = screenOn;//屏幕是否开启
-   gScreenBright = screenBright; //屏幕光是否全亮
+        JNIEnv* env,jobject serviceObj, jboolean screenOn, jbooleanscreenBright) {
+    AutoMutex _l(gPowerManagerLock);
+    gScreenOn = screenOn;//屏幕是否开启
+    gScreenBright = screenBright; //屏幕光是否全亮
 }
 ```
 
@@ -1078,10 +1078,10 @@ PMS的updateNativePowerStateLocked函数曾一度让笔者感到非常困惑，�
 
 [-->PowerManagerService.java::userActivity]
 ```java
- public voiduserActivity(long time, boolean noChangeLights) {
+public voiduserActivity(long time, boolean noChangeLights) {
     ......//检查调用进程是否有DEVICE_POWER的权限
-   userActivity(time, -1, noChangeLights, OTHER_EVENT, false);
- }
+        userActivity(time, -1, noChangeLights, OTHER_EVENT, false);
+}
 ```
 
 此处将调用另外一个同名函数。注意第三个参数的值OTHER_EVENT。系统一共定义了三种事件，分别是OTHER_EVENT（除按键、触摸屏外的事件）、BUTTON_EVENT（按键事件）和TOUCH_EVENT（触摸屏事件）。它们主要为BatteryStatsService进行电量统计时使用，例如触摸屏事件的耗电量和按键事件的耗电量等。
@@ -1089,43 +1089,43 @@ PMS的updateNativePowerStateLocked函数曾一度让笔者感到非常困惑，�
 [-->PowerManagerService.java::userActivity]
 ```java
 private void userActivity(long time, long timeoutOverride,
-              boolean noChangeLights,inteventType, boolean force) {
-   if(((mPokey & POKE_LOCK_IGNORE_TOUCH_EVENTS) != 0) &&
-                 (eventType == TOUCH_EVENT)) {
-   //mPokey和输入事件的处理策略有关。如果此处的if判断得到满足，表示忽略TOUCH_EVENT
-   return;
-  }
-   synchronized (mLocks) {
-     if(isScreenTurningOffLocked()) {
-          return;
-      }
-    if(mProximitySensorActive && mProximityWakeLockCount == 0)
-          mProximitySensorActive = false;//控制接近传感器
-    if(mLastEventTime <= time || force) {
-         mLastEventTime = time;
-          if((mUserActivityAllowed && !mProximitySensorActive) || force) {
-               if (eventType == BUTTON_EVENT && !mUseSoftwareAutoBrightness) {
-                     mUserState =(mKeyboardVisible ? ALL_BRIGHT :
-                                      SCREEN_BUTTON_BRIGHT);
-                   } else {
-                        mUserState |=SCREEN_BRIGHT;//设置用户事件导致的mUserState
-                   }
-                        ......//通知BatteryStatsService进行电量统计
-                        mBatteryStats.noteUserActivity(uid,eventType);
-               //重新计算WakeLock状态
+        boolean noChangeLights,inteventType, boolean force) {
+    if(((mPokey & POKE_LOCK_IGNORE_TOUCH_EVENTS) != 0) &&
+            (eventType == TOUCH_EVENT)) {
+        //mPokey和输入事件的处理策略有关。如果此处的if判断得到满足，表示忽略TOUCH_EVENT
+        return;
+    }
+    synchronized (mLocks) {
+        if(isScreenTurningOffLocked()) {
+            return;
+        }
+        if(mProximitySensorActive && mProximityWakeLockCount == 0)
+            mProximitySensorActive = false;//控制接近传感器
+        if(mLastEventTime <= time || force) {
+            mLastEventTime = time;
+            if((mUserActivityAllowed && !mProximitySensorActive) || force) {
+                if (eventType == BUTTON_EVENT && !mUseSoftwareAutoBrightness) {
+                    mUserState =(mKeyboardVisible ? ALL_BRIGHT :
+                            SCREEN_BUTTON_BRIGHT);
+                } else {
+                    mUserState |=SCREEN_BRIGHT;//设置用户事件导致的mUserState
+                }
+                ......//通知BatteryStatsService进行电量统计
+                    mBatteryStats.noteUserActivity(uid,eventType);
+                //重新计算WakeLock状态
                 mWakeLockState = mLocks.reactivateScreenLocksLocked();
-               setPowerState(mUserState | mWakeLockState, noChangeLights,
-                           WindowManagerPolicy.OFF_BECAUSE_OF_USER);
+                setPowerState(mUserState | mWakeLockState, noChangeLights,
+                        WindowManagerPolicy.OFF_BECAUSE_OF_USER);
                 //重新开始屏幕计时
                 setTimeoutLocked(time, timeoutOverride, SCREEN_BRIGHT);
-               }
-           }
-        }
-        //mPolicy指向PhoneWindowManager，用于和WindowManagerService交互
-        if(mPolicy != null) {
-           mPolicy.userActivity();
+            }
         }
     }
+    //mPolicy指向PhoneWindowManager，用于和WindowManagerService交互
+    if(mPolicy != null) {
+        mPolicy.userActivity();
+    }
+}
 ```
 
 有了前面分析的基础，相信很多读者都会觉得userActivity函数很简单。在前面的代码中，通过setPowerState点亮了屏幕，那么经过一段时间后发生的屏幕状态切换在哪儿进行呢？来看setTimeoutLocked函数的代码：
@@ -1133,42 +1133,42 @@ private void userActivity(long time, long timeoutOverride,
 [-->PowerManagerService.java::setTimeoutLocked]
 ```java
 private void setTimeoutLocked(long now, final longoriginalTimeoutOverride,
-                                    intnextState) {
-   //在本例中，nextState为SCREEN_BRIGHT，originalTimeoutOverride为-1
-   longtimeoutOverride = originalTimeoutOverride;
-   if(mBootCompleted) {
-       synchronized (mLocks) {
-        long when = 0;
-         if(timeoutOverride <= 0) {
-            switch (nextState)
-            {
-               case SCREEN_BRIGHT:
-                 when = now + mKeylightDelay;//得到一个超时时间
-                  break;
-               case SCREEN_DIM:
-                 if (mDimDelay >= 0) {
-                     when = now + mDimDelay;
-                      break;
-                  } ......
-                case SCREEN_OFF:
-                  synchronized (mLocks) {
-                      when = now +mScreenOffDelay;
-                     }
-                       break;
-                  default:
-                      when = now;
-                      break;
-           }
-        }......//处理timeoutOverride大于零的情况，无非就是设置状态和超时时间
-      mHandler.removeCallbacks(mTimeoutTask);
-      mTimeoutTask.nextState = nextState;
-      mTimeoutTask.remainingTimeoutOverride = timeoutOverride > 0
-                        ? (originalTimeoutOverride- timeoutOverride)
-                        : -1;
-       //抛送一个mTimeoutTask交给mHandler执行，执行时间为when秒后
-      mHandler.postAtTime(mTimeoutTask, when);
-      mNextTimeout = when; //调试用
-      }
+        intnextState) {
+    //在本例中，nextState为SCREEN_BRIGHT，originalTimeoutOverride为-1
+    longtimeoutOverride = originalTimeoutOverride;
+    if(mBootCompleted) {
+        synchronized (mLocks) {
+            long when = 0;
+            if(timeoutOverride <= 0) {
+                switch (nextState)
+                {
+                    case SCREEN_BRIGHT:
+                        when = now + mKeylightDelay;//得到一个超时时间
+                        break;
+                    case SCREEN_DIM:
+                        if (mDimDelay >= 0) {
+                            when = now + mDimDelay;
+                            break;
+                        } ......
+                    case SCREEN_OFF:
+                        synchronized (mLocks) {
+                            when = now +mScreenOffDelay;
+                        }
+                        break;
+                    default:
+                        when = now;
+                        break;
+                }
+            }......//处理timeoutOverride大于零的情况，无非就是设置状态和超时时间
+            mHandler.removeCallbacks(mTimeoutTask);
+            mTimeoutTask.nextState = nextState;
+            mTimeoutTask.remainingTimeoutOverride = timeoutOverride > 0
+                ? (originalTimeoutOverride- timeoutOverride)
+                : -1;
+            //抛送一个mTimeoutTask交给mHandler执行，执行时间为when秒后
+            mHandler.postAtTime(mTimeoutTask, when);
+            mNextTimeout = when; //调试用
+        }
     }
 }
 ```
@@ -1177,28 +1177,28 @@ private void setTimeoutLocked(long now, final longoriginalTimeoutOverride,
 ```java
 private class TimeoutTask implements Runnable
 {
-   intnextState;
-   longremainingTimeoutOverride;
-   publicvoid run()
-   {
-     synchronized (mLocks) {
-        if(nextState == -1)return;
-       mUserState = this.nextState;
-        //调用setPowerState去真正改变屏幕状态
-        setPowerState(this.nextState| mWakeLockState);
-        long now = SystemClock.uptimeMillis();
-        switch (this.nextState)
-         {
-           case SCREEN_BRIGHT:
-            if (mDimDelay >= 0) {//设置下一个状态为SCREEN_DIM
-                setTimeoutLocked(now,remainingTimeoutOverride, SCREEN_DIM);
-                break;
-             }
-          case SCREEN_DIM://设置下一个状态为SCREEN_OFF
-            setTimeoutLocked(now, remainingTimeoutOverride, SCREEN_OFF);
-            break;
-         }......//省略花括号
- }
+    intnextState;
+    longremainingTimeoutOverride;
+    publicvoid run()
+    {
+        synchronized (mLocks) {
+            if(nextState == -1)return;
+            mUserState = this.nextState;
+            //调用setPowerState去真正改变屏幕状态
+            setPowerState(this.nextState| mWakeLockState);
+            long now = SystemClock.uptimeMillis();
+            switch (this.nextState)
+            {
+                case SCREEN_BRIGHT:
+                    if (mDimDelay >= 0) {//设置下一个状态为SCREEN_DIM
+                        setTimeoutLocked(now,remainingTimeoutOverride, SCREEN_DIM);
+                        break;
+                    }
+                case SCREEN_DIM://设置下一个状态为SCREEN_OFF
+                    setTimeoutLocked(now, remainingTimeoutOverride, SCREEN_OFF);
+                    break;
+            }......//省略花括号
+        }
 ```
 
 TimeoutTask就是用来切换屏幕状态的，相信不少读者已经在网络上见过一个和PMS屏幕状态切换相关的图（其实就是TimeoutTask的工作流程解释），对此，本章就不再介绍了，希望读者能通过直接阅读源码加深理解。
@@ -1235,45 +1235,45 @@ public void goToSleep(long time)
 }
 public void goToSleepWithReason(long time, intreason)
 {
-  mContext.enforceCallingOrSelfPermission(//检查调用进程是否有DEVICE_POWER权限
+    mContext.enforceCallingOrSelfPermission(//检查调用进程是否有DEVICE_POWER权限
             android.Manifest.permission.DEVICE_POWER,null);
-  synchronized (mLocks) {
+    synchronized (mLocks) {
         goToSleepLocked(time, reason);//调用goToSleepLocked函数
-   }
- }
+    }
+}
 ```
 
 [-->PowerManagerService.java::goToSleepLocked]
 ```java
 private void goToSleepLocked(long time, intreason) {
- if(mLastEventTime <= time) {
-    mLastEventTime = time;
-    mWakeLockState = SCREEN_OFF;
-     int N= mLocks.size();
-     intnumCleared = 0;
-     boolean proxLock = false;
-     for(int i=0; i<N; i++) {
-      WakeLock wl = mLocks.get(i);
-       if(isScreenLock(wl.flags)) {
-          if(((wl.flags & LOCK_MASK) ==
-                PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK)
-               && reason == WindowManagerPolicy.OFF_BECAUSE_OF_PROX_SENSOR) {
-                proxLock = true;//判断goToSleep的原因是否与接近传感器有关
-            } else{
-               mLocks.get(i).activated = false;//禁止和屏幕相关的WakeLock
-               numCleared++;
-             }
-        }// isScreenLock判断结束
+    if(mLastEventTime <= time) {
+        mLastEventTime = time;
+        mWakeLockState = SCREEN_OFF;
+        int N= mLocks.size();
+        intnumCleared = 0;
+        boolean proxLock = false;
+        for(int i=0; i<N; i++) {
+            WakeLock wl = mLocks.get(i);
+            if(isScreenLock(wl.flags)) {
+                if(((wl.flags & LOCK_MASK) ==
+                            PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK)
+                        && reason == WindowManagerPolicy.OFF_BECAUSE_OF_PROX_SENSOR) {
+                    proxLock = true;//判断goToSleep的原因是否与接近传感器有关
+                } else{
+                    mLocks.get(i).activated = false;//禁止和屏幕相关的WakeLock
+                    numCleared++;
+                }
+            }// isScreenLock判断结束
         }//for循环结束
-       if(!proxLock) {
-           mProxIgnoredBecauseScreenTurnedOff = true;
-       }
-       mStillNeedSleepNotification = true;
-       mUserState = SCREEN_OFF;
-       setPowerState(SCREEN_OFF, false, reason);//关闭屏幕
-       cancelTimerLocked();//从mHandler中撤销mTimeoutTask任务
+        if(!proxLock) {
+            mProxIgnoredBecauseScreenTurnedOff = true;
+        }
+        mStillNeedSleepNotification = true;
+        mUserState = SCREEN_OFF;
+        setPowerState(SCREEN_OFF, false, reason);//关闭屏幕
+        cancelTimerLocked();//从mHandler中撤销mTimeoutTask任务
     }
- }
+}
 ```
 
 掌握了前面的基础知识就会感到Power键的处理流程真的是很简单，读者是否也有同感呢？
@@ -1296,26 +1296,26 @@ BatteryService由SystemServer创建，代码如下：
 [-->BatteryService.java]
 ```java
 public BatteryService(Context context,LightsService lights) {
-  mContext =context;
-  mLed = newLed(context, lights);//提示灯控制，感兴趣的读者可自行阅读相关代码
-  //BatteryService也需要和BatteryStatsService交互
- mBatteryStats = BatteryStatsService.getService();
-  //获取一些配置参数
- mCriticalBatteryLevel = mContext.getResources().getInteger(
-    com.android.internal.R.integer.config_criticalBatteryWarningLevel);
- mLowBatteryWarningLevel = mContext.getResources().getInteger(
-    com.android.internal.R.integer.config_lowBatteryWarningLevel);
- mLowBatteryCloseWarningLevel = mContext.getResources().getInteger(
-     com.android.internal.R.integer.config_lowBatteryCloseWarningLevel);
-  //启动uevent监听对象，监视power_supply信息
- mPowerSupplyObserver.startObserving("SUBSYSTEM=power_supply");
-  //如果下列文件存在，那么启动另一个uevent监听对象。该uevent事件来自invalid charger
-  //switch设备（即不匹配的充电设备）
- if (newFile("/sys/devices/virtual/switch/invalid_charger/state").exists()) {
-     mInvalidChargerObserver.startObserving(
-              "DEVPATH=/devices/virtual/switch/invalid_charger");
-  }
-   update();//①查询HAL层，获取此时的电池信息
+    mContext =context;
+    mLed = newLed(context, lights);//提示灯控制，感兴趣的读者可自行阅读相关代码
+    //BatteryService也需要和BatteryStatsService交互
+    mBatteryStats = BatteryStatsService.getService();
+    //获取一些配置参数
+    mCriticalBatteryLevel = mContext.getResources().getInteger(
+            com.android.internal.R.integer.config_criticalBatteryWarningLevel);
+    mLowBatteryWarningLevel = mContext.getResources().getInteger(
+            com.android.internal.R.integer.config_lowBatteryWarningLevel);
+    mLowBatteryCloseWarningLevel = mContext.getResources().getInteger(
+            com.android.internal.R.integer.config_lowBatteryCloseWarningLevel);
+    //启动uevent监听对象，监视power_supply信息
+    mPowerSupplyObserver.startObserving("SUBSYSTEM=power_supply");
+    //如果下列文件存在，那么启动另一个uevent监听对象。该uevent事件来自invalid charger
+    //switch设备（即不匹配的充电设备）
+    if (newFile("/sys/devices/virtual/switch/invalid_charger/state").exists()) {
+        mInvalidChargerObserver.startObserving(
+                "DEVPATH=/devices/virtual/switch/invalid_charger");
+    }
+    update();//①查询HAL层，获取此时的电池信息
 }
 ```
 
@@ -1329,8 +1329,8 @@ BatteryService定义了3个非常重要的阈值，分别是：
 [-->BatteryService.java::update]
 ```java
 private synchronized final void update() {
- native_update();//到Native层查询并更新内部变量的值
- processValues();//处理更新后的状态
+    native_update();//到Native层查询并更新内部变量的值
+    processValues();//处理更新后的状态
 }
 ```
 
@@ -1389,40 +1389,40 @@ mBatteryStatus和mBatteryHealth均有几种不同状态，详细信息可查看g
 [-->BatteryService.java::processValues]
 ```java
 private void processValues() {
-   longdischargeDuration = 0;
-  mBatteryLevelCritical = mBatteryLevel <= mCriticalBatteryLevel;
-   if (mAcOnline) {
-     mPlugType = BatteryManager.BATTERY_PLUGGED_AC;
+    longdischargeDuration = 0;
+    mBatteryLevelCritical = mBatteryLevel <= mCriticalBatteryLevel;
+    if (mAcOnline) {
+        mPlugType = BatteryManager.BATTERY_PLUGGED_AC;
     } elseif (mUsbOnline) {
-     mPlugType = BatteryManager.BATTERY_PLUGGED_USB;
+        mPlugType = BatteryManager.BATTERY_PLUGGED_USB;
     } else {
-     mPlugType = BATTERY_PLUGGED_NONE;
-   }
-   //通知BatteryStatsService，该函数以后再分析
-  mBatteryStats.setBatteryState(mBatteryStatus, mBatteryHealth,
-              mPlugType, mBatteryLevel, mBatteryTemperature, mBatteryVoltage
-              );
-   shutdownIfNoPower();//如果电量不够，弹出关机对话框
-  shutdownIfOverTemp();//如果电池过热，弹出关机对话框
-   ......//根据当前电池信息与上次电池信息比较，判断是否需要发送广播等
-   if (比较前后两次电池信息是否发生变化) {
-     ......//记录信息到日志文件
-     Intent statusIntent = new Intent();
-     statusIntent.setFlags(
-             Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
-     if (mPlugType != 0 && mLastPlugType ==0) {
-       statusIntent.setAction(Intent.ACTION_POWER_CONNECTED);
-               mContext.sendBroadcast(statusIntent);
-      }......
-    if(sendBatteryLow) {
-        mSentLowBatteryBroadcast = true;//发送低电提醒
-       statusIntent.setAction(Intent.ACTION_BATTERY_LOW);
-       mContext.sendBroadcast(statusIntent);
-     } ......
-     mLed.updateLightsLocked();//更新LED灯状态
-    mLastBatteryStatus= mBatteryStatus;//保存新的电池信息
-    ......
-}
+        mPlugType = BATTERY_PLUGGED_NONE;
+    }
+    //通知BatteryStatsService，该函数以后再分析
+    mBatteryStats.setBatteryState(mBatteryStatus, mBatteryHealth,
+            mPlugType, mBatteryLevel, mBatteryTemperature, mBatteryVoltage
+            );
+    shutdownIfNoPower();//如果电量不够，弹出关机对话框
+    shutdownIfOverTemp();//如果电池过热，弹出关机对话框
+    ......//根据当前电池信息与上次电池信息比较，判断是否需要发送广播等
+        if (比较前后两次电池信息是否发生变化) {
+            ......//记录信息到日志文件
+                Intent statusIntent = new Intent();
+            statusIntent.setFlags(
+                    Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+            if (mPlugType != 0 && mLastPlugType ==0) {
+                statusIntent.setAction(Intent.ACTION_POWER_CONNECTED);
+                mContext.sendBroadcast(statusIntent);
+            }......
+            if(sendBatteryLow) {
+                mSentLowBatteryBroadcast = true;//发送低电提醒
+                statusIntent.setAction(Intent.ACTION_BATTERY_LOW);
+                mContext.sendBroadcast(statusIntent);
+            } ......
+            mLed.updateLightsLocked();//更新LED灯状态
+            mLastBatteryStatus= mBatteryStatus;//保存新的电池信息
+            ......
+        }
 ```
 
 processValues函数非常简单，此处不再详述。另外，当电池信息发生改变时，系统会发送uevent事件给BatteryService，此时BatteryService只要重新调用update即可完成工作。
@@ -1435,9 +1435,9 @@ BatteryStatsService（为书写方便，以后简称BSS）主要功能是收集�
 [-->ActivityManagerService.java::ActivityManagerService构造函数]
 ```java
 private ActivityManagerService() {
-     ......//创建BSS对象，传递一个File对象，指向/data/system/batterystats.bin
-     mBatteryStatsService= new BatteryStatsService(new File(
-               systemDir, "batterystats.bin").toString());
+    ......//创建BSS对象，传递一个File对象，指向/data/system/batterystats.bin
+        mBatteryStatsService= new BatteryStatsService(new File(
+                    systemDir, "batterystats.bin").toString());
 }
 ```
 
@@ -1469,14 +1469,14 @@ BatteryStatsService(String filename) {
 BSS的getStatistics函数提供了查询系统用电信息的接口，代码如下：
 ```java
 public byte[] getStatistics() {
-   mContext.enforceCallingPermission(//检查调用进程是否有BATTERY_STATS权限
-        android.Manifest.permission.BATTERY_STATS, null);
-  Parcel out= Parcel.obtain();
- mStats.writeToParcel(out, 0);//将BSImpl信息写到数据包中
-  byte[]data = out.marshall();//序列化为一个buffer，然后通过Binder传递
- out.recycle();
-  returndata;
- }
+    mContext.enforceCallingPermission(//检查调用进程是否有BATTERY_STATS权限
+            android.Manifest.permission.BATTERY_STATS, null);
+    Parcel out= Parcel.obtain();
+    mStats.writeToParcel(out, 0);//将BSImpl信息写到数据包中
+    byte[]data = out.marshall();//序列化为一个buffer，然后通过Binder传递
+    out.recycle();
+    returndata;
+}
 ```
 
 由此可以看出，电量统计的核心类是BSImpl，下面就来分析它。
@@ -1536,35 +1536,35 @@ mVideoOnTimer |StopwatchTimer |使用Video的耗电量
 [-->BatteryStatsImpl.java::BatteryStatsImpl构造函数]
 ```java
 public BatteryStatsImpl(String filename) {
-   //JournaledFile为日志文件对象，内部包含两个文件，原始文件和临时文件。目的是双备份，
-   //以防止在读写过程中文件信息丢失或出错
-   mFile =new JournaledFile(new File(filename), new File(filename + ".tmp"));
-   mHandler= new MyHandler();//创建一个Handler对象
-  mStartCount++;
-   //创建表5-5中的用电统计项对象
-  mScreenOnTimer = new StopwatchTimer(null, -1, null, mUnpluggables);
-   for (inti=0; i<NUM_SCREEN_BRIGHTNESS_BINS; i++) {
-      mScreenBrightnessTimer[i] = new StopwatchTimer(null, -100-i, null,
-               mUnpluggables);
-   }
-  mInputEventCounter = new Counter(mUnpluggables);
-   ......
-   mOnBattery= mOnBatteryInternal = false;//设置这两位成员变量为false
-  initTimes();//①初始化统计时间
-  mTrackBatteryPastUptime = 0;
-  mTrackBatteryPastRealtime = 0;
-   mUptimeStart= mTrackBatteryUptimeStart =
-                             SystemClock.uptimeMillis()* 1000;
-   mRealtimeStart= mTrackBatteryRealtimeStart =
-                                SystemClock.elapsedRealtime()* 1000;
-  mUnpluggedBatteryUptime = getBatteryUptimeLocked(mUptimeStart);
-  mUnpluggedBatteryRealtime = getBatteryRealtimeLocked(mRealtimeStart);
-  mDischargeStartLevel = 0;
-  mDischargeUnplugLevel = 0;
-  mDischargeCurrentLevel = 0;
-  initDischarge();     //②初始化和电池level有关的成员变量
-  clearHistoryLocked();//③删除用电统计的历史记录
- }
+    //JournaledFile为日志文件对象，内部包含两个文件，原始文件和临时文件。目的是双备份，
+    //以防止在读写过程中文件信息丢失或出错
+    mFile =new JournaledFile(new File(filename), new File(filename + ".tmp"));
+    mHandler= new MyHandler();//创建一个Handler对象
+    mStartCount++;
+    //创建表5-5中的用电统计项对象
+    mScreenOnTimer = new StopwatchTimer(null, -1, null, mUnpluggables);
+    for (inti=0; i<NUM_SCREEN_BRIGHTNESS_BINS; i++) {
+        mScreenBrightnessTimer[i] = new StopwatchTimer(null, -100-i, null,
+                mUnpluggables);
+    }
+    mInputEventCounter = new Counter(mUnpluggables);
+    ......
+        mOnBattery= mOnBatteryInternal = false;//设置这两位成员变量为false
+    initTimes();//①初始化统计时间
+    mTrackBatteryPastUptime = 0;
+    mTrackBatteryPastRealtime = 0;
+    mUptimeStart= mTrackBatteryUptimeStart =
+        SystemClock.uptimeMillis()* 1000;
+    mRealtimeStart= mTrackBatteryRealtimeStart =
+        SystemClock.elapsedRealtime()* 1000;
+    mUnpluggedBatteryUptime = getBatteryUptimeLocked(mUptimeStart);
+    mUnpluggedBatteryRealtime = getBatteryRealtimeLocked(mRealtimeStart);
+    mDischargeStartLevel = 0;
+    mDischargeUnplugLevel = 0;
+    mDischargeCurrentLevel = 0;
+    initDischarge();     //②初始化和电池level有关的成员变量
+    clearHistoryLocked();//③删除用电统计的历史记录
+}
 ```
 
 要看懂这段代码比较困难，主要原因是变量太多，并且没有注释说明。只能根据名字来推测了。在以上代码中除了计量工具外，还出现了三大类变量：
@@ -1577,20 +1577,20 @@ public BatteryStatsImpl(String filename) {
 ```java
 //调用方式
 mPhoneSignalScanningTimer = newStopwatchTimer(null, -200+1,
-                                   null,mUnpluggables);
+        null,mUnpluggables);
 //mUnpluggables类型为ArrayList<Unpluggable>，用于保存插拔USB线时需要对应更新用电
 //信息的统计对象
 // StopwatchTimer的构造函数
 StopwatchTimer(Uid uid, int type,ArrayList<StopwatchTimer> timerPool,
-                 ArrayList<Unpluggable>unpluggables) {
-   //在本例中，uid为0，type为负数，timerPool为空，unpluggables为mUnpluggables
-  super(type, unpluggables);
-   mUid =uid;
-  mTimerPool = timerPool;
+        ArrayList<Unpluggable>unpluggables) {
+    //在本例中，uid为0，type为负数，timerPool为空，unpluggables为mUnpluggables
+    super(type, unpluggables);
+    mUid =uid;
+    mTimerPool = timerPool;
 }
 // Timer的构造函数
 Timer(int type, ArrayList<Unpluggable>unpluggables) {
-     mType =type;
+    mType =type;
     mUnpluggables = unpluggables;
     unpluggables.add(this);
 }
@@ -1602,38 +1602,38 @@ Timer(int type, ArrayList<Unpluggable>unpluggables) {
 
 ```java
 void startRunningLocked(BatteryStatsImpl stats) {
-  if(mNesting++ == 0) {//嵌套调用控制
+    if(mNesting++ == 0) {//嵌套调用控制
         // getBatteryRealtimeLocked函数返回总的电池使用时间
-       mUpdateTime = stats.getBatteryRealtimeLocked(
-                            SystemClock.elapsedRealtime()* 1000);
-         if (mTimerPool != null) {//不讨论这种情况
-         }
+        mUpdateTime = stats.getBatteryRealtimeLocked(
+                SystemClock.elapsedRealtime()* 1000);
+        if (mTimerPool != null) {//不讨论这种情况
+        }
         mCount++;
         mAcquireTime = mTotalTime;//计数控制，请读者阅读相关注释说明
-       }
-   }
+    }
+}
 ```
 
 当停用秒表时，调用它的stopRunningLocked函数，代码如下：
 ```java
 void stopRunningLocked(BatteryStatsImpl stats) {
-  if (mNesting == 0) {
-     return; //嵌套控制
-  }
-  if(--mNesting == 0) {
-       if(mTimerPool != null) {//不讨论这种情况
+    if (mNesting == 0) {
+        return; //嵌套控制
+    }
+    if(--mNesting == 0) {
+        if(mTimerPool != null) {//不讨论这种情况
         }else {
-        final long realtime = SystemClock.elapsedRealtime() * 1000;
-         //计算此次启动/停止周期的时间
-        final long batteryRealtime = stats.getBatteryRealtimeLocked(realtime);
-          mNesting = 1;
-          //mTotalTime代表从启动开始该秒停表一共记录的时间
-         mTotalTime = computeRunTimeLocked(batteryRealtime);
-         mNesting = 0;
-          }
-       if (mTotalTime == mAcquireTime)  mCount--;
-     }
- }
+            final long realtime = SystemClock.elapsedRealtime() * 1000;
+            //计算此次启动/停止周期的时间
+            final long batteryRealtime = stats.getBatteryRealtimeLocked(realtime);
+            mNesting = 1;
+            //mTotalTime代表从启动开始该秒停表一共记录的时间
+            mTotalTime = computeRunTimeLocked(batteryRealtime);
+            mNesting = 0;
+        }
+        if (mTotalTime == mAcquireTime)  mCount--;
+    }
+}
 ```
 
 在StopwatchTimer中定义了很多的时间参数，无非就是用于记录各种时间，例如总耗时、最近一次工作周期的耗时等。如果不是工作需要（例如研究Settings应用中和BatteryInfo相关的内容），读者仅需了解它的作用即可。
@@ -1644,14 +1644,14 @@ ActivityManagerService创建BSS后，还要进行几项操作，具体代码分�
 [-->ActivityManagerService.java::ActivityManagerService构造函数]
 ```java
 mBatteryStatsService = new BatteryStatsService(newFile(
-               systemDir, "batterystats.bin").toString());
-  //操作通过BSImpl创建的JournaledFile文件
- mBatteryStatsService.getActiveStatistics().readLocked();
- mBatteryStatsService.getActiveStatistics().writeAsyncLocked();
-  //BSImpl的getIsOnBattery返回mOnBattery变量，初始化值为false
-  mOnBattery= DEBUG_POWER ? true
-           : mBatteryStatsService.getActiveStatistics().getIsOnBattery();
-   //设置回调，该回调也是用于信息统计，只能留到介绍ActivityManagerService时再来分析了
+            systemDir, "batterystats.bin").toString());
+//操作通过BSImpl创建的JournaledFile文件
+mBatteryStatsService.getActiveStatistics().readLocked();
+mBatteryStatsService.getActiveStatistics().writeAsyncLocked();
+//BSImpl的getIsOnBattery返回mOnBattery变量，初始化值为false
+mOnBattery= DEBUG_POWER ? true
+: mBatteryStatsService.getActiveStatistics().getIsOnBattery();
+//设置回调，该回调也是用于信息统计，只能留到介绍ActivityManagerService时再来分析了
 mBatteryStatsService.getActiveStatistics().setCallback(this);
 ```
 
@@ -1660,16 +1660,16 @@ mBatteryStatsService.getActiveStatistics().setCallback(this);
 m.mBatteryStatsService.publish(context);
 [-->BatteryStatsService.java::publish]
 public void publish(Context context) {
-  mContext =context;
-  //注意，BSS服务叫做batteryinfo，而BatteryService服务叫做battery
- ServiceManager.addService("batteryinfo", asBinder());
-  //PowerProfile见下文解释
- mStats.setNumSpeedSteps(new PowerProfile(mContext).getNumSpeedSteps());
-  //设置通信信号扫描超时时间
- mStats.setRadioScanningTimeout(mContext.getResources().getInteger(
-             com.android.internal.R.integer.config_radioScanningTimeout)
-              * 1000L);
-    }
+    mContext =context;
+    //注意，BSS服务叫做batteryinfo，而BatteryService服务叫做battery
+    ServiceManager.addService("batteryinfo", asBinder());
+    //PowerProfile见下文解释
+    mStats.setNumSpeedSteps(new PowerProfile(mContext).getNumSpeedSteps());
+    //设置通信信号扫描超时时间
+    mStats.setRadioScanningTimeout(mContext.getResources().getInteger(
+                com.android.internal.R.integer.config_radioScanningTimeout)
+            * 1000L);
+}
 ```
 
 在以上代码中，比较有意思的是PowerProfile类，它将解析Android 4.0源码/frameworks/base/core/res/res/xml/power_profile.xml文件。此XML文件存储的是各种操作（和硬件相关）的耗电情况，如图5-5所示。
@@ -1686,9 +1686,9 @@ BatteryService在它的processValues函数中和BSS交互，代码如下：
 [-->BatteryService.java]
 ```java
 private void processValues() {
-   ......
-   mBatteryStats.setBatteryState(mBatteryStatus,mBatteryHealth, mPlugType,
-                 mBatteryLevel, mBatteryTemperature,mBatteryVoltage);
+    ......
+        mBatteryStats.setBatteryState(mBatteryStatus,mBatteryHealth, mPlugType,
+                mBatteryLevel, mBatteryTemperature,mBatteryVoltage);
 }
 ```
 
@@ -1697,99 +1697,99 @@ BSS的工作由BSImpl来完成，所以直接setBatteryState函数的代码：
 [-->BatteryStatsImpl.java::setBatteryState]
 ```java
 public void setBatteryState(int status, inthealth, int plugType, int level,
-                                int temp, int volt) {
-  synchronized(this) {
-      boolean onBattery = plugType == BATTERY_PLUGGED_NONE;//判断是否为电池供电
-       intoldStatus = mHistoryCur.batteryStatus;
-       ......
-        if(onBattery) {
-            //mDischargeCurrentLevel记录当前使用电池供电时的电池电量
-            mDischargeCurrentLevel = level;
-            mRecordingHistory = true;//mRecordingHistory表示需要记录一次历史值
-         }
-       //此时,onBattery为当前状态，mOnBattery为历史状态
-      if(onBattery != mOnBattery) {
-          mHistoryCur.batteryLevel = (byte)level;
-          mHistoryCur.batteryStatus = (byte)status;
-           mHistoryCur.batteryHealth = (byte)health;
-           ......//更新mHistoryCur中的电池信息
-               setOnBatteryLocked(onBattery, oldStatus, level);
-           } else {
-               boolean changed = false;
-               if (mHistoryCur.batteryLevel != level) {
-                   mHistoryCur.batteryLevel = (byte)level;
-                   changed = true;
-               }
-               ......//判断电池信息是否发生变化
-               if (changed) {//如果发生变化，则需要增加一次历史记录
-                   addHistoryRecordLocked(SystemClock.elapsedRealtime());
-               }
-           }
-           if (!onBattery && status == BatteryManager.BATTERY_STATUS_FULL){
-               mRecordingHistory = false;
-           }
+        int temp, int volt) {
+    synchronized(this) {
+        boolean onBattery = plugType == BATTERY_PLUGGED_NONE;//判断是否为电池供电
+        intoldStatus = mHistoryCur.batteryStatus;
+        ......
+            if(onBattery) {
+                //mDischargeCurrentLevel记录当前使用电池供电时的电池电量
+                mDischargeCurrentLevel = level;
+                mRecordingHistory = true;//mRecordingHistory表示需要记录一次历史值
+            }
+        //此时,onBattery为当前状态，mOnBattery为历史状态
+        if(onBattery != mOnBattery) {
+            mHistoryCur.batteryLevel = (byte)level;
+            mHistoryCur.batteryStatus = (byte)status;
+            mHistoryCur.batteryHealth = (byte)health;
+            ......//更新mHistoryCur中的电池信息
+                setOnBatteryLocked(onBattery, oldStatus, level);
+        } else {
+            boolean changed = false;
+            if (mHistoryCur.batteryLevel != level) {
+                mHistoryCur.batteryLevel = (byte)level;
+                changed = true;
+            }
+            ......//判断电池信息是否发生变化
+                if (changed) {//如果发生变化，则需要增加一次历史记录
+                    addHistoryRecordLocked(SystemClock.elapsedRealtime());
+                }
+        }
+        if (!onBattery && status == BatteryManager.BATTERY_STATUS_FULL){
+            mRecordingHistory = false;
         }
     }
+}
 setBatteryState函数的工作主要有两项：
 -  判断当前供电状态是否发生变化，由onBattery和mOnBattery进行比较。其中onBattery用于判断当前是否为电池供电，mOnBattery为上次调用该函数时得到的判断值。如果供电状态发生变化（其实就是经历一次USB拔插过程），则调用setOnBatteryLocked函数。
 -  如果供电状态未发生变化，则需要判断电池信息是否发生变化，例如电量和电压等。如果发生变化，则调用addHistoryRecordLocked。该函数用于记录一次历史信息。
 接下来看setOnBatteryLocked函数的代码：
 [-->BatteryStatsImpl.java::setOnBatteryLocked]
 void setOnBatteryLocked(boolean onBattery, intoldStatus, int level) {
-   boolean doWrite = false;
-   //发送一个消息给mHandler，将在内部调用ActivityManagerService设置的回调函数
-   Message m= mHandler.obtainMessage(MSG_REPORT_POWER_CHANGE);
-   m.arg1 =onBattery ? 1 : 0;
-  mHandler.sendMessage(m);
-  mOnBattery = mOnBatteryInternal = onBattery;
-   longuptime = SystemClock.uptimeMillis() * 1000;
-   longmSecRealtime = SystemClock.elapsedRealtime();
-   longrealtime = mSecRealtime * 1000;
-   if(onBattery) {
-       //关于电量信息统计，有一个值得注意的地方：当oldStatus为满电状态，或当前电量
-      //大于90，或mDischargeCurrentLevel小于20并且当前电量大于80时，要清空统计
-      //信息，以开始新的统计。也就是说在满足特定条件的情况下，电量使用统计信息会清零并重
-     //新开始。读者不妨用自己手机一试
-       if(oldStatus == BatteryManager.BATTERY_STATUS_FULL || level >= 90
-           || (mDischargeCurrentLevel < 20 && level >= 80)) {
-           doWrite = true;
-           resetAllStatsLocked();
-           mDischargeStartLevel = level;
-       }
+    boolean doWrite = false;
+    //发送一个消息给mHandler，将在内部调用ActivityManagerService设置的回调函数
+    Message m= mHandler.obtainMessage(MSG_REPORT_POWER_CHANGE);
+    m.arg1 =onBattery ? 1 : 0;
+    mHandler.sendMessage(m);
+    mOnBattery = mOnBatteryInternal = onBattery;
+    longuptime = SystemClock.uptimeMillis() * 1000;
+    longmSecRealtime = SystemClock.elapsedRealtime();
+    longrealtime = mSecRealtime * 1000;
+    if(onBattery) {
+        //关于电量信息统计，有一个值得注意的地方：当oldStatus为满电状态，或当前电量
+        //大于90，或mDischargeCurrentLevel小于20并且当前电量大于80时，要清空统计
+        //信息，以开始新的统计。也就是说在满足特定条件的情况下，电量使用统计信息会清零并重
+        //新开始。读者不妨用自己手机一试
+        if(oldStatus == BatteryManager.BATTERY_STATUS_FULL || level >= 90
+                || (mDischargeCurrentLevel < 20 && level >= 80)) {
+            doWrite = true;
+            resetAllStatsLocked();
+            mDischargeStartLevel = level;
+        }
         //读取/proc/wakelock文件，该文件反映了系统wakelock的使用状态，
         //感兴趣的读者可自行研究
-       updateKernelWakelocksLocked();
-       mHistoryCur.batteryLevel = (byte)level;
-       mHistoryCur.states &= ~HistoryItem.STATE_BATTERY_PLUGGED_FLAG;
+        updateKernelWakelocksLocked();
+        mHistoryCur.batteryLevel = (byte)level;
+        mHistoryCur.states &= ~HistoryItem.STATE_BATTERY_PLUGGED_FLAG;
         //添加一条历史记录
         addHistoryRecordLocked(mSecRealtime);
         //mTrackBatteryUptimeStart表示使用电池的开始时间，由uptime表示
-       mTrackBatteryUptimeStart = uptime;
+        mTrackBatteryUptimeStart = uptime;
         // mTrackBatteryRealtimeStart表示使用电池的开始时间，由realtime表示
-       mTrackBatteryRealtimeStart = realtime;
+        mTrackBatteryRealtimeStart = realtime;
         //mUnpluggedBatteryUptime记录总的电池使用时间（不论中间插拔多少次）
-       mUnpluggedBatteryUptime = getBatteryUptimeLocked(uptime);
+        mUnpluggedBatteryUptime = getBatteryUptimeLocked(uptime);
         // mUnpluggedBatteryRealtime记录总的电池使用时间
-       mUnpluggedBatteryRealtime = getBatteryRealtimeLocked(realtime);
+        mUnpluggedBatteryRealtime = getBatteryRealtimeLocked(realtime);
         //记录电量
         mDischargeCurrentLevel =mDischargeUnplugLevel = level;
         if(mScreenOn) {
             mDischargeScreenOnUnplugLevel = level;
             mDischargeScreenOffUnplugLevel = 0;
-          }else {
-              mDischargeScreenOnUnplugLevel = 0;
-             mDischargeScreenOffUnplugLevel = level;
-          }
-         mDischargeAmountScreenOn = 0;
-         mDischargeAmountScreenOff = 0;
-          //调用doUnplugLocked函数
-         doUnplugLocked(mUnpluggedBatteryUptime, mUnpluggedBatteryRealtime);
         }else {
-            ......//处理使用USB充电的情况，请读者在上面讨论的基础上自行分析
+            mDischargeScreenOnUnplugLevel = 0;
+            mDischargeScreenOffUnplugLevel = level;
         }
-      ......//记录信息到文件
-      }
+        mDischargeAmountScreenOn = 0;
+        mDischargeAmountScreenOff = 0;
+        //调用doUnplugLocked函数
+        doUnplugLocked(mUnpluggedBatteryUptime, mUnpluggedBatteryRealtime);
+    }else {
+        ......//处理使用USB充电的情况，请读者在上面讨论的基础上自行分析
     }
+    ......//记录信息到文件
+}
+}
 ```
 
 doUnplugLocked函数将更新对应信息，该函数比较简单，无须赘述。另外，addHistoryRecordLocked函数用于增加一条历史记录（由HistoryItem表示），读者也可自行研究。
@@ -1804,21 +1804,21 @@ PMS和BSS交互是最多的，此处以noteScreenOn和noteUserActivity为例，�
 [-->BatteryStatsImpl.java::noteScreenOnLocked]
 ```java
 public void noteScreenOnLocked() {
-   if(!mScreenOn) {
-     mHistoryCur.states |= HistoryItem.STATE_SCREEN_ON_FLAG;
-      //增加一条历史记录
-      addHistoryRecordLocked(SystemClock.elapsedRealtime());
-     mScreenOn = true;
-     //启动mScreenOnTime秒停表，内部就是记录时间，读者可自行研究
-     mScreenOnTimer.startRunningLocked(this);
-      if(mScreenBrightnessBin >= 0)//启动对应屏幕亮度的秒停表（参考表5-5）
-       mScreenBrightnessTimer[mScreenBrightnessBin].startRunningLocked(this);
-      //屏幕开启也和内核WakeLock有关，所以这里一样要更新WakeLock的用电统计
-     noteStartWakeLocked(-1, -1, "dummy", WAKE_TYPE_PARTIAL);
-      if(mOnBatteryInternal)
-        updateDischargeScreenLevelsLocked(false, true);
-     }
- }
+    if(!mScreenOn) {
+        mHistoryCur.states |= HistoryItem.STATE_SCREEN_ON_FLAG;
+        //增加一条历史记录
+        addHistoryRecordLocked(SystemClock.elapsedRealtime());
+        mScreenOn = true;
+        //启动mScreenOnTime秒停表，内部就是记录时间，读者可自行研究
+        mScreenOnTimer.startRunningLocked(this);
+        if(mScreenBrightnessBin >= 0)//启动对应屏幕亮度的秒停表（参考表5-5）
+            mScreenBrightnessTimer[mScreenBrightnessBin].startRunningLocked(this);
+        //屏幕开启也和内核WakeLock有关，所以这里一样要更新WakeLock的用电统计
+        noteStartWakeLocked(-1, -1, "dummy", WAKE_TYPE_PARTIAL);
+        if(mOnBatteryInternal)
+            updateDischargeScreenLevelsLocked(false, true);
+    }
+}
 ```
 
 再来看noteUserActivity，当有输入事件触发PMS的userActivity时，该函数被调用,代码如下,：
@@ -1827,29 +1827,29 @@ public void noteScreenOnLocked() {
 ```java
 //BSS的noteUserActivity将调用BSImpl的noteUserActivityLocked
 public void noteUserActivityLocked(int uid, intevent) {
-        getUidStatsLocked(uid).noteUserActivityLocked(event);
+    getUidStatsLocked(uid).noteUserActivityLocked(event);
 }
 ```
 
 先是调用getUidStatsLocked以获取一个Uid对象，如果该Uid是首次出现的，则要在内部创建一个Uid对象。直接来了解Uid的noteUserActivityLocked函数：
 ```java
 public void noteUserActivityLocked(int type) {
- if(mUserActivityCounters == null) {
-    initUserActivityLocked();
-   }
-  if (type< 0) type = 0;
-  else if(type >= NUM_USER_ACTIVITY_TYPES)
-     type= NUM_USER_ACTIVITY_TYPES-1;
-   // noteUserActivityLocked只是调用对应type的Counter的stepAtomic函数
-   //每个Counter内部都有个计数器，stepAtomic使该计数器增1
-  mUserActivityCounters[type].stepAtomic();
+    if(mUserActivityCounters == null) {
+        initUserActivityLocked();
+    }
+    if (type< 0) type = 0;
+    else if(type >= NUM_USER_ACTIVITY_TYPES)
+        type= NUM_USER_ACTIVITY_TYPES-1;
+    // noteUserActivityLocked只是调用对应type的Counter的stepAtomic函数
+    //每个Counter内部都有个计数器，stepAtomic使该计数器增1
+    mUserActivityCounters[type].stepAtomic();
 }
 ```
 
 mUserActivityCounters为一个7元Counter数组，该数组对应7种不同的输入事件类型，在代码中，由BSImpl的成员变量USER_ACTIVITY_TYPES表示，如下所示：
 ```java
 static final String[] USER_ACTIVITY_TYPES = {
- "other", "cheek", "touch","long_touch", "touch_up", "button", "unknown"
+    "other", "cheek", "touch","long_touch", "touch_up", "button", "unknown"
 };
 ```
 

@@ -100,47 +100,47 @@ aidl工具生成的结果文件有着相似的代码结构。读者不妨看看�
 ```java
 public interface IPackageManager extendsandroid.os.IInterface {
 
-     //定义内部类Stub，派生自Binder，实现IPackageManager接口
+    //定义内部类Stub，派生自Binder，实现IPackageManager接口
 
-      publicstatic abstract class Stub extends android.os.Binder
+    publicstatic abstract class Stub extends android.os.Binder
 
-                      implements  android.content.pm.IPackageManager {
+        implements  android.content.pm.IPackageManager {
 
             privatestatic final java.lang.String DESCRIPTOR =
 
-                                   "android.content.pm.IPackageManager";
+                "android.content.pm.IPackageManager";
 
             publicStub() {
 
-                 this.attachInterface(this,DESCRIPTOR);
+                this.attachInterface(this,DESCRIPTOR);
 
-             }
+            }
 
             ......
 
-               //定义Stub的内部类Proxy，实现IPackageManager接口
+                //定义Stub的内部类Proxy，实现IPackageManager接口
 
-            privatestatic class Proxy implements
+                privatestatic class Proxy implements
 
-                                   android.content.pm.IPackageManager{
+                android.content.pm.IPackageManager{
 
-                  //通过mRemote变量和服务端交互
+                    //通过mRemote变量和服务端交互
 
-                 private android.os.IBinder mRemote;
+                    private android.os.IBinder mRemote;
 
-                         Proxy(android.os.IBinderremote) {
+                    Proxy(android.os.IBinderremote) {
 
-                         mRemote = remote;
+                        mRemote = remote;
 
-                        }
+                    }
 
-                           ......
+                    ......
 
-              }
+                }
 
-          ......
+            ......
 
-}
+        }
 ```
 
 接下来分析PackageManagerService，为书写方便起见，以后将其简称为PKMS。
@@ -152,70 +152,70 @@ PKMS作为系统的核心服务，由SystemServer创建，相关代码如下：
 ```java
 ......//ServerThread的run函数
 
- /*
- 4.0新增的一个功能，即设备加密（encrypting the device）,该功能由
- 系统属性vold.decrypt指定。这部分功能比较复杂，本书暂不讨论。
- 该功能对PKMS的影响就是通过onlyCore实现的，该变量用于判断是否只扫描系统库
- （包括APK和Jar包）
+/*
+   4.0新增的一个功能，即设备加密（encrypting the device）,该功能由
+   系统属性vold.decrypt指定。这部分功能比较复杂，本书暂不讨论。
+   该功能对PKMS的影响就是通过onlyCore实现的，该变量用于判断是否只扫描系统库
+   （包括APK和Jar包）
  */
 
- StringcryptState = SystemProperties.get("vold.decrypt");
+StringcryptState = SystemProperties.get("vold.decrypt");
 
- booleanonlyCore = false;
+booleanonlyCore = false;
 
- //ENCRYPTING_STATE的值为"trigger_restart_min_framework"
+//ENCRYPTING_STATE的值为"trigger_restart_min_framework"
 
- if(ENCRYPTING_STATE.equals(cryptState)) {
+if(ENCRYPTING_STATE.equals(cryptState)) {
 
-       ......
+    ......
 
-      onlyCore = true;
+        onlyCore = true;
 
- } else if(ENCRYPTED_STATE.equals(cryptState)) {
+} else if(ENCRYPTED_STATE.equals(cryptState)) {
 
-       ......//ENCRYPTED_STATE的值为"1"
+    ......//ENCRYPTED_STATE的值为"1"
 
-     onlyCore = true;
+        onlyCore = true;
 
- }
+}
 
- //①调用PKMS的main函数，第二个参数用于判断是否为工厂测试，我们不讨论的这种情况，
+//①调用PKMS的main函数，第二个参数用于判断是否为工厂测试，我们不讨论的这种情况，
 
- //假定onlyCore的值为false
+//假定onlyCore的值为false
 
- pm =PackageManagerService.main(context,
+pm =PackageManagerService.main(context,
 
-           factoryTest !=SystemServer.FACTORY_TEST_OFF,onlyCore);
+        factoryTest !=SystemServer.FACTORY_TEST_OFF,onlyCore);
 
- booleanfirstBoot = false;
+booleanfirstBoot = false;
 
- try {
+try {
 
-         //判断本次是否为初次启动。当Zygote或SystemServer退出时，init会再次启动
+    //判断本次是否为初次启动。当Zygote或SystemServer退出时，init会再次启动
 
-        //它们，所以这里的FirstBoot是指开机后的第一次启动
+    //它们，所以这里的FirstBoot是指开机后的第一次启动
 
-        firstBoot = pm.isFirstBoot();
+    firstBoot = pm.isFirstBoot();
 
- }
+}
 
 ......
 
-  try {
+try {
 
-        //②做dex优化。dex是Android上针对Java字节码的一种优化技术，可提高运行效率
+    //②做dex优化。dex是Android上针对Java字节码的一种优化技术，可提高运行效率
 
-       pm.performBootDexOpt();
+    pm.performBootDexOpt();
 
-  }
+}
 
- ......
+......
 
-  try {
+try {
 
-        pm.systemReady();//③通知系统进入就绪状态
+    pm.systemReady();//③通知系统进入就绪状态
 
- }
+}
 
 ......
 
@@ -237,21 +237,21 @@ PKMS的main函数代码如下：
 ```java
 public static final IPackageManager main(Contextcontext, boolean factoryTest,
 
-           boolean onlyCore) {
+        boolean onlyCore) {
 
-        //调用PKMS的构造函数，factoryTest和onlyCore的值均为false
+    //调用PKMS的构造函数，factoryTest和onlyCore的值均为false
 
-       PackageManagerService m = new PackageManagerService(context,
+    PackageManagerService m = new PackageManagerService(context,
 
-                                            factoryTest, onlyCore);
+            factoryTest, onlyCore);
 
-        //向ServiceManager注册PKMS
+    //向ServiceManager注册PKMS
 
-       ServiceManager.addService("package", m);
+    ServiceManager.addService("package", m);
 
-       return m;
+    return m;
 
- }
+}
  ```
 
 main函数很简单，只有短短几行代码，执行时间却较长，主要原因是PKMS在其构造函数中做了很多“重体力活”，这也是Android启动速度慢的主要原因之一。在分析该函数前，先简单介绍一下PKMS构造函数的功能。
@@ -277,75 +277,75 @@ PKMS构造函数的工作流程大体可分三个阶段：
 ```java
 public PackageManagerService(Context context,boolean factoryTest,
 
-                                  booleanonlyCore) {
+        booleanonlyCore) {
 
-       ......
+    ......
 
         if(mSdkVersion <= 0) {
 
-           /*
+            /*
 
-             mSdkVersion是PKMS的成员变量，定义的时候进行赋值，其值取自系统属性
+               mSdkVersion是PKMS的成员变量，定义的时候进行赋值，其值取自系统属性
 
-             “ro.build.version.sdk”，即编译的SDK版本。如果没有定义，则APK
+               “ro.build.version.sdk”，即编译的SDK版本。如果没有定义，则APK
 
-             就无法知道自己运行在Android哪个版本上
+               就无法知道自己运行在Android哪个版本上
 
-          */
+             */
 
-           Slog.w(TAG, "**** ro.build.version.sdk not set!");//打印一句警告
+            Slog.w(TAG, "**** ro.build.version.sdk not set!");//打印一句警告
 
         }
 
-       mContext = context;
+    mContext = context;
 
-        mFactoryTest= factoryTest;//假定为false，即运行在非工厂模式下
+    mFactoryTest= factoryTest;//假定为false，即运行在非工厂模式下
 
-       mOnlyCore = onlyCore;//假定为false，即运行在普通模式下
+    mOnlyCore = onlyCore;//假定为false，即运行在普通模式下
 
-        //如果此系统是eng版，则扫描Package后，不对package做dex优化
+    //如果此系统是eng版，则扫描Package后，不对package做dex优化
 
-       mNoDexOpt ="eng".equals(SystemProperties.get("ro.build.type"));
+    mNoDexOpt ="eng".equals(SystemProperties.get("ro.build.type"));
 
-       //mMetrics用于存储与显示屏相关的一些属性，例如屏幕的宽/高尺寸，分辨率等信息
+    //mMetrics用于存储与显示屏相关的一些属性，例如屏幕的宽/高尺寸，分辨率等信息
 
-       mMetrics = new DisplayMetrics();
+    mMetrics = new DisplayMetrics();
 
-       //Settings是一个非常重要的类，该类用于存储系统运行过程中的一些设置，
+    //Settings是一个非常重要的类，该类用于存储系统运行过程中的一些设置，
 
-        //下面进行详细分析        mSettings = new Settings();
+    //下面进行详细分析        mSettings = new Settings();
 
-       //①addSharedUserLPw是什么？马上来分析
+    //①addSharedUserLPw是什么？马上来分析
 
-       mSettings.addSharedUserLPw("android.uid.system",
+    mSettings.addSharedUserLPw("android.uid.system",
 
-               Process.SYSTEM_UID, ApplicationInfo.FLAG_SYSTEM);
+            Process.SYSTEM_UID, ApplicationInfo.FLAG_SYSTEM);
 
-       mSettings.addSharedUserLPw("android.uid.phone",
+    mSettings.addSharedUserLPw("android.uid.phone",
 
-               MULTIPLE_APPLICATION_UIDS  //该变量的默认值是true
+            MULTIPLE_APPLICATION_UIDS  //该变量的默认值是true
 
-                        ? RADIO_UID :FIRST_APPLICATION_UID,
+            ? RADIO_UID :FIRST_APPLICATION_UID,
 
-               ApplicationInfo.FLAG_SYSTEM);
+            ApplicationInfo.FLAG_SYSTEM);
 
-       mSettings.addSharedUserLPw("android.uid.log",
+    mSettings.addSharedUserLPw("android.uid.log",
 
-               MULTIPLE_APPLICATION_UIDS
+            MULTIPLE_APPLICATION_UIDS
 
-                        ? LOG_UID :FIRST_APPLICATION_UID,
+            ? LOG_UID :FIRST_APPLICATION_UID,
 
-               ApplicationInfo.FLAG_SYSTEM);
+            ApplicationInfo.FLAG_SYSTEM);
 
-       mSettings.addSharedUserLPw("android.uid.nfc",
+    mSettings.addSharedUserLPw("android.uid.nfc",
 
-               MULTIPLE_APPLICATION_UIDS
+            MULTIPLE_APPLICATION_UIDS
 
-                        ? NFC_UID :FIRST_APPLICATION_UID,
+            ? NFC_UID :FIRST_APPLICATION_UID,
 
-               ApplicationInfo.FLAG_SYSTEM);
+            ApplicationInfo.FLAG_SYSTEM);
 
-       ......//第一段结束
+    ......//第一段结束
 ```
  
 
@@ -377,53 +377,53 @@ UID为用户ID的缩写，GID为用户组ID的缩写，这两个概念均与Linu
 
 [-->Process.java]
 ```java
-   //系统进程使用的UID/GID，值为1000
+//系统进程使用的UID/GID，值为1000
 
-   publicstatic final int SYSTEM_UID = 1000;
+publicstatic final int SYSTEM_UID = 1000;
 
-   //Phone进程使用的UID/GID，值为1001
+//Phone进程使用的UID/GID，值为1001
 
-   publicstatic final int PHONE_UID = 1001;
+publicstatic final int PHONE_UID = 1001;
 
-   //shell进程使用的UID/GID，值为2000
+//shell进程使用的UID/GID，值为2000
 
-   publicstatic final int SHELL_UID = 2000;
+publicstatic final int SHELL_UID = 2000;
 
-   //使用LOG的进程所在的组的UID/GID为1007
+//使用LOG的进程所在的组的UID/GID为1007
 
-   publicstatic final int LOG_UID = 1007;
+publicstatic final int LOG_UID = 1007;
 
-   //供WIF相关进程使用的UID/GID为1010
+//供WIF相关进程使用的UID/GID为1010
 
-   publicstatic final int WIFI_UID = 1010;
+publicstatic final int WIFI_UID = 1010;
 
-  //mediaserver进程使用的UID/GID为1013
+//mediaserver进程使用的UID/GID为1013
 
-   publicstatic final int MEDIA_UID = 1013;
+publicstatic final int MEDIA_UID = 1013;
 
-   //设置能读写SD卡的进程的GID为1015
+//设置能读写SD卡的进程的GID为1015
 
-   publicstatic final int SDCARD_RW_GID = 1015;
+publicstatic final int SDCARD_RW_GID = 1015;
 
-   //NFC相关的进程的UID/GID为1025
+//NFC相关的进程的UID/GID为1025
 
-   publicstatic final int NFC_UID = 1025;
+publicstatic final int NFC_UID = 1025;
 
-   //有权限读写内部存储的进程的GID为1023
+//有权限读写内部存储的进程的GID为1023
 
-   publicstatic final int MEDIA_RW_GID = 1023;
+publicstatic final int MEDIA_RW_GID = 1023;
 
-   //第一个应用Package的起始UID为10000
+//第一个应用Package的起始UID为10000
 
-   publicstatic final int FIRST_APPLICATION_UID = 10000;
+publicstatic final int FIRST_APPLICATION_UID = 10000;
 
-   //系统所支持的最大的应用Package的UID为99999
+//系统所支持的最大的应用Package的UID为99999
 
-   publicstatic final int LAST_APPLICATION_UID = 99999;
+publicstatic final int LAST_APPLICATION_UID = 99999;
 
-   //和蓝牙相关的进程的GID为2000
+//和蓝牙相关的进程的GID为2000
 
-   publicstatic final int BLUETOOTH_GID = 2000;
+publicstatic final int BLUETOOTH_GID = 2000;
 ```
 
 对不同的UID/GID授予不同的权限，接下来就介绍和权限设置相关的代码。
@@ -436,49 +436,49 @@ UID为用户ID的缩写，GID为用户组ID的缩写，这两个概念均与Linu
 ```java
 SharedUserSetting addSharedUserLPw(String name,int uid, int pkgFlags) {
 
-      /*
+    /*
 
-        注意这里的参数：name为字符串”android.uid.system”,uid为1000，pkgFlags为
+       注意这里的参数：name为字符串”android.uid.system”,uid为1000，pkgFlags为
 
-        ApplicationInfo.FLAG_SYSETM(以后简写为FLAG_SYSTEM)
+       ApplicationInfo.FLAG_SYSETM(以后简写为FLAG_SYSTEM)
 
-      */
+     */
 
-       //mSharedUsers是一个HashMap，key为字符串，值为SharedUserSetting对象
+    //mSharedUsers是一个HashMap，key为字符串，值为SharedUserSetting对象
 
-       SharedUserSetting s = mSharedUsers.get(name);
+    SharedUserSetting s = mSharedUsers.get(name);
 
-        if(s != null) {
+    if(s != null) {
 
-           if (s.userId == uid) {
+        if (s.userId == uid) {
 
-               return s;
+            return s;
 
-           }......
+        }......
 
-           return null;
-
-        }
-
-        //创建一个新的SharedUserSettings对象，并设置的userId为uid，
-
-       //SharedUserSettings是什么？有什么作用？
-
-        s =new SharedUserSetting(name, pkgFlags);
-
-       s.userId = uid;
-
-        if(addUserIdLPw(uid, s, name)) {
-
-           mSharedUsers.put(name, s);//将name与s键值对添加到mSharedUsers中保存
-
-           return s;
-
-        }
-
-       return null;
+        return null;
 
     }
+
+    //创建一个新的SharedUserSettings对象，并设置的userId为uid，
+
+    //SharedUserSettings是什么？有什么作用？
+
+    s =new SharedUserSetting(name, pkgFlags);
+
+    s.userId = uid;
+
+    if(addUserIdLPw(uid, s, name)) {
+
+        mSharedUsers.put(name, s);//将name与s键值对添加到mSharedUsers中保存
+
+        return s;
+
+    }
+
+    return null;
+
+}
 ```
 
 从以上代码可知，Settings中有一个mSharedUsers成员，该成员存储的是字符串与SharedUserSetting键值对，也就是说以字符串为key得到对应的SharedUserSetting对象。
@@ -543,49 +543,49 @@ SharedUserSetting addSharedUserLPw(String name,int uid, int pkgFlags) {
 ```java
 private boolean addUserIdLPw(int uid, Object obj, Objectname) {
 
-         //uid不能超出限制。Android对UID进行了分类，应用APK所在进程的UID从10000开始，
+    //uid不能超出限制。Android对UID进行了分类，应用APK所在进程的UID从10000开始，
 
-        //而系统APK所在进程小于10000
+    //而系统APK所在进程小于10000
 
-        if(uid >= PackageManagerService.FIRST_APPLICATION_UID +
+    if(uid >= PackageManagerService.FIRST_APPLICATION_UID +
 
-                            PackageManagerService.MAX_APPLICATION_UIDS){
+            PackageManagerService.MAX_APPLICATION_UIDS){
 
-           return false;
+        return false;
+
+    }
+
+
+
+    if(uid >= PackageManagerService.FIRST_APPLICATION_UID) {
+
+        int N = mUserIds.size();
+
+        //计算索引，其值是uid和FIRST_APPLICATION_UID的差
+
+        final int index = uid - PackageManagerService.FIRST_APPLICATION_UID;
+
+        while (index >= N) {
+
+            mUserIds.add(null);
+
+            N++;
 
         }
 
- 
+        ......//判断该索引位置的内容是否为空，为空才保存
 
-        if(uid >= PackageManagerService.FIRST_APPLICATION_UID) {
+            mUserIds.set(index, obj);//mUserIds保存应用Package的UID
 
-           int N = mUserIds.size();
+    }else {
 
-          //计算索引，其值是uid和FIRST_APPLICATION_UID的差
-
-           final int index = uid - PackageManagerService.FIRST_APPLICATION_UID;
-
-           while (index >= N) {
-
-               mUserIds.add(null);
-
-               N++;
-
-           }
-
-            ......//判断该索引位置的内容是否为空，为空才保存
-
-           mUserIds.set(index, obj);//mUserIds保存应用Package的UID
-
-        }else {
-
-           ......
+        ......
 
             mOtherUserIds.put(uid, obj);//系统Package的UID由mOtherUserIds保存
 
-        }
+    }
 
-       return true;
+    return true;
 
 }
 ```
@@ -597,91 +597,91 @@ private boolean addUserIdLPw(int uid, Object obj, Objectname) {
 
 [-->PackageMangerService.java::构造函数]
 ```java
-       ......//接前一段
+......//接前一段
 
-       String separateProcesses = //该值和调试有关。一般不设置该属性
+String separateProcesses = //该值和调试有关。一般不设置该属性
 
-                          SystemProperties.get("debug.separate_processes");
+SystemProperties.get("debug.separate_processes");
 
-        if(separateProcesses != null && separateProcesses.length() > 0) {
+if(separateProcesses != null && separateProcesses.length() > 0) {
 
-          ......
+    ......
 
-        }else {
+}else {
 
-           mDefParseFlags = 0;
+    mDefParseFlags = 0;
 
-           mSeparateProcesses = null;
+    mSeparateProcesses = null;
 
-        }
+}
 
-        //创建一个Installer对象，该对象和Native进程installd交互，以后分析installd
+//创建一个Installer对象，该对象和Native进程installd交互，以后分析installd
 
-        //时再来讨论它的作用
+//时再来讨论它的作用
 
-       mInstaller = new Installer();
+mInstaller = new Installer();
 
-       WindowManager wm =  //得到一个WindowManager对象
+WindowManager wm =  //得到一个WindowManager对象
 
-              (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
+(WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
 
- 
 
-       Display d = wm.getDefaultDisplay();
 
-       d.getMetrics(mMetrics); //获取当前设备的显示屏信息
+Display d = wm.getDefaultDisplay();
 
-       synchronized (mInstallLock) {
+d.getMetrics(mMetrics); //获取当前设备的显示屏信息
 
-       synchronized (mPackages) {
+synchronized (mInstallLock) {
 
-           //创建一个ThreadHandler对象，实际就是创建一个带消息循环处理的线程，该线程
+    synchronized (mPackages) {
 
-           //的工作是：程序的和卸载等。以后分析程序安装时会和它亲密接触
+        //创建一个ThreadHandler对象，实际就是创建一个带消息循环处理的线程，该线程
 
-           mHandlerThread.start();
+        //的工作是：程序的和卸载等。以后分析程序安装时会和它亲密接触
 
-          //以ThreadHandler线程的消息循环(Looper对象)为参数创建一个PackageHandler，
+        mHandlerThread.start();
 
-           //可知该Handler的handleMessage函数将运行在此线程上
+        //以ThreadHandler线程的消息循环(Looper对象)为参数创建一个PackageHandler，
 
-           mHandler = new PackageHandler(mHandlerThread.getLooper());
+        //可知该Handler的handleMessage函数将运行在此线程上
 
-            File dataDir = Environment.getDataDirectory();
+        mHandler = new PackageHandler(mHandlerThread.getLooper());
 
-          // mAppDataDir指向/data/data目录
+        File dataDir = Environment.getDataDirectory();
 
-           mAppDataDir = new File(dataDir, "data");
+        // mAppDataDir指向/data/data目录
 
-           // mUserAppDataDir指向/data/user目录
+        mAppDataDir = new File(dataDir, "data");
 
-           mUserAppDataDir = new File(dataDir, "user");
+        // mUserAppDataDir指向/data/user目录
 
-           // mDrmAppPrivateInstallDir指向/data/app-private目录
+        mUserAppDataDir = new File(dataDir, "user");
 
-           mDrmAppPrivateInstallDir = new File(dataDir, "app-private");
+        // mDrmAppPrivateInstallDir指向/data/app-private目录
 
-           /*
+        mDrmAppPrivateInstallDir = new File(dataDir, "app-private");
 
-            创建一个UserManager对象，目前没有什么作用，但其前途将不可限量。
+        /*
 
-             根据Google的设想，未来手机将支持多个User，每个User将安装自己的应用，
+           创建一个UserManager对象，目前没有什么作用，但其前途将不可限量。
 
-             该功能为Andorid智能手机推向企业用户打下坚实基础
+           根据Google的设想，未来手机将支持多个User，每个User将安装自己的应用，
 
-            */
+           该功能为Andorid智能手机推向企业用户打下坚实基础
 
-           mUserManager = new UserManager(mInstaller, mUserAppDataDir);
+         */
 
-           //①从文件中读权限
+        mUserManager = new UserManager(mInstaller, mUserAppDataDir);
 
-           readPermissions();
+        //①从文件中读权限
 
-           //②readLPw分析
+        readPermissions();
 
-           mRestoredSettings = mSettings.readLPw();
+        //②readLPw分析
 
-           long startTime = SystemClock.uptimeMillis();
+        mRestoredSettings = mSettings.readLPw();
+
+        long startTime = SystemClock.uptimeMillis();
 ```
 
 以上代码中创建了几个对象，此处暂可不去理会它们。另外，以上代码中还调用了两个函数，分别是readPermission和Setttings的readLPw，它们有什么作用呢？下面就展开分析。
@@ -693,37 +693,37 @@ private boolean addUserIdLPw(int uid, Object obj, Objectname) {
 ```java
 void readPermissions() {
 
-        // 指向/system/etc/permission目录，该目录中存储了和设备相关的一些权限信息
+    // 指向/system/etc/permission目录，该目录中存储了和设备相关的一些权限信息
 
-        FilelibraryDir = new File(Environment.getRootDirectory(),
+    FilelibraryDir = new File(Environment.getRootDirectory(),
 
-                                        "etc/permissions");
+            "etc/permissions");
 
-        ......
+    ......
 
         for(File f : libraryDir.listFiles()) {
 
-           //先处理该目录下的非platform.xml文件
+            //先处理该目录下的非platform.xml文件
 
-           if (f.getPath().endsWith("etc/permissions/platform.xml")) {
+            if (f.getPath().endsWith("etc/permissions/platform.xml")) {
 
-               continue;
+                continue;
 
-           }
+            }
 
             ......//调用readPermissionFromXml解析此XML文件
 
-           readPermissionsFromXml(f);
+                readPermissionsFromXml(f);
 
         }
 
-       finalFile permFile = new File(Environment.getRootDirectory(),
+    finalFile permFile = new File(Environment.getRootDirectory(),
 
-               "etc/permissions/platform.xml");
+            "etc/permissions/platform.xml");
 
-        //解析platform.xml文件，看来该文件优先级最高
+    //解析platform.xml文件，看来该文件优先级最高
 
-       readPermissionsFromXml(permFile);
+    readPermissionsFromXml(permFile);
 
 }
 ```
@@ -856,133 +856,133 @@ platform.xml文件中主要使用了如下4个标签：
 ```java
 private void readPermissionsFromXml(File permFile){
 
-       FileReader permReader = null;
+    FileReader permReader = null;
 
-        try{
+    try{
 
-           permReader = new FileReader(permFile);
+        permReader = new FileReader(permFile);
 
-        } ......
+    } ......
 
-        try{
+    try{
 
-           XmlPullParser parser = Xml.newPullParser();
+        XmlPullParser parser = Xml.newPullParser();
 
-           parser.setInput(permReader);
+        parser.setInput(permReader);
 
-           XmlUtils.beginDocument(parser, "permissions");
+        XmlUtils.beginDocument(parser, "permissions");
 
-           while (true) {
+        while (true) {
 
-               ......
+            ......
 
-               String name = parser.getName();
+                String name = parser.getName();
 
-               //解析group标签，前面介绍的XML文件中没有单独使用该标签的地方
+            //解析group标签，前面介绍的XML文件中没有单独使用该标签的地方
 
-               if ("group".equals(name)) {
+            if ("group".equals(name)) {
 
-                   String gidStr = parser.getAttributeValue(null, "gid");
+                String gidStr = parser.getAttributeValue(null, "gid");
 
-                   if (gidStr != null) {
+                if (gidStr != null) {
 
-                        int gid =Integer.parseInt(gidStr);
+                    int gid =Integer.parseInt(gidStr);
 
-                        //转换XML中的gid字符串为整型，并保存到mGlobalGids中
+                    //转换XML中的gid字符串为整型，并保存到mGlobalGids中
 
-                        mGlobalGids =appendInt(mGlobalGids, gid);
-
-                   } ......
-
-               } else if ("permission".equals(name)) {//解析permission标签
-
-                   String perm = parser.getAttributeValue(null, "name");
-
-                  ......
-
-                   perm = perm.intern();
-
-                     //调用readPermission处理
-
-                   readPermission(parser, perm);
-
-                 //下面解析的是assign-permission标签
-
-                } else if("assign-permission".equals(name)) {
-
-                   String perm = parser.getAttributeValue(null, "name");
-
-                   ......
-
-                   String uidStr = parser.getAttributeValue(null, "uid");
-
-                   ......
-
-                   //如果是assign-permission，则取出uid字符串，然后获得Linux平台上
-
-                   //的整型uid值
-
-                   int uid = Process.getUidForName(uidStr);
-
-                  ......
-
-                   perm = perm.intern();
-
-                   //和assign相关的信息保存在mSystemPermissions中
-
-                   HashSet<String> perms = mSystemPermissions.get(uid);
-
-                   if (perms == null) {
-
-                        perms = newHashSet<String>();
-
-                       mSystemPermissions.put(uid, perms);
-
-                   }
-
-                   perms.add(perm);......
-
-                  } else if ("library".equals(name)) {//解析library标签
-
-                   String lname = parser.getAttributeValue(null, "name");
-
-                   String lfile = parser.getAttributeValue(null, "file");
-
-                   if (lname == null) {
-
-                        ......
-
-                   } else if (lfile == null) {
-
-                        ......
-
-                   } else {
-
-                        //将XML中的name和library属性值存储到mSharedLibraries中
-
-                       mSharedLibraries.put(lname,lfile);
-
-                   } ......
-
-               } else if ("feature".equals(name)) {//解析feature标签
-
-                   String fname = parser.getAttributeValue(null, "name");
-
-                    ......{
-
-                        //在XML中定义的feature由FeatureInfo表达
-
-                        FeatureInfo fi = newFeatureInfo();
-
-                        fi.name = fname;
-
-                        //存储feature名和对应的FeatureInfo到mAvailableFeatures中
-
-                       mAvailableFeatures.put(fname, fi);
-
-                   }......
+                    mGlobalGids =appendInt(mGlobalGids, gid);
 
                 } ......
+
+            } else if ("permission".equals(name)) {//解析permission标签
+
+                String perm = parser.getAttributeValue(null, "name");
+
+                ......
+
+                    perm = perm.intern();
+
+                //调用readPermission处理
+
+                readPermission(parser, perm);
+
+                //下面解析的是assign-permission标签
+
+            } else if("assign-permission".equals(name)) {
+
+                String perm = parser.getAttributeValue(null, "name");
+
+                ......
+
+                    String uidStr = parser.getAttributeValue(null, "uid");
+
+                ......
+
+                    //如果是assign-permission，则取出uid字符串，然后获得Linux平台上
+
+                    //的整型uid值
+
+                    int uid = Process.getUidForName(uidStr);
+
+                ......
+
+                    perm = perm.intern();
+
+                //和assign相关的信息保存在mSystemPermissions中
+
+                HashSet<String> perms = mSystemPermissions.get(uid);
+
+                if (perms == null) {
+
+                    perms = newHashSet<String>();
+
+                    mSystemPermissions.put(uid, perms);
+
+                }
+
+                perms.add(perm);......
+
+            } else if ("library".equals(name)) {//解析library标签
+
+                String lname = parser.getAttributeValue(null, "name");
+
+                String lfile = parser.getAttributeValue(null, "file");
+
+                if (lname == null) {
+
+                    ......
+
+                } else if (lfile == null) {
+
+                    ......
+
+                } else {
+
+                    //将XML中的name和library属性值存储到mSharedLibraries中
+
+                    mSharedLibraries.put(lname,lfile);
+
+                } ......
+
+            } else if ("feature".equals(name)) {//解析feature标签
+
+                String fname = parser.getAttributeValue(null, "name");
+
+                ......{
+
+                    //在XML中定义的feature由FeatureInfo表达
+
+                    FeatureInfo fi = newFeatureInfo();
+
+                    fi.name = fname;
+
+                    //存储feature名和对应的FeatureInfo到mAvailableFeatures中
+
+                    mAvailableFeatures.put(fname, fi);
+
+                }......
+
+            } ......
 
         } ......
 
@@ -1004,30 +1004,30 @@ readLPw函数的功能也是解析文件，不过这些文件的内容却是在P
 ```java
 Settings() {
 
-        FiledataDir = Environment.getDataDirectory();
+    FiledataDir = Environment.getDataDirectory();
 
-        FilesystemDir = new File(dataDir, "system");//指向/data/system目录
+    FilesystemDir = new File(dataDir, "system");//指向/data/system目录
 
-       systemDir.mkdirs();//创建该目录
+    systemDir.mkdirs();//创建该目录
 
-        ......
+    ......
 
         /*
-        一共有5个文件，packages.xml和packages-backup.xml为一组，用于描述系统中
-        所安装的Package的信息，其中backup是临时文件。PKMS先把数据写到backup中，
-        信息都写成功后再改名成非backup的文件。其目的是防止在写文件过程中出错，导致信息丢失。
-         packages-stopped.xml和packages-stopped-backup.xml为一组，用于描述系统中
-         强制停止运行的pakcage的信息，backup也是临时文件。如果此处存在该临时文件，表明
-        此前系统因为某种原因中断了正常流程
-        packages.list列出当前系统中应用级（即UID大于10000）Package的信息
-        */
+           一共有5个文件，packages.xml和packages-backup.xml为一组，用于描述系统中
+           所安装的Package的信息，其中backup是临时文件。PKMS先把数据写到backup中，
+           信息都写成功后再改名成非backup的文件。其目的是防止在写文件过程中出错，导致信息丢失。
+           packages-stopped.xml和packages-stopped-backup.xml为一组，用于描述系统中
+           强制停止运行的pakcage的信息，backup也是临时文件。如果此处存在该临时文件，表明
+           此前系统因为某种原因中断了正常流程
+           packages.list列出当前系统中应用级（即UID大于10000）Package的信息
+         */
 
-       mSettingsFilename = new File(systemDir, "packages.xml");
-       mBackupSettingsFilename = new File(systemDir,"packages-backup.xml");
-       mPackageListFilename = new File(systemDir, "packages.list");
-       mStoppedPackagesFilename = new File(systemDir,"packages-stopped.xml");
-       mBackupStoppedPackagesFilename = new File(systemDir,
-                                            "packages-stopped-backup.xml");
+        mSettingsFilename = new File(systemDir, "packages.xml");
+    mBackupSettingsFilename = new File(systemDir,"packages-backup.xml");
+    mPackageListFilename = new File(systemDir, "packages.list");
+    mStoppedPackagesFilename = new File(systemDir,"packages-stopped.xml");
+    mBackupStoppedPackagesFilename = new File(systemDir,
+            "packages-stopped-backup.xml");
 }
 ```
 
@@ -1058,139 +1058,139 @@ PKMS构造函数第二阶段的工作就是扫描系统中的APK了。由于需�
 ```java
 ......
 
- mRestoredSettings= mSettings.readLPw();//接第一段的结尾
+mRestoredSettings= mSettings.readLPw();//接第一段的结尾
 
- longstartTime = SystemClock.uptimeMillis();//记录扫描开始的时间
+longstartTime = SystemClock.uptimeMillis();//记录扫描开始的时间
 
 //定义扫描参数
 
- intscanMode = SCAN_MONITOR | SCAN_NO_PATHS | SCAN_DEFER_DEX;
+intscanMode = SCAN_MONITOR | SCAN_NO_PATHS | SCAN_DEFER_DEX;
 
- if(mNoDexOpt) {
+if(mNoDexOpt) {
 
     scanMode|= SCAN_NO_DEX; //在控制扫描过程中是否对APK文件进行dex优化
 
-  }
+}
 
- finalHashSet<String> libFiles = new HashSet<String>();
+finalHashSet<String> libFiles = new HashSet<String>();
 
- // mFrameworkDir指向/system/frameworks目录
+// mFrameworkDir指向/system/frameworks目录
 
- mFrameworkDir = newFile(Environment.getRootDirectory(),"framework");
+mFrameworkDir = newFile(Environment.getRootDirectory(),"framework");
 
- // mDalvikCacheDir指向/data/dalvik-cache目录
+// mDalvikCacheDir指向/data/dalvik-cache目录
 
- mDalvikCacheDir= new File(dataDir, "dalvik-cache");
+mDalvikCacheDir= new File(dataDir, "dalvik-cache");
 
- booleandidDexOpt = false;
+booleandidDexOpt = false;
 
- /*
+/*
 
-  获取Java启动类库的路径，在init.rc文件中通过BOOTCLASSPATH环境变量输出，该值如下
+   获取Java启动类库的路径，在init.rc文件中通过BOOTCLASSPATH环境变量输出，该值如下
 
-  /system/framework/core.jar:/system/frameworks/core-junit.jar:
+   /system/framework/core.jar:/system/frameworks/core-junit.jar:
 
-  /system/frameworks/bouncycastle.jar:/system/frameworks/ext.jar:
+   /system/frameworks/bouncycastle.jar:/system/frameworks/ext.jar:
 
-  /system/frameworks/framework.jar:/system/frameworks/android.policy.jar:
+   /system/frameworks/framework.jar:/system/frameworks/android.policy.jar:
 
-  /system/frameworks/services.jar:/system/frameworks/apache-xml.jar:
+   /system/frameworks/services.jar:/system/frameworks/apache-xml.jar:
 
-  /system/frameworks/filterfw.jar
+   /system/frameworks/filterfw.jar
 
-  该变量指明了framework所有核心库及文件位置
+   该变量指明了framework所有核心库及文件位置
 
  */
 
- StringbootClassPath = System.getProperty("java.boot.class.path");
+StringbootClassPath = System.getProperty("java.boot.class.path");
 
- if(bootClassPath != null) {
+if(bootClassPath != null) {
 
-     String[] paths = splitString(bootClassPath, ':');
+    String[] paths = splitString(bootClassPath, ':');
 
-      for(int i=0; i<paths.length; i++) {
+    for(int i=0; i<paths.length; i++) {
 
         try{  //判断该jar包是否需要重新做dex优化
 
-             if (dalvik.system.DexFile.isDexOptNeeded(paths[i])) {
+            if (dalvik.system.DexFile.isDexOptNeeded(paths[i])) {
 
-                  /*
+                /*
 
                    将该jar包文件路径保存到libFiles中，然后通过mInstall对象发送
 
                    命令给installd，让其对该jar包进行dex优化
 
-                  */
+                 */
 
-                  libFiles.add(paths[i]);
+                libFiles.add(paths[i]);
 
-                  mInstaller.dexopt(paths[i], Process.SYSTEM_UID, true);
+                mInstaller.dexopt(paths[i], Process.SYSTEM_UID, true);
 
-                  didDexOpt = true;
+                didDexOpt = true;
 
-                }
+            }
 
-              } ......
+        } ......
 
-           }
+    }
 
-      } ......
+} ......
 
-   /*
+/*
 
-    读者还记得mSharedLibrarires的作用吗？它保存的是platform.xml中声明的系统库的信息。
+   读者还记得mSharedLibrarires的作用吗？它保存的是platform.xml中声明的系统库的信息。
 
-    这里也要判断系统库是否需要做dex优化。处理方式同上
+   这里也要判断系统库是否需要做dex优化。处理方式同上
 
-   */
+ */
 
 if (mSharedLibraries.size() > 0) {
 
-     ......
+    ......
 
- }
+}
 
-     //将framework-res.apk添加到libFiles中。framework-res.apk定义了系统常用的
+//将framework-res.apk添加到libFiles中。framework-res.apk定义了系统常用的
 
-    //资源，还有几个重要的Activity，如长按Power键后弹出的选择框
+//资源，还有几个重要的Activity，如长按Power键后弹出的选择框
 
-    libFiles.add(mFrameworkDir.getPath() + "/framework-res.apk");
+libFiles.add(mFrameworkDir.getPath() + "/framework-res.apk");
 
-     //列举/system/frameworks目录中的文件
+//列举/system/frameworks目录中的文件
 
-    String[] frameworkFiles = mFrameworkDir.list();
+String[] frameworkFiles = mFrameworkDir.list();
 
-     if(frameworkFiles != null) {
+if(frameworkFiles != null) {
 
-         ......//判断该目录下的apk或jar文件是否需要做dex优化。处理方式同上
+    ......//判断该目录下的apk或jar文件是否需要做dex优化。处理方式同上
 
- }
+}
 
-   /*
+/*
    上面代码对系统库（BOOTCLASSPATH指定，或 platform.xml定义，或
-  /system/frameworks目录下的jar包与apk文件）进行一次仔细检查，该优化的一定要优化。
-  如果发现期间对任何一个文件进行了优化，则设置didDexOpt为true
-  */
+   /system/frameworks目录下的jar包与apk文件）进行一次仔细检查，该优化的一定要优化。
+   如果发现期间对任何一个文件进行了优化，则设置didDexOpt为true
+ */
 
-     if (didDexOpt) {
+if (didDexOpt) {
 
-      String[] files = mDalvikCacheDir.list();
+    String[] files = mDalvikCacheDir.list();
 
-        if (files != null) {
+    if (files != null) {
 
-          /*
-         如果前面对任意一个系统库重新做过dex优化，就需要删除cache文件。原因和
-         dalvik虚拟机的运行机制有关。本书暂不探讨dex及cache文件的作用。
-         从删除cache文件这个操作来看，这些cache文件应该使用了dex优化后的系统库
-         所以当系统库重新做dex优化后，就需要删除旧的cache文件。可简单理解为缓存失效
-        */
+        /*
+           如果前面对任意一个系统库重新做过dex优化，就需要删除cache文件。原因和
+           dalvik虚拟机的运行机制有关。本书暂不探讨dex及cache文件的作用。
+           从删除cache文件这个操作来看，这些cache文件应该使用了dex优化后的系统库
+           所以当系统库重新做dex优化后，就需要删除旧的cache文件。可简单理解为缓存失效
+         */
 
-             for (int i=0; i<files.length; i++) {
-                   String fn = files[i];
-                     if(fn.startsWith("data@app@")
-                          ||fn.startsWith("data@app-private@")) {
-                          (newFile(mDalvikCacheDir, fn)).delete();
- }
+        for (int i=0; i<files.length; i++) {
+            String fn = files[i];
+            if(fn.startsWith("data@app@")
+                    ||fn.startsWith("data@app-private@")) {
+                (newFile(mDalvikCacheDir, fn)).delete();
+            }
 ```
 
 #### 2.  扫描系统Package
@@ -1198,63 +1198,63 @@ if (mSharedLibraries.size() > 0) {
 
 [-->PackageManagerService.java]
 ```java
-   //创建文件夹监控对象，监视/system/frameworks目录。利用了Linux平台的inotify机制
+//创建文件夹监控对象，监视/system/frameworks目录。利用了Linux平台的inotify机制
 
-  mFrameworkInstallObserver = new AppDirObserver(
+mFrameworkInstallObserver = new AppDirObserver(
 
-                      mFrameworkDir.getPath(),OBSERVER_EVENTS, true);
+        mFrameworkDir.getPath(),OBSERVER_EVENTS, true);
 
-   mFrameworkInstallObserver.startWatching();
+mFrameworkInstallObserver.startWatching();
 
- /*
+/*
 
-  调用scanDirLI函数扫描/system/frameworks目录，这个函数很重要，稍后会再分析。
+   调用scanDirLI函数扫描/system/frameworks目录，这个函数很重要，稍后会再分析。
 
-  注意，在第三个参数中设置了SCAN_NO_DEX标志，因为该目录下的package在前面的流程
+   注意，在第三个参数中设置了SCAN_NO_DEX标志，因为该目录下的package在前面的流程
 
-  中已经过判断并根据需要做过dex优化了
+   中已经过判断并根据需要做过dex优化了
 
  */
 
-   scanDirLI(mFrameworkDir, PackageParser.PARSE_IS_SYSTEM
+scanDirLI(mFrameworkDir, PackageParser.PARSE_IS_SYSTEM
 
-            | PackageParser.PARSE_IS_SYSTEM_DIR,scanMode | SCAN_NO_DEX, 0);
+        | PackageParser.PARSE_IS_SYSTEM_DIR,scanMode | SCAN_NO_DEX, 0);
 
-     //创建文件夹监控对象，监视/system/app目录
+//创建文件夹监控对象，监视/system/app目录
 
-   mSystemAppDir = new File(Environment.getRootDirectory(),"app");
+mSystemAppDir = new File(Environment.getRootDirectory(),"app");
 
-   mSystemInstallObserver = new AppDirObserver(
+mSystemInstallObserver = new AppDirObserver(
 
-               mSystemAppDir.getPath(), OBSERVER_EVENTS, true);
+        mSystemAppDir.getPath(), OBSERVER_EVENTS, true);
 
-    mSystemInstallObserver.startWatching();
+mSystemInstallObserver.startWatching();
 
- //扫描/system/app下的package
+//扫描/system/app下的package
 
-   scanDirLI(mSystemAppDir, PackageParser.PARSE_IS_SYSTEM
+scanDirLI(mSystemAppDir, PackageParser.PARSE_IS_SYSTEM
 
-                   | PackageParser.PARSE_IS_SYSTEM_DIR, scanMode, 0);
+        | PackageParser.PARSE_IS_SYSTEM_DIR, scanMode, 0);
 
-     //监视并扫描/vendor/app目录
+//监视并扫描/vendor/app目录
 
-   mVendorAppDir = new File("/vendor/app");
+mVendorAppDir = new File("/vendor/app");
 
-   mVendorInstallObserver = new AppDirObserver(
+mVendorInstallObserver = new AppDirObserver(
 
-               mVendorAppDir.getPath(), OBSERVER_EVENTS, true);
+        mVendorAppDir.getPath(), OBSERVER_EVENTS, true);
 
-    mVendorInstallObserver.startWatching();
+mVendorInstallObserver.startWatching();
 
-    //扫描/vendor/app下的package
+//扫描/vendor/app下的package
 
-   scanDirLI(mVendorAppDir, PackageParser.PARSE_IS_SYSTEM
+scanDirLI(mVendorAppDir, PackageParser.PARSE_IS_SYSTEM
 
-                   | PackageParser.PARSE_IS_SYSTEM_DIR, scanMode, 0);
+        | PackageParser.PARSE_IS_SYSTEM_DIR, scanMode, 0);
 
-    //和installd交互。以后单独分析installd
+//和installd交互。以后单独分析installd
 
-   mInstaller.moveFiles();
+mInstaller.moveFiles();
 ```
 
 由以上代码可知，PKMS将扫描以下几个目录。
@@ -1276,32 +1276,32 @@ scanDirLI函数的代码如下：
 ```java
 private void scanDirLI(File dir, int flags, intscanMode, long currentTime) {
 
-       String[] files = dir.list();//列举该目录下的文件
+    String[] files = dir.list();//列举该目录下的文件
 
-       ......
+    ......
 
         inti;
 
-        for(i=0; i<files.length; i++) {
-           File file = new File(dir, files[i]);
-           if (!isPackageFilename(files[i])) {
-                continue; //根据文件名后缀，判断是否为APK 文件。这里只扫描APK 文件
-           }
+    for(i=0; i<files.length; i++) {
+        File file = new File(dir, files[i]);
+        if (!isPackageFilename(files[i])) {
+            continue; //根据文件名后缀，判断是否为APK 文件。这里只扫描APK 文件
+        }
 
-           /*
-            调用scanPackageLI函数扫描一个特定的文件，返回值是PackageParser的内部类
-            Package，该类的实例代表一个APK文件，所以它就是和APK文件对应的数据结构
-          */
+        /*
+           调用scanPackageLI函数扫描一个特定的文件，返回值是PackageParser的内部类
+           Package，该类的实例代表一个APK文件，所以它就是和APK文件对应的数据结构
+         */
 
-           PackageParser.Package pkg = scanPackageLI(file,
+        PackageParser.Package pkg = scanPackageLI(file,
                 flags|PackageParser.PARSE_MUST_BE_APK, scanMode, currentTime);
 
-             if (pkg == null && (flags &PackageParser.PARSE_IS_SYSTEM) == 0 &&
-               mLastScanError ==PackageManager.INSTALL_FAILED_INVALID_APK) {
-               //注意此处flags的作用，只有非系统Package扫描失败，才会删除该文件
-               file.delete();
-           }
-   }
+        if (pkg == null && (flags &PackageParser.PARSE_IS_SYSTEM) == 0 &&
+                mLastScanError ==PackageManager.INSTALL_FAILED_INVALID_APK) {
+            //注意此处flags的作用，只有非系统Package扫描失败，才会删除该文件
+            file.delete();
+        }
+    }
 }
 ```
 
@@ -1313,73 +1313,73 @@ private void scanDirLI(File dir, int flags, intscanMode, long currentTime) {
 [-->PackageManagerService.java]
 ```java
 private PackageParser.Package scanPackageLI(FilescanFile, int parseFlags,
-                                       int scanMode, long currentTime)
+        int scanMode, long currentTime)
 {
 
-     mLastScanError = PackageManager.INSTALL_SUCCEEDED;
+    mLastScanError = PackageManager.INSTALL_SUCCEEDED;
 
-      StringscanPath = scanFile.getPath();
+    StringscanPath = scanFile.getPath();
 
-     parseFlags |= mDefParseFlags;//默认的扫描标志，正常情况下为0
+    parseFlags |= mDefParseFlags;//默认的扫描标志，正常情况下为0
 
-      //创建一个PackageParser对象
+    //创建一个PackageParser对象
 
-     PackageParser pp = new PackageParser(scanPath);
+    PackageParser pp = new PackageParser(scanPath);
 
-     pp.setSeparateProcesses(mSeparateProcesses);// mSeparateProcesses为空
+    pp.setSeparateProcesses(mSeparateProcesses);// mSeparateProcesses为空
 
-     pp.setOnlyCoreApps(mOnlyCore);// mOnlyCore为false
+    pp.setOnlyCoreApps(mOnlyCore);// mOnlyCore为false
 
-      /*
+    /*
        调用PackageParser的parsePackage函数解析APK文件。注意，这里把代表屏幕
        信息的mMetrics对象也传了进去
-       */
+     */
 
-      finalPackageParser.Package pkg = pp.parsePackage(scanFile,
-               scanPath, mMetrics, parseFlags);
+    finalPackageParser.Package pkg = pp.parsePackage(scanFile,
+            scanPath, mMetrics, parseFlags);
 
-        ......
+    ......
 
-     PackageSetting ps = null;
-     PackageSetting updatedPkg;
+        PackageSetting ps = null;
+    PackageSetting updatedPkg;
 
-        ......
+    ......
 
-      /*
-        这里略去一大段代码，主要是关于Package升级方面的工作。读者可能会比较好奇：既然是
-        升级，一定有新旧之分，如果这里刚解析后得到的Package信息是新，那么旧Package
-        的信息从何得来？还记得”readLPw的‘佐料’”这一小节提到的package.xml文件吗？此
-        文件中存储的就是上一次扫描得到的Package信息。对比这两次的信息就知道是否需要做
-        升级了。这部分代码比较繁琐，但不影响我们正常分析。感兴趣的读者可自行研究
-      */
+        /*
+           这里略去一大段代码，主要是关于Package升级方面的工作。读者可能会比较好奇：既然是
+           升级，一定有新旧之分，如果这里刚解析后得到的Package信息是新，那么旧Package
+           的信息从何得来？还记得”readLPw的‘佐料’”这一小节提到的package.xml文件吗？此
+           文件中存储的就是上一次扫描得到的Package信息。对比这两次的信息就知道是否需要做
+           升级了。这部分代码比较繁琐，但不影响我们正常分析。感兴趣的读者可自行研究
+         */
 
-      //收集签名信息，这部分内容涉及signature，本书暂不拟讨论[①]。
-      if (!collectCertificatesLI(pp, ps, pkg,scanFile, parseFlags))
+        //收集签名信息，这部分内容涉及signature，本书暂不拟讨论[①]。
+        if (!collectCertificatesLI(pp, ps, pkg,scanFile, parseFlags))
 
-           returnnull;
+            returnnull;
 
-     //判断是否需要设置PARSE_FORWARD_LOCK标志，这个标志针对资源文件和Class文件
-     //不在同一个目录的情况。目前只有/vendor/app目录下的扫描会使用该标志。这里不讨论
-     //这种情况。
+    //判断是否需要设置PARSE_FORWARD_LOCK标志，这个标志针对资源文件和Class文件
+    //不在同一个目录的情况。目前只有/vendor/app目录下的扫描会使用该标志。这里不讨论
+    //这种情况。
 
-      if (ps != null &&!ps.codePath.equals(ps.resourcePath))
-           parseFlags|= PackageParser.PARSE_FORWARD_LOCK;
+    if (ps != null &&!ps.codePath.equals(ps.resourcePath))
+        parseFlags|= PackageParser.PARSE_FORWARD_LOCK;
 
-        String codePath = null;
-       String resPath = null;
+    String codePath = null;
+    String resPath = null;
 
-        if((parseFlags & PackageParser.PARSE_FORWARD_LOCK) != 0) {
-            ......//这里不考虑PARSE_FORWARD_LOCK的情况。
-        }else {
-           resPath = pkg.mScanPath;
-        }
+    if((parseFlags & PackageParser.PARSE_FORWARD_LOCK) != 0) {
+        ......//这里不考虑PARSE_FORWARD_LOCK的情况。
+    }else {
+        resPath = pkg.mScanPath;
+    }
 
-       codePath = pkg.mScanPath;//mScanPath指向该APK文件所在位置
-        //设置文件路径信息，codePath和resPath都指向APK文件所在位置
-       setApplicationInfoPaths(pkg, codePath, resPath);
-        //调用第二个scanPackageLI函数
-       return scanPackageLI(pkg, parseFlags, scanMode | SCAN_UPDATE_SIGNATURE,
-                                 currentTime);
+    codePath = pkg.mScanPath;//mScanPath指向该APK文件所在位置
+    //设置文件路径信息，codePath和resPath都指向APK文件所在位置
+    setApplicationInfoPaths(pkg, codePath, resPath);
+    //调用第二个scanPackageLI函数
+    return scanPackageLI(pkg, parseFlags, scanMode | SCAN_UPDATE_SIGNATURE,
+            currentTime);
 }
 ```
 
@@ -1390,58 +1390,58 @@ PackageParser主要负责APK文件的解析，即解析APK文件中的AndroidMan
 
 [-->PackageParser.java]
 ```java
- publicPackage parsePackage(File sourceFile, String destCodePath,
-           DisplayMetrics metrics, int flags) {
+publicPackage parsePackage(File sourceFile, String destCodePath,
+        DisplayMetrics metrics, int flags) {
 
-       mParseError = PackageManager.INSTALL_SUCCEEDED;
-       mArchiveSourcePath = sourceFile.getPath();
+    mParseError = PackageManager.INSTALL_SUCCEEDED;
+    mArchiveSourcePath = sourceFile.getPath();
 
-        ......//检查是否为APK文件
+    ......//检查是否为APK文件
 
-      XmlResourceParser parser = null;
-       AssetManager assmgr = null;
-       Resources res = null;
-       boolean assetError = true;
+        XmlResourceParser parser = null;
+    AssetManager assmgr = null;
+    Resources res = null;
+    boolean assetError = true;
 
-        try{
-           assmgr = new AssetManager();
-           int cookie = assmgr.addAssetPath(mArchiveSourcePath);
-           if (cookie != 0) {
-               res = new Resources(assmgr, metrics, null);
-               assmgr.setConfiguration(0, 0, null, 0, 0, 0, 0, 0, 0, 0, 0, 0,    0, 0, 0, 0,Build.VERSION.RESOURCES_SDK_INT);
+    try{
+        assmgr = new AssetManager();
+        int cookie = assmgr.addAssetPath(mArchiveSourcePath);
+        if (cookie != 0) {
+            res = new Resources(assmgr, metrics, null);
+            assmgr.setConfiguration(0, 0, null, 0, 0, 0, 0, 0, 0, 0, 0, 0,    0, 0, 0, 0,Build.VERSION.RESOURCES_SDK_INT);
 
-          /*
-           获得一个XML资源解析对象，该对象解析的是APK中的AndroidManifest.xml文件。
-           以后再讨论AssetManager、Resource及相关的知识
-         */
+            /*
+               获得一个XML资源解析对象，该对象解析的是APK中的AndroidManifest.xml文件。
+               以后再讨论AssetManager、Resource及相关的知识
+             */
 
             parser = assmgr.openXmlResourceParser(cookie,
-                                                  ANDROID_MANIFEST_FILENAME);
+                    ANDROID_MANIFEST_FILENAME);
 
-               assetError = false;
-           } ......//出错处理
+            assetError = false;
+        } ......//出错处理
 
-       String[] errorText = new String[1];
-       Package pkg = null;
-       Exception errorException = null;
+        String[] errorText = new String[1];
+        Package pkg = null;
+        Exception errorException = null;
 
         try {
-           //调用另外一个parsePackage函数
-           pkg = parsePackage(res, parser, flags, errorText);
+            //调用另外一个parsePackage函数
+            pkg = parsePackage(res, parser, flags, errorText);
         } ......
 
         ......//错误处理
 
-       parser.close();
-       assmgr.close();
+            parser.close();
+        assmgr.close();
 
-       //保存文件路径，都指向APK文件所在的路径
-       pkg.mPath = destCodePath;
-       pkg.mScanPath = mArchiveSourcePath;
-       pkg.mSignatures = null;
+        //保存文件路径，都指向APK文件所在的路径
+        pkg.mPath = destCodePath;
+        pkg.mScanPath = mArchiveSourcePath;
+        pkg.mSignatures = null;
 
-       return pkg;
-}
+        return pkg;
+    }
 ```
 
 以上代码中调用了另一个同名的PackageParser函数，此函数内容较长，但功能单一，就是解析AndroidManifest.xml中的各种标签，这里只提取其中相关的代码：
@@ -1449,108 +1449,108 @@ PackageParser主要负责APK文件的解析，即解析APK文件中的AndroidMan
 [-->PackageParser.java]
 ```java
 private Package parsePackage(
-       Resources res, XmlResourceParser parser, int flags, String[] outError)
+        Resources res, XmlResourceParser parser, int flags, String[] outError)
 
-       throws XmlPullParserException, IOException {
+throws XmlPullParserException, IOException {
 
-       AttributeSet attrs = parser;
+    AttributeSet attrs = parser;
 
- 
 
-       mParseInstrumentationArgs = null;
 
-       mParseActivityArgs = null;
+    mParseInstrumentationArgs = null;
 
-        mParseServiceArgs= null;
+    mParseActivityArgs = null;
 
-       mParseProviderArgs = null;
+    mParseServiceArgs= null;
 
-       //得到Package的名字，其实就是得到AndroidManifest.xml中package属性的值，
+    mParseProviderArgs = null;
 
-       //每个APK都必须定义该属性
+    //得到Package的名字，其实就是得到AndroidManifest.xml中package属性的值，
 
-       String pkgName = parsePackageName(parser, attrs, flags, outError);
+    //每个APK都必须定义该属性
 
-        ......
+    String pkgName = parsePackageName(parser, attrs, flags, outError);
+
+    ......
 
         inttype;
 
-       ......
+    ......
 
         //以pkgName名字为参数，创建一个Package对象。后面的工作就是解析XML并填充
 
-       //该Package信息
+        //该Package信息
 
-       finalPackage pkg = new Package(pkgName);
+        finalPackage pkg = new Package(pkgName);
 
-       boolean foundApp = false;
+    boolean foundApp = false;
 
-       ......//下面开始解析该文件中的标签，由于这段代码功能简单，所以这里仅列举相关函数
+    ......//下面开始解析该文件中的标签，由于这段代码功能简单，所以这里仅列举相关函数
 
-      while(如果解析未完成){
+        while(如果解析未完成){
 
-      ......
+            ......
 
-       StringtagName = parser.getName(); //得到标签名
+                StringtagName = parser.getName(); //得到标签名
 
-       if(tagName.equals("application")){
+            if(tagName.equals("application")){
 
-          ......//解析application标签
+                ......//解析application标签
 
-           parseApplication(pkg,res, parser, attrs, flags, outError);
+                    parseApplication(pkg,res, parser, attrs, flags, outError);
 
-       } elseif (tagName.equals("permission-group")) {
+            } elseif (tagName.equals("permission-group")) {
 
-        ......//解析permission-group标签
+                ......//解析permission-group标签
 
-        parsePermissionGroup(pkg, res, parser, attrs, outError);
+                    parsePermissionGroup(pkg, res, parser, attrs, outError);
 
-       } elseif (tagName.equals("permission")) {
+            } elseif (tagName.equals("permission")) {
 
-        ......//解析permission标签
+                ......//解析permission标签
 
-        parsePermission(pkg, res, parser, attrs, outError);
+                    parsePermission(pkg, res, parser, attrs, outError);
 
-       } else if(tagName.equals("uses-permission")){
+            } else if(tagName.equals("uses-permission")){
 
-          //从XML文件中获取uses-permission标签的属性
+                //从XML文件中获取uses-permission标签的属性
 
-          sa= res.obtainAttributes(attrs,
+                sa= res.obtainAttributes(attrs,
 
-            com.android.internal.R.styleable.AndroidManifestUsesPermission);
+                        com.android.internal.R.styleable.AndroidManifestUsesPermission);
 
-          //取出属性值，也就是对应的权限使用声明
+                //取出属性值，也就是对应的权限使用声明
 
-         String name = sa.getNonResourceString(com.android.internal.
+                String name = sa.getNonResourceString(com.android.internal.
 
-                               R.styleable.AndroidManifestUsesPermission_name);
+                        R.styleable.AndroidManifestUsesPermission_name);
 
-          //添加到Package的requestedPermissions数组
+                //添加到Package的requestedPermissions数组
 
-          if(name != null && !pkg.requestedPermissions.contains(name)) {
+                if(name != null && !pkg.requestedPermissions.contains(name)) {
 
-               pkg.requestedPermissions.add(name.intern());
+                    pkg.requestedPermissions.add(name.intern());
 
-          }
+                }
 
-       }elseif (tagName.equals("uses-configuration")){
+            }elseif (tagName.equals("uses-configuration")){
 
-        /*
+                /*
 
-           该标签用于指明本package对硬件的一些设置参数，目前主要针对输入设备（触摸屏、键盘
+                   该标签用于指明本package对硬件的一些设置参数，目前主要针对输入设备（触摸屏、键盘
 
-           等）。游戏类的应用可能对此有特殊要求。
+                   等）。游戏类的应用可能对此有特殊要求。
 
-       */
+                 */
 
-         ConfigurationInfocPref = new ConfigurationInfo();
+                ConfigurationInfocPref = new ConfigurationInfo();
 
-        ......//解析该标签所支持的各种属性
+                ......//解析该标签所支持的各种属性
 
-        pkg.configPreferences.add(cPref);//保存到Package的configPreferences数组
-       }
-      ......//对其他标签解析和处理
-}
+                    pkg.configPreferences.add(cPref);//保存到Package的configPreferences数组
+            }
+            ......//对其他标签解析和处理
+        }
 ```
 
 上面代码展示了AndroidManifest.xml解析的流程，其中比较重要的函数是parserApplication，它用于解析application标签及其子标签（Android的四大组件在application标签中已声明）。
@@ -1578,75 +1578,75 @@ private Package parsePackage(
 ```java
 private PackageParser.PackagescanPackageLI(PackageParser.Package pkg,
 
-           int parseFlags, int scanMode, long currentTime) {
+        int parseFlags, int scanMode, long currentTime) {
 
-        FilescanFile = new File(pkg.mScanPath);
+    FilescanFile = new File(pkg.mScanPath);
 
-        ......
+    ......
 
-       mScanningPath = scanFile;
+        mScanningPath = scanFile;
 
-        //设置package对象中applicationInfo的flags标签，用于标示该Package为系统
+    //设置package对象中applicationInfo的flags标签，用于标示该Package为系统
 
-       //Package
+    //Package
 
-        if((parseFlags&PackageParser.PARSE_IS_SYSTEM) != 0) {
+    if((parseFlags&PackageParser.PARSE_IS_SYSTEM) != 0) {
 
-           pkg.applicationInfo.flags |= ApplicationInfo.FLAG_SYSTEM;
+        pkg.applicationInfo.flags |= ApplicationInfo.FLAG_SYSTEM;
 
-        }
+    }
 
-        //①下面这句if判断极为重要，见下面的解释
+    //①下面这句if判断极为重要，见下面的解释
 
-        if(pkg.packageName.equals("android")) {
+    if(pkg.packageName.equals("android")) {
 
-           synchronized (mPackages) {
+        synchronized (mPackages) {
 
-               if (mAndroidApplication != null) {
+            if (mAndroidApplication != null) {
 
-                  ......
+                ......
 
-               mPlatformPackage = pkg;
+                    mPlatformPackage = pkg;
 
-               pkg.mVersionCode = mSdkVersion;
+                pkg.mVersionCode = mSdkVersion;
 
-               mAndroidApplication = pkg.applicationInfo;
+                mAndroidApplication = pkg.applicationInfo;
 
-               mResolveActivity.applicationInfo = mAndroidApplication;
+                mResolveActivity.applicationInfo = mAndroidApplication;
 
-               mResolveActivity.name = ResolverActivity.class.getName();
+                mResolveActivity.name = ResolverActivity.class.getName();
 
-               mResolveActivity.packageName = mAndroidApplication.packageName;
+                mResolveActivity.packageName = mAndroidApplication.packageName;
 
-               mResolveActivity.processName = mAndroidApplication.processName;
+                mResolveActivity.processName = mAndroidApplication.processName;
 
-               mResolveActivity.launchMode = ActivityInfo.LAUNCH_MULTIPLE;
+                mResolveActivity.launchMode = ActivityInfo.LAUNCH_MULTIPLE;
 
-               mResolveActivity.flags = ActivityInfo.FLAG_EXCLUDE_FROM_RECENTS;
+                mResolveActivity.flags = ActivityInfo.FLAG_EXCLUDE_FROM_RECENTS;
 
-               mResolveActivity.theme =
+                mResolveActivity.theme =
 
-                          com.android.internal.R.style.Theme_Holo_Dialog_Alert;
+                    com.android.internal.R.style.Theme_Holo_Dialog_Alert;
 
-               mResolveActivity.exported = true;
+                mResolveActivity.exported = true;
 
-               mResolveActivity.enabled = true;
+                mResolveActivity.enabled = true;
 
-               //mResoveInfo的activityInfo成员指向mResolveActivity
+                //mResoveInfo的activityInfo成员指向mResolveActivity
 
-               mResolveInfo.activityInfo = mResolveActivity;
+                mResolveInfo.activityInfo = mResolveActivity;
 
-               mResolveInfo.priority = 0;
+                mResolveInfo.priority = 0;
 
-               mResolveInfo.preferredOrder = 0;
+                mResolveInfo.preferredOrder = 0;
 
-               mResolveInfo.match = 0;
+                mResolveInfo.match = 0;
 
-               mResolveComponentName = new ComponentName(
+                mResolveComponentName = new ComponentName(
 
-                       mAndroidApplication.packageName, mResolveActivity.name);
+                        mAndroidApplication.packageName, mResolveActivity.name);
 
-           }
+            }
 
         }
 ```
@@ -1685,321 +1685,321 @@ private PackageParser.PackagescanPackageLI(PackageParser.Package pkg,
 ```java
 ......//mPackages用于保存系统内的所有Package，以packageName为key
 
-   if(mPackages.containsKey(pkg.packageName)
+if(mPackages.containsKey(pkg.packageName)
 
-               || mSharedLibraries.containsKey(pkg.packageName)) {
+        || mSharedLibraries.containsKey(pkg.packageName)) {
 
-       return null;
+    return null;
 
-   }
+}
 
-      File destCodeFile = newFile(pkg.applicationInfo.sourceDir);
+File destCodeFile = newFile(pkg.applicationInfo.sourceDir);
 
-      FiledestResourceFile = new File(pkg.applicationInfo.publicSourceDir);
+FiledestResourceFile = new File(pkg.applicationInfo.publicSourceDir);
 
-      SharedUserSettingsuid = null;//代表该Package的SharedUserSetting对象
+SharedUserSettingsuid = null;//代表该Package的SharedUserSetting对象
 
-     PackageSetting pkgSetting = null;//代表该Package的PackageSetting对象
+PackageSetting pkgSetting = null;//代表该Package的PackageSetting对象
 
-      synchronized(mPackages) {
+synchronized(mPackages) {
 
-         ......//此段代码大约有300行左右，主要做了以下几方面工作
+    ......//此段代码大约有300行左右，主要做了以下几方面工作
 
-         /*
+        /*
 
-          ①如果该Packge声明了” uses-librarie”话，那么系统要判断该library是否
+           ①如果该Packge声明了” uses-librarie”话，那么系统要判断该library是否
 
-            在mSharedLibraries中
+           在mSharedLibraries中
 
-          ②如果package声明了SharedUser，则需要处理SharedUserSettings相关内容，
+           ②如果package声明了SharedUser，则需要处理SharedUserSettings相关内容，
 
-            由Settings的getSharedUserLPw函数处理
+           由Settings的getSharedUserLPw函数处理
 
            ③处理pkgSetting，通过调用Settings的getPackageLPw函数完成
 
            ④调用verifySignaturesLP函数，检查该Package的signature
 
-          */
-
-       }
-
-      finallong scanFileTime = scanFile.lastModified();
-
-      finalboolean forceDex = (scanMode&SCAN_FORCE_DEX) != 0;
-
-      //确定运行该package的进程的进程名，一般用packageName作为进程名
-
-     pkg.applicationInfo.processName = fixProcessName(
-
-                         pkg.applicationInfo.packageName,
-
-                         pkg.applicationInfo.processName,
-
-                         pkg.applicationInfo.uid);
-
-      if(mPlatformPackage == pkg) {
-
-           dataPath = new File (Environment.getDataDirectory(),"system");
-
-           pkg.applicationInfo.dataDir = dataPath.getPath();
-
-        }else {
-
-            /*
-
-             getDataPathForPackage函数返回该package的目录
-
-            一般是/data/data/packageName/
-
-           */
-
-           dataPath = getDataPathForPackage(pkg.packageName, 0);
-
-            if(dataPath.exists()){
-
-             ......//如果该目录已经存在，则要处理uid的问题
-
-           } else {
-
-             ......//向installd发送install命令，实际上就是在/data/data下
-
-                   //建立packageName目录。后续将分析installd相关知识
-
-               int ret = mInstaller.install(pkgName, pkg.applicationInfo.uid,
-
-                       pkg.applicationInfo.uid);
-
-              //为系统所有user安装此程序
-
-               mUserManager.installPackageForAllUsers(pkgName,
-
-                                pkg.applicationInfo.uid);
-
- 
-
-               if (dataPath.exists()) {
-
-                   pkg.applicationInfo.dataDir = dataPath.getPath();
-
-               } ......
-
-               
-
-               if (pkg.applicationInfo.nativeLibraryDir == null &&
-
-                      pkg.applicationInfo.dataDir!= null) {
-
-               ......//为该Package确定native library所在目录
-
-              //一般是/data/data/packagename/lib
-
-           }
+         */
 
 }
+
+finallong scanFileTime = scanFile.lastModified();
+
+finalboolean forceDex = (scanMode&SCAN_FORCE_DEX) != 0;
+
+//确定运行该package的进程的进程名，一般用packageName作为进程名
+
+pkg.applicationInfo.processName = fixProcessName(
+
+        pkg.applicationInfo.packageName,
+
+        pkg.applicationInfo.processName,
+
+        pkg.applicationInfo.uid);
+
+if(mPlatformPackage == pkg) {
+
+    dataPath = new File (Environment.getDataDirectory(),"system");
+
+    pkg.applicationInfo.dataDir = dataPath.getPath();
+
+}else {
+
+    /*
+
+       getDataPathForPackage函数返回该package的目录
+
+       一般是/data/data/packageName/
+
+     */
+
+    dataPath = getDataPathForPackage(pkg.packageName, 0);
+
+    if(dataPath.exists()){
+
+        ......//如果该目录已经存在，则要处理uid的问题
+
+    } else {
+
+        ......//向installd发送install命令，实际上就是在/data/data下
+
+            //建立packageName目录。后续将分析installd相关知识
+
+            int ret = mInstaller.install(pkgName, pkg.applicationInfo.uid,
+
+                    pkg.applicationInfo.uid);
+
+        //为系统所有user安装此程序
+
+        mUserManager.installPackageForAllUsers(pkgName,
+
+                pkg.applicationInfo.uid);
+
+
+
+        if (dataPath.exists()) {
+
+            pkg.applicationInfo.dataDir = dataPath.getPath();
+
+        } ......
+
+
+
+        if (pkg.applicationInfo.nativeLibraryDir == null &&
+
+                pkg.applicationInfo.dataDir!= null) {
+
+            ......//为该Package确定native library所在目录
+
+                //一般是/data/data/packagename/lib
+
+        }
+
+    }
 
     //如果该APK包含了native动态库，则需要将它们从APK文件中解压并复制到对应目录中
 
     if(pkg.applicationInfo.nativeLibraryDir != null) {
 
-           try {
+        try {
 
-               final File nativeLibraryDir = new
+            final File nativeLibraryDir = new
 
-                            File(pkg.applicationInfo.nativeLibraryDir);
+                File(pkg.applicationInfo.nativeLibraryDir);
 
-               final String dataPathString = dataPath.getCanonicalPath();
+            final String dataPathString = dataPath.getCanonicalPath();
 
-               //从2.3开始，系统package的native库统一放在/system/lib下。所以
+            //从2.3开始，系统package的native库统一放在/system/lib下。所以
 
-               //系统不会提取系统Package目录下APK包中的native库
+            //系统不会提取系统Package目录下APK包中的native库
 
-               if (isSystemApp(pkg) && !isUpdatedSystemApp(pkg)) {
+            if (isSystemApp(pkg) && !isUpdatedSystemApp(pkg)) {
 
-                   NativeLibraryHelper.removeNativeBinariesFromDirLI(
+                NativeLibraryHelper.removeNativeBinariesFromDirLI(
 
-                                            nativeLibraryDir)){
+                        nativeLibraryDir)){
 
-           } else if (nativeLibraryDir.getParentFile().getCanonicalPath()
+                        } else if (nativeLibraryDir.getParentFile().getCanonicalPath()
 
-                       .equals(dataPathString)) {
+                                .equals(dataPathString)) {
 
-                   boolean isSymLink;
+                            boolean isSymLink;
 
-                   try {
+                            try {
 
-                        isSymLink = S_ISLNK(Libcore.os.lstat(
+                                isSymLink = S_ISLNK(Libcore.os.lstat(
 
-                                        nativeLibraryDir.getPath()).st_mode);
+                                            nativeLibraryDir.getPath()).st_mode);
 
-                   } ......//判断是否为链接，如果是，需要删除该链接
+                            } ......//判断是否为链接，如果是，需要删除该链接
 
-                   if (isSymLink) {
+                            if (isSymLink) {
 
-                       mInstaller.unlinkNativeLibraryDirectory(dataPathString);
+                                mInstaller.unlinkNativeLibraryDirectory(dataPathString);
 
-                   }
+                            }
 
-             //在lib下建立和CPU类型对应的目录，例如ARM平台的是arm/，MIPS平台的是mips/
+                            //在lib下建立和CPU类型对应的目录，例如ARM平台的是arm/，MIPS平台的是mips/
 
-               NativeLibraryHelper.copyNativeBinariesIfNeededLI(scanFile,
+                            NativeLibraryHelper.copyNativeBinariesIfNeededLI(scanFile,
 
-                                   nativeLibraryDir);
+                                    nativeLibraryDir);
 
-               } else {
+                        } else {
 
-                   mInstaller.linkNativeLibraryDirectory(dataPathString,
+                            mInstaller.linkNativeLibraryDirectory(dataPathString,
 
-                                       pkg.applicationInfo.nativeLibraryDir);
+                                    pkg.applicationInfo.nativeLibraryDir);
 
-               }
+                        }
 
-           } ......
+            } ......
 
         }
 
-     pkg.mScanPath= path;
+        pkg.mScanPath= path;
 
-     if((scanMode&SCAN_NO_DEX) == 0) {
+        if((scanMode&SCAN_NO_DEX) == 0) {
 
             ......//对该APK做dex优化
 
-        performDexOptLI(pkg,forceDex, (scanMode&SCAN_DEFER_DEX);
+                performDexOptLI(pkg,forceDex, (scanMode&SCAN_DEFER_DEX);
 
-      }
+                        }
 
-     //如果该APK已经存在，要先杀掉运行该APK的进程
+                        //如果该APK已经存在，要先杀掉运行该APK的进程
 
-     if((parseFlags & PackageManager.INSTALL_REPLACE_EXISTING) != 0) {
+                        if((parseFlags & PackageManager.INSTALL_REPLACE_EXISTING) != 0) {
 
-           killApplication(pkg.applicationInfo.packageName,
+                        killApplication(pkg.applicationInfo.packageName,
 
-                       pkg.applicationInfo.uid);
+                            pkg.applicationInfo.uid);
 
-     }
+                        }
 
-......
+                        ......
 
-     /*
+                        /*
 
-     在此之前，四大组件信息都属于Package的私有财产，现在需要把它们登记注册到PKMS内部的
+                           在此之前，四大组件信息都属于Package的私有财产，现在需要把它们登记注册到PKMS内部的
 
-     财产管理对象中。这样，PKMS就可对外提供统一的组件信息，而不必拘泥于具体的Package
+                           财产管理对象中。这样，PKMS就可对外提供统一的组件信息，而不必拘泥于具体的Package
 
-     */
+                         */
 
-    synchronized(mPackages) {
+                synchronized(mPackages) {
 
-   if ((scanMode&SCAN_MONITOR) != 0) {
+                    if ((scanMode&SCAN_MONITOR) != 0) {
 
-        mAppDirs.put(pkg.mPath, pkg);
+                        mAppDirs.put(pkg.mPath, pkg);
 
-   }
+                    }
 
-  mSettings.insertPackageSettingLPw(pkgSetting, pkg);
+                    mSettings.insertPackageSettingLPw(pkgSetting, pkg);
 
-   mPackages.put(pkg.applicationInfo.packageName,pkg);
+                    mPackages.put(pkg.applicationInfo.packageName,pkg);
 
-   //处理该Package中的Provider信息
+                    //处理该Package中的Provider信息
 
-   int N =pkg.providers.size();
+                    int N =pkg.providers.size();
 
-   int i;
+                    int i;
 
-   for (i=0;i<N; i++) {
+                    for (i=0;i<N; i++) {
 
-   PackageParser.Providerp = pkg.providers.get(i);
+                        PackageParser.Providerp = pkg.providers.get(i);
 
-   p.info.processName=fixProcessName(
+                        p.info.processName=fixProcessName(
 
-                               pkg.applicationInfo.processName,
+                                pkg.applicationInfo.processName,
 
-                  p.info.processName, pkg.applicationInfo.uid);
+                                p.info.processName, pkg.applicationInfo.uid);
 
-    //mProvidersByComponent提供基于ComponentName的Provider信息查询
+                        //mProvidersByComponent提供基于ComponentName的Provider信息查询
 
-    mProvidersByComponent.put(new ComponentName(
+                        mProvidersByComponent.put(new ComponentName(
 
-                               p.info.packageName,p.info.name), p);
+                                    p.info.packageName,p.info.name), p);
 
-             ......
+                        ......
 
-   }
+                    }
 
-   //处理该Package中的Service信息
+                    //处理该Package中的Service信息
 
-   N =pkg.services.size();
+                    N =pkg.services.size();
 
-   r = null;
+                    r = null;
 
-   for (i=0;i<N; i++) {
+                    for (i=0;i<N; i++) {
 
-   PackageParser.Service s =pkg.services.get(i);
+                        PackageParser.Service s =pkg.services.get(i);
 
-   mServices.addService(s);
+                        mServices.addService(s);
 
-   }
+                    }
 
-   //处理该Package中的BroadcastReceiver信息
+                    //处理该Package中的BroadcastReceiver信息
 
-   N =pkg.receivers.size();
+                    N =pkg.receivers.size();
 
-   r = null;
+                    r = null;
 
-   for (i=0;i<N; i++) {
+                    for (i=0;i<N; i++) {
 
-   PackageParser.Activity a =pkg.receivers.get(i);
+                        PackageParser.Activity a =pkg.receivers.get(i);
 
-   mReceivers.addActivity(a,"receiver");
+                        mReceivers.addActivity(a,"receiver");
 
-   ......
+                        ......
 
-   }
+                    }
 
-   //处理该Package中的Activity信息
+                    //处理该Package中的Activity信息
 
-   N = pkg.activities.size();
+                    N = pkg.activities.size();
 
-   r =null;
+                    r =null;
 
-   for (i=0; i<N; i++) {
+                    for (i=0; i<N; i++) {
 
-   PackageParser.Activity a =pkg.activities.get(i);
+                        PackageParser.Activity a =pkg.activities.get(i);
 
-   mActivities.addActivity(a,"activity");//后续将详细分析该调用
+                        mActivities.addActivity(a,"activity");//后续将详细分析该调用
 
-  }
+                    }
 
-   //处理该Package中的PermissionGroups信息
+                    //处理该Package中的PermissionGroups信息
 
-   N = pkg.permissionGroups.size();
+                    N = pkg.permissionGroups.size();
 
-   ......//permissionGroups处理
+                    ......//permissionGroups处理
 
-   N =pkg.permissions.size();
+                        N =pkg.permissions.size();
 
-   ......//permissions处理
+                    ......//permissions处理
 
-   N =pkg.instrumentation.size();
+                        N =pkg.instrumentation.size();
 
-   ......//instrumentation处理
+                    ......//instrumentation处理
 
-   if(pkg.protectedBroadcasts != null) {
+                        if(pkg.protectedBroadcasts != null) {
 
-      N = pkg.protectedBroadcasts.size();
+                            N = pkg.protectedBroadcasts.size();
 
-      for(i=0; i<N; i++) {
+                            for(i=0; i<N; i++) {
 
-        mProtectedBroadcasts.add(pkg.protectedBroadcasts.get(i));
+                                mProtectedBroadcasts.add(pkg.protectedBroadcasts.get(i));
 
-      }
+                            }
 
-}
+                        }
 
-   ......//Package的私有财产终于完成了公有化改造
+                    ......//Package的私有财产终于完成了公有化改造
 
-return pkg;
+                        return pkg;
 
-}
+                }
 ```
 
 到此这个长达800行的代码就分析完了，下面总结一下Package扫描的流程。
@@ -2026,51 +2026,51 @@ scanDirLI用于对指定目录下的APK文件进行扫描，如图4-7所示为�
 
 [-->PackageManagerService.java::构造函数第三部分]
 ```java
-           if (!mOnlyCore) {//mOnlyCore用于控制是否扫描非系统Package
+if (!mOnlyCore) {//mOnlyCore用于控制是否扫描非系统Package
 
-               Iterator<PackageSetting> psit =  
+    Iterator<PackageSetting> psit =  
 
-                            mSettings.mPackages.values().iterator();
+        mSettings.mPackages.values().iterator();
 
-               while (psit.hasNext()) {
+    while (psit.hasNext()) {
 
-                   ......//删除系统package中那些不存在的APK
+        ......//删除系统package中那些不存在的APK
 
-           }
+    }
 
-             mAppInstallDir = new File(dataDir,"app");
+    mAppInstallDir = new File(dataDir,"app");
 
-            ......//删除安装不成功的文件及临时文件
+    ......//删除安装不成功的文件及临时文件
 
-           if (!mOnlyCore) {
+        if (!mOnlyCore) {
 
-              //在普通模式下，还需要扫描/data/app以及/data/app_private目录 
+            //在普通模式下，还需要扫描/data/app以及/data/app_private目录 
 
-              mAppInstallObserver = new AppDirObserver(
+            mAppInstallObserver = new AppDirObserver(
 
-                   mAppInstallDir.getPath(), OBSERVER_EVENTS, false);
+                    mAppInstallDir.getPath(), OBSERVER_EVENTS, false);
 
-              mAppInstallObserver.startWatching();
+            mAppInstallObserver.startWatching();
 
-              scanDirLI(mAppInstallDir, 0, scanMode, 0);
+            scanDirLI(mAppInstallDir, 0, scanMode, 0);
 
-               mDrmAppInstallObserver = newAppDirObserver(
+            mDrmAppInstallObserver = newAppDirObserver(
 
-                   mDrmAppPrivateInstallDir.getPath(), OBSERVER_EVENTS, false);
+                    mDrmAppPrivateInstallDir.getPath(), OBSERVER_EVENTS, false);
 
-              mDrmAppInstallObserver.startWatching();
+            mDrmAppInstallObserver.startWatching();
 
-              scanDirLI(mDrmAppPrivateInstallDir,           
+            scanDirLI(mDrmAppPrivateInstallDir,           
 
-                            PackageParser.PARSE_FORWARD_LOCK,scanMode,0);
+                    PackageParser.PARSE_FORWARD_LOCK,scanMode,0);
 
-           } else {
+        } else {
 
-               mAppInstallObserver = null;
+            mAppInstallObserver = null;
 
-               mDrmAppInstallObserver = null;
+            mDrmAppInstallObserver = null;
 
-      }
+        }
 ```
 
 结合前述代码，这里总结几个存放APK文件的目录。
@@ -2090,21 +2090,21 @@ PKMS构造函数第二阶段的工作任务非常繁重，要创建比较多的�
 ```java
 ......
 
-  mSettings.mInternalSdkPlatform= mSdkVersion;
+mSettings.mInternalSdkPlatform= mSdkVersion;
 
-  //汇总并更新和Permission相关的信息
+//汇总并更新和Permission相关的信息
 
-  updatePermissionsLPw(null, null, true,
+updatePermissionsLPw(null, null, true,
 
-                           regrantPermissions,regrantPermissions);
+        regrantPermissions,regrantPermissions);
 
-   //将信息写到package.xml、package.list及package-stopped.xml文件中
+//将信息写到package.xml、package.list及package-stopped.xml文件中
 
-   mSettings.writeLPr();
+mSettings.writeLPr();
 
-   Runtime.getRuntime().gc();
+Runtime.getRuntime().gc();
 
-    mRequiredVerifierPackage= getRequiredVerifierLPr();
+mRequiredVerifierPackage= getRequiredVerifierLPr();
 
 ......//PKMS构造函数返回
 
@@ -2304,43 +2304,43 @@ exec app_process $base/bincom.android.commands.pm.Pm "$@"
 ```java
 public static void main(String[] args) {
 
-        newPm().run(args);//创建一个Pm对象，并执行它的run函数
+    newPm().run(args);//创建一个Pm对象，并执行它的run函数
 
 }
 
-  //直接分析run函数
+//直接分析run函数
 
 public void run(String[] args) {
 
-       boolean validCommand = false;
+    boolean validCommand = false;
 
-        ......
+    ......
 
         //获取PKMS的binder客户端
 
         mPm= IPackageManager.Stub.asInterface(
 
-                        ServiceManager.getService("package"));
+                ServiceManager.getService("package"));
 
-        ......
+    ......
 
-       mArgs = args;
+        mArgs = args;
 
-       String op = args[0];
+    String op = args[0];
 
-       mNextArg = 1;
+    mNextArg = 1;
 
-       ......//处理其他命令，这里仅考虑install的处理
+    ......//处理其他命令，这里仅考虑install的处理
 
         if("install".equals(op)) {
 
-           runInstall();
+            runInstall();
 
-           return;
+            return;
 
         }
 
-   ......
+    ......
 
 }
 ```
@@ -2351,95 +2351,95 @@ public void run(String[] args) {
 ```java
 private void runInstall() {
 
-        intinstallFlags = 0;
+    intinstallFlags = 0;
 
-       String installerPackageName = null;
+    String installerPackageName = null;
 
- 
 
-       String opt;
 
-       while ((opt=nextOption()) != null) {
+    String opt;
 
-           if (opt.equals("-l")) {
+    while ((opt=nextOption()) != null) {
 
-               installFlags |= PackageManager.INSTALL_FORWARD_LOCK;
+        if (opt.equals("-l")) {
 
-            } else if (opt.equals("-r")) {
+            installFlags |= PackageManager.INSTALL_FORWARD_LOCK;
 
-               installFlags |= PackageManager.INSTALL_REPLACE_EXISTING;
+        } else if (opt.equals("-r")) {
 
-           } else if (opt.equals("-i")) {
+            installFlags |= PackageManager.INSTALL_REPLACE_EXISTING;
 
-               installerPackageName = nextOptionData();
+        } else if (opt.equals("-i")) {
 
-               ...... //参数解析
+            installerPackageName = nextOptionData();
 
-           } ......
+            ...... //参数解析
 
-        }
+        } ......
 
- 
+    }
 
-       final Uri apkURI;
 
-       final Uri verificationURI;
 
-       final String apkFilePath = nextArg();
+    final Uri apkURI;
 
-       System.err.println("/tpkg: " + apkFilePath);
+    final Uri verificationURI;
 
-        if(apkFilePath != null) {
+    final String apkFilePath = nextArg();
 
-           apkURI = Uri.fromFile(new File(apkFilePath));
+    System.err.println("/tpkg: " + apkFilePath);
 
-        }......
+    if(apkFilePath != null) {
 
-        //获取Verification Package的文件位置
+        apkURI = Uri.fromFile(new File(apkFilePath));
 
-       final String verificationFilePath = nextArg();
+    }......
 
-        if(verificationFilePath != null) {
+    //获取Verification Package的文件位置
 
-          verificationURI = Uri.fromFile(new File(verificationFilePath));
+    final String verificationFilePath = nextArg();
 
-        }else {
+    if(verificationFilePath != null) {
 
-           verificationURI = null;
+        verificationURI = Uri.fromFile(new File(verificationFilePath));
 
-        }
+    }else {
 
-        //创建PackageInstallObserver，用于接收PKMS的安装结果
+        verificationURI = null;
 
-       PackageInstallObserver obs = new PackageInstallObserver();
+    }
 
-        try{
+    //创建PackageInstallObserver，用于接收PKMS的安装结果
 
-          //①调用PKMS的installPackageWithVerification完成安装
+    PackageInstallObserver obs = new PackageInstallObserver();
 
-           mPm.installPackageWithVerification(apkURI, obs,
+    try{
 
-                                  installFlags,installerPackageName,
+        //①调用PKMS的installPackageWithVerification完成安装
 
-                                  verificationURI,null);
+        mPm.installPackageWithVerification(apkURI, obs,
 
-    synchronized (obs) {
+                installFlags,installerPackageName,
 
-      while(!obs.finished) {
+                verificationURI,null);
 
-          try{
+        synchronized (obs) {
 
-                  obs.wait();//等待安装结果
+            while(!obs.finished) {
 
-             } ......
+                try{
 
-         }
+                    obs.wait();//等待安装结果
 
-         if(obs.result == PackageManager.INSTALL_SUCCEEDED) {
+                } ......
 
-             System.out.println("Success");//安装成功，打印Success
+            }
 
-         }......//安装失败，打印失败原因
+            if(obs.result == PackageManager.INSTALL_SUCCEEDED) {
+
+                System.out.println("Success");//安装成功，打印Success
+
+            }......//安装失败，打印失败原因
 
         } ......
 
@@ -2457,49 +2457,49 @@ installPackageWithVerification的代码如下：
 ```java
 public void installPackageWithVerification(UripackageURI,
 
-            IPackageInstallObserverobserver,
+        IPackageInstallObserverobserver,
 
-           int flags, String installerPackageName, Uri verificationURI,
+        int flags, String installerPackageName, Uri verificationURI,
 
-           ManifestDigest manifestDigest) {
+        ManifestDigest manifestDigest) {
 
-        //检查客户端进程是否具有安装Package的权限。在本例中，该客户端进程是shell
+    //检查客户端进程是否具有安装Package的权限。在本例中，该客户端进程是shell
 
-       mContext.enforceCallingOrSelfPermission(
+    mContext.enforceCallingOrSelfPermission(
 
-               android.Manifest.permission.INSTALL_PACKAGES,null);
+            android.Manifest.permission.INSTALL_PACKAGES,null);
 
-       final int uid = Binder.getCallingUid();
+    final int uid = Binder.getCallingUid();
 
-       final int filteredFlags;
+    final int filteredFlags;
 
-        if(uid == Process.SHELL_UID || uid == 0) {
+    if(uid == Process.SHELL_UID || uid == 0) {
 
-             ......//如果通过shell pm的方式安装，则增加INSTALL_FROM_ADB标志
+        ......//如果通过shell pm的方式安装，则增加INSTALL_FROM_ADB标志
 
-           filteredFlags = flags | PackageManager.INSTALL_FROM_ADB;
+            filteredFlags = flags | PackageManager.INSTALL_FROM_ADB;
 
-        }else {
+    }else {
 
-           filteredFlags = flags & ~PackageManager.INSTALL_FROM_ADB;
+        filteredFlags = flags & ~PackageManager.INSTALL_FROM_ADB;
 
-        }
+    }
 
-        //创建一个Message，code为INIT_COPY，将该消息发送给之前在PKMS构造函数中
+    //创建一个Message，code为INIT_COPY，将该消息发送给之前在PKMS构造函数中
 
-       //创建的mHandler对象，将在另外一个工作线程中处理此消息
+    //创建的mHandler对象，将在另外一个工作线程中处理此消息
 
-       final Message msg = mHandler.obtainMessage(INIT_COPY);
+    final Message msg = mHandler.obtainMessage(INIT_COPY);
 
-        //创建一个InstallParams，其基类是HandlerParams
+    //创建一个InstallParams，其基类是HandlerParams
 
-       msg.obj = new InstallParams(packageURI, observer,
+    msg.obj = new InstallParams(packageURI, observer,
 
-                   filteredFlags,installerPackageName,
+            filteredFlags,installerPackageName,
 
-                  verificationURI,manifestDigest);
+            verificationURI,manifestDigest);
 
-       mHandler.sendMessage(msg);
+    mHandler.sendMessage(msg);
 
 }
 
@@ -2514,69 +2514,69 @@ INIT_COPY只是安装流程的第一步。先来看相关代码：
 ```java
 public void handleMessage(Message msg) {
 
-  try {
+    try {
 
-         doHandleMessage(msg);//调用doHandleMessage函数
+        doHandleMessage(msg);//调用doHandleMessage函数
 
-       } ......
+    } ......
 
- }
+}
 
- voiddoHandleMessage(Message msg) {
+voiddoHandleMessage(Message msg) {
 
- switch(msg.what) {
+    switch(msg.what) {
 
-    caseINIT_COPY: {
+caseINIT_COPY: {
 
-      //①这里记录的是params的基类类型HandlerParams，实际类型为InstallParams
+                   //①这里记录的是params的基类类型HandlerParams，实际类型为InstallParams
 
-     HandlerParams params = (HandlerParams) msg.obj;
+                   HandlerParams params = (HandlerParams) msg.obj;
 
-      //idx为当前等待处理的安装请求的个数
+                   //idx为当前等待处理的安装请求的个数
 
-      intidx = mPendingInstalls.size();
+                   intidx = mPendingInstalls.size();
 
-      if(!mBound) {
+                   if(!mBound) {
 
-        /*
+                       /*
 
-        很多读者可能想不到，APK的安装居然需要使用另外一个APK提供的服务，该服务就是
+                          很多读者可能想不到，APK的安装居然需要使用另外一个APK提供的服务，该服务就是
 
-         DefaultContainerService，由DefaultCotainerService.apk提供，
+                          DefaultContainerService，由DefaultCotainerService.apk提供，
 
-         下面的connectToService函数将调用bindService来启动该服务
+                          下面的connectToService函数将调用bindService来启动该服务
 
-        */
+                        */
 
-        if(!connectToService()) {
+                       if(!connectToService()) {
 
-             return;
+                           return;
 
-         }else {//如果已经连上，则以idx为索引，将params保存到mPendingInstalls中
+                       }else {//如果已经连上，则以idx为索引，将params保存到mPendingInstalls中
 
-           mPendingInstalls.add(idx, params);
+                           mPendingInstalls.add(idx, params);
 
-          }
+                       }
 
-        } else {
+                   } else {
 
-           mPendingInstalls.add(idx, params);
+                       mPendingInstalls.add(idx, params);
 
-            if(idx == 0) {
+                       if(idx == 0) {
 
-            //如果安装请求队列之前的状态为空，则表明要启动安装
+                           //如果安装请求队列之前的状态为空，则表明要启动安装
 
-            mHandler.sendEmptyMessage(MCS_BOUND);
+                           mHandler.sendEmptyMessage(MCS_BOUND);
 
-           }
+                       }
 
-         }
+                   }
 
-        break;
+                   break;
 
-        }
+               }
 
-      ......//后续再分析
+               ......//后续再分析
 ```
 
 这里假设之前已经成功启动了DefaultContainerService（以后简称DCS），并且idx为零，所以这是PKMS首次处理安装请求，也就是说，下一个将要处理的是MCS_BOUND消息。
@@ -2591,69 +2591,69 @@ public void handleMessage(Message msg) {
 ```java
 ......//接doHandleMesage中的switch/case
 
-case MCS_BOUND: {
+        case MCS_BOUND: {
 
-  if(msg.obj != null) {
+                            if(msg.obj != null) {
 
-     mContainerService= (IMediaContainerService) msg.obj;
+                                mContainerService= (IMediaContainerService) msg.obj;
 
-  }
+                            }
 
-  if(mContainerService == null) {
+                            if(mContainerService == null) {
 
-    ......//如果没法启动该service，则不能安装程序
+                                ......//如果没法启动该service，则不能安装程序
 
-     mPendingInstalls.clear();
+                                    mPendingInstalls.clear();
 
-  } else if(mPendingInstalls.size() > 0) {
+                            } else if(mPendingInstalls.size() > 0) {
 
-      HandlerParamsparams = mPendingInstalls.get(0);
+                                HandlerParamsparams = mPendingInstalls.get(0);
 
-      if(params != null) {
+                                if(params != null) {
 
-         //调用params对象的startCopy函数，该函数由基类HandlerParams定义
+                                    //调用params对象的startCopy函数，该函数由基类HandlerParams定义
 
-        if(params.startCopy()) {
+                                    if(params.startCopy()) {
 
-           ......
+                                        ......
 
-            if(mPendingInstalls.size() > 0) {
+                                            if(mPendingInstalls.size() > 0) {
 
-               mPendingInstalls.remove(0);//删除队列头
+                                                mPendingInstalls.remove(0);//删除队列头
 
-             }
+                                            }
 
-          if (mPendingInstalls.size() == 0) {
+                                        if (mPendingInstalls.size() == 0) {
 
-            if (mBound) {
+                                            if (mBound) {
 
-              ......//如果安装请求都处理完了，则需要和Service断绝联系,
+                                                ......//如果安装请求都处理完了，则需要和Service断绝联系,
 
-              //通过发送MSC_UNB消息处理断交请求。读者可自行研究此情况的处理流程
+                                                    //通过发送MSC_UNB消息处理断交请求。读者可自行研究此情况的处理流程
 
-               removeMessages(MCS_UNBIND);
+                                                    removeMessages(MCS_UNBIND);
 
-               Message ubmsg = obtainMessage(MCS_UNBIND);
+                                                Message ubmsg = obtainMessage(MCS_UNBIND);
 
-               sendMessageDelayed(ubmsg, 10000);
+                                                sendMessageDelayed(ubmsg, 10000);
 
-            }
+                                            }
 
-            }else {
+                                        }else {
 
-              //如果还有未处理的请求，则继续发送MCS_BOUND消息。
+                                            //如果还有未处理的请求，则继续发送MCS_BOUND消息。
 
-              //为什么不通过一个循环来处理所有请求呢
+                                            //为什么不通过一个循环来处理所有请求呢
 
-              mHandler.sendEmptyMessage(MCS_BOUND);
+                                            mHandler.sendEmptyMessage(MCS_BOUND);
 
-             }
+                                        }
 
-            }
+                                    }
 
-     } ......
+                                } ......
 
-    break;
+                                break;
 ```
 
 MCS_BOUND的处理还算简单，就是调用HandlerParams的startCopy函数。在深入分析前，应先认识一下HandlerParams及相关的对象。
@@ -2687,27 +2687,27 @@ final boolean startCopy() {
 
     try {
 
-    //MAX_RETIRES目前为4，表示尝试4次安装，如果还不成功，则认为安装失败
+        //MAX_RETIRES目前为4，表示尝试4次安装，如果还不成功，则认为安装失败
 
-    if(++mRetries > MAX_RETRIES) {
+        if(++mRetries > MAX_RETRIES) {
 
-        mHandler.sendEmptyMessage(MCS_GIVE_UP);
+            mHandler.sendEmptyMessage(MCS_GIVE_UP);
 
-        handleServiceError();
+            handleServiceError();
 
-        return false;
+            return false;
 
-    } else {
+        } else {
 
-         handleStartCopy();//①调用派生类的handleStartCopy函数
+            handleStartCopy();//①调用派生类的handleStartCopy函数
 
-         res= true;
+            res= true;
 
-      }
+        }
 
     } ......
 
-   handleReturnCode();//②调用派生类的handleReturnCode，返回处理结果
+    handleReturnCode();//②调用派生类的handleReturnCode，返回处理结果
 
     returnres;
 
@@ -2735,93 +2735,93 @@ public void handleStartCopy() throwsRemoteException {
 
     finalboolean onInt = (flags & PackageManager.INSTALL_INTERNAL) != 0;
 
-   PackageInfoLite pkgLite = null;
+    PackageInfoLite pkgLite = null;
 
     if(onInt && onSd) {
 
         //APK不能同时安装在内部存储和SD卡上
 
-       ret =PackageManager.INSTALL_FAILED_INVALID_INSTALL_LOCATION;
+        ret =PackageManager.INSTALL_FAILED_INVALID_INSTALL_LOCATION;
 
     } elseif (fwdLocked && onSd) {
 
-    //fwdLocked的应用不能安装在SD卡上
+        //fwdLocked的应用不能安装在SD卡上
 
-      ret =PackageManager.INSTALL_FAILED_INVALID_INSTALL_LOCATION;
+        ret =PackageManager.INSTALL_FAILED_INVALID_INSTALL_LOCATION;
 
     } else {
 
-       finallong lowThreshold;
+        finallong lowThreshold;
 
-       //获取DeviceStorageMonitorService的binder客户端
+        //获取DeviceStorageMonitorService的binder客户端
 
-       finalDeviceStorageMonitorService dsm =                           
+        finalDeviceStorageMonitorService dsm =                           
 
-             (DeviceStorageMonitorService) ServiceManager.getService(
+            (DeviceStorageMonitorService) ServiceManager.getService(
 
-                                  DeviceStorageMonitorService.SERVICE);
+                    DeviceStorageMonitorService.SERVICE);
 
-       if(dsm == null) {
+        if(dsm == null) {
 
-         lowThreshold = 0L;
+            lowThreshold = 0L;
 
-       }else {
+        }else {
 
-       //从DSMS查询内部空间最小余量，默认是总空间的10%
+            //从DSMS查询内部空间最小余量，默认是总空间的10%
 
-     lowThreshold = dsm.getMemoryLowThreshold();
+            lowThreshold = dsm.getMemoryLowThreshold();
 
-     }
+        }
 
-     try {
+        try {
 
-        //授权DefContainerService URI读权限
+            //授权DefContainerService URI读权限
 
-      mContext.grantUriPermission(DEFAULT_CONTAINER_PACKAGE,
+            mContext.grantUriPermission(DEFAULT_CONTAINER_PACKAGE,
 
-                  packageURI,Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    packageURI,Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-       //①调用DCS的getMinimalPackageInfo函数，得到一个PackageLite对象
+            //①调用DCS的getMinimalPackageInfo函数，得到一个PackageLite对象
 
-       pkgLite =mContainerService.getMinimalPackageInfo(packageURI,
+            pkgLite =mContainerService.getMinimalPackageInfo(packageURI,
 
-                                   flags,lowThreshold);
+                    flags,lowThreshold);
 
-     }finally ......//撤销URI授权
+        }finally ......//撤销URI授权
 
-    //PacakgeLite的recommendedInstallLocation成员变量保存该APK推荐的安装路径
+        //PacakgeLite的recommendedInstallLocation成员变量保存该APK推荐的安装路径
 
-   int loc =pkgLite.recommendedInstallLocation;
+        int loc =pkgLite.recommendedInstallLocation;
 
-   if (loc== PackageHelper.RECOMMEND_FAILED_INVALID_LOCATION) {
+        if (loc== PackageHelper.RECOMMEND_FAILED_INVALID_LOCATION) {
 
-         ret= PackageManager.INSTALL_FAILED_INVALID_INSTALL_LOCATION;
+            ret= PackageManager.INSTALL_FAILED_INVALID_INSTALL_LOCATION;
 
-   } else if......{
+        } else if......{
 
-   } else {
+        } else {
 
-       //②根据DCS返回的安装路径，还需要调用installLocationPolicy进行检查
+            //②根据DCS返回的安装路径，还需要调用installLocationPolicy进行检查
 
-       loc =installLocationPolicy(pkgLite, flags);
+            loc =installLocationPolicy(pkgLite, flags);
 
-       if(!onSd && !onInt) {
+            if(!onSd && !onInt) {
 
-          if(loc == PackageHelper.RECOMMEND_INSTALL_EXTERNAL) {
+                if(loc == PackageHelper.RECOMMEND_INSTALL_EXTERNAL) {
 
-              flags |= PackageManager.INSTALL_EXTERNAL;
+                    flags |= PackageManager.INSTALL_EXTERNAL;
 
-               flags &=~PackageManager.INSTALL_INTERNAL;
+                    flags &=~PackageManager.INSTALL_INTERNAL;
 
-              } ......//处理安装位置为内部存储的情况
+                } ......//处理安装位置为内部存储的情况
 
-           }
+            }
 
-       }
+        }
 
     }
 
-  //③创建一个安装参数对象，对于安装位置为内部存储的情况，args的真实类型为FileInstallArgs
+    //③创建一个安装参数对象，对于安装位置为内部存储的情况，args的真实类型为FileInstallArgs
 
     finalInstallArgs args = createInstallArgs(this);
 
@@ -2831,23 +2831,23 @@ public void handleStartCopy() throwsRemoteException {
 
         final int requiredUid = mRequiredVerifierPackage == null ? -1
 
-                      :getPackageUid(mRequiredVerifierPackage);
+            :getPackageUid(mRequiredVerifierPackage);
 
         if(requiredUid != -1 && isVerificationEnabled()) {
 
             ......//④待会再讨论verification的处理
 
-         }else {
+        }else {
 
-         //⑤调用args的copyApk函数
+            //⑤调用args的copyApk函数
 
-         ret= args.copyApk(mContainerService, true);
+            ret= args.copyApk(mContainerService, true);
 
-      }
+        }
 
-   }
+    }
 
-   mRet =ret;//确定返回值
+    mRet =ret;//确定返回值
 
 }
 ```
@@ -2874,49 +2874,49 @@ public void handleStartCopy() throwsRemoteException {
 ```java
 public PackageInfoLite getMinimalPackageInfo(finalUri fileUri, int flags, longthreshold) {
 
-   //注意该函数的参数：fileUri指向该APK的文件路径（此时还在/data/local/tmp下）
+    //注意该函数的参数：fileUri指向该APK的文件路径（此时还在/data/local/tmp下）
 
-  PackageInfoLite ret = new PackageInfoLite();
+    PackageInfoLite ret = new PackageInfoLite();
 
-   ......
+    ......
 
-   Stringscheme = fileUri.getScheme();
+        Stringscheme = fileUri.getScheme();
 
-   ......
+    ......
 
-   StringarchiveFilePath = fileUri.getPath();
+        StringarchiveFilePath = fileUri.getPath();
 
-  DisplayMetrics metrics = new DisplayMetrics();
+    DisplayMetrics metrics = new DisplayMetrics();
 
-  metrics.setToDefaults();
+    metrics.setToDefaults();
 
-   //调用PackageParser的parsePackageLite解析该APK文件
+    //调用PackageParser的parsePackageLite解析该APK文件
 
-  PackageParser.PackageLite pkg =
+    PackageParser.PackageLite pkg =
 
-         PackageParser.parsePackageLite(archiveFilePath,0);
+        PackageParser.parsePackageLite(archiveFilePath,0);
 
-   if (pkg== null) {//解析失败
+    if (pkg== null) {//解析失败
 
-   ......//设置错误值
+        ......//设置错误值
 
-   returnret;
+            returnret;
 
- }
+    }
 
-  ret.packageName = pkg.packageName;
+    ret.packageName = pkg.packageName;
 
-  ret.installLocation = pkg.installLocation;
+    ret.installLocation = pkg.installLocation;
 
-  ret.verifiers = pkg.verifiers;
+    ret.verifiers = pkg.verifiers;
 
-   //调用recommendAppInstallLocation，取得一个合理的安装位置
+    //调用recommendAppInstallLocation，取得一个合理的安装位置
 
-  ret.recommendedInstallLocation =
+    ret.recommendedInstallLocation =
 
-          recommendAppInstallLocation(pkg.installLocation,archiveFilePath, flags, threshold);
+        recommendAppInstallLocation(pkg.installLocation,archiveFilePath, flags, threshold);
 
-   returnret;
+    returnret;
 
 }
 ```
@@ -2926,132 +2926,132 @@ APK可在AndroidManifest.xml中声明一个安装位置，不过DCS除了解析�
 [-->DefaultContainerService.java::recommendAppInstallLocation函数]
 ```java
 private int recommendAppInstallLocation(intinstallLocation,
-                               StringarchiveFilePath, int flags,long threshold) {
+        StringarchiveFilePath, int flags,long threshold) {
 
- int prefer;
- booleancheckBoth = false;
- check_inner: {
-   if((flags & PackageManager.INSTALL_FORWARD_LOCK) != 0) {
-        prefer = PREFER_INTERNAL;
-        break check_inner; //根据FOWRAD_LOCK的情况，只能安装在内部存储
-    } elseif ((flags & PackageManager.INSTALL_INTERNAL) != 0) {
+    int prefer;
+    booleancheckBoth = false;
+check_inner: {
+                 if((flags & PackageManager.INSTALL_FORWARD_LOCK) != 0) {
+                     prefer = PREFER_INTERNAL;
+                     break check_inner; //根据FOWRAD_LOCK的情况，只能安装在内部存储
+                 } elseif ((flags & PackageManager.INSTALL_INTERNAL) != 0) {
 
-        prefer = PREFER_INTERNAL;
+                     prefer = PREFER_INTERNAL;
 
-        break check_inner;
+                     break check_inner;
 
-   }
+                 }
 
-   ......//检查各种情况
+                 ......//检查各种情况
 
-  } else if(installLocation == PackageInfo.INSTALL_LOCATION_AUTO) {
+             } else if(installLocation == PackageInfo.INSTALL_LOCATION_AUTO) {
 
-     prefer= PREFER_INTERNAL;//一般设定的位置为AUTO，默认是内部空间
+                 prefer= PREFER_INTERNAL;//一般设定的位置为AUTO，默认是内部空间
 
-    checkBoth = true; //设置checkBoth为true
+                 checkBoth = true; //设置checkBoth为true
 
-     breakcheck_inner;
+                 breakcheck_inner;
 
- }
+             }
 
-  //查询settings数据库中的secure表，获取用户设置的安装路径
+             //查询settings数据库中的secure表，获取用户设置的安装路径
 
-  intinstallPreference =
-        Settings.System.getInt(getApplicationContext()
+             intinstallPreference =
+                 Settings.System.getInt(getApplicationContext()
 
-            .getContentResolver(),
+                         .getContentResolver(),
 
-             Settings.Secure.DEFAULT_INSTALL_LOCATION,
+                         Settings.Secure.DEFAULT_INSTALL_LOCATION,
 
-             PackageHelper.APP_INSTALL_AUTO);
+                         PackageHelper.APP_INSTALL_AUTO);
 
-   if(installPreference == PackageHelper.APP_INSTALL_INTERNAL) {
+             if(installPreference == PackageHelper.APP_INSTALL_INTERNAL) {
 
-       prefer = PREFER_INTERNAL;
+                 prefer = PREFER_INTERNAL;
 
-       break check_inner;
+                 break check_inner;
 
-   } else if(installPreference == PackageHelper.APP_INSTALL_EXTERNAL) {
+             } else if(installPreference == PackageHelper.APP_INSTALL_EXTERNAL) {
 
-      prefer= PREFER_EXTERNAL;
+                 prefer= PREFER_EXTERNAL;
 
-      breakcheck_inner;
+                 breakcheck_inner;
 
-   }
+             }
 
-   prefer =PREFER_INTERNAL;
+             prefer =PREFER_INTERNAL;
 
-  }
+}
 
-  //判断外部存储空间是否为模拟的，这部分内容我们以后再介绍
+//判断外部存储空间是否为模拟的，这部分内容我们以后再介绍
 
-  finalboolean emulated = Environment.isExternalStorageEmulated();
+finalboolean emulated = Environment.isExternalStorageEmulated();
 
-  final FileapkFile = new File(archiveFilePath);
+final FileapkFile = new File(archiveFilePath);
 
-  booleanfitsOnInternal = false;
+booleanfitsOnInternal = false;
 
-  if(checkBoth || prefer == PREFER_INTERNAL) {
+if(checkBoth || prefer == PREFER_INTERNAL) {
 
-      try {//检查内部存储空间是否足够大
+    try {//检查内部存储空间是否足够大
 
-          fitsOnInternal = isUnderInternalThreshold(apkFile, threshold);
+        fitsOnInternal = isUnderInternalThreshold(apkFile, threshold);
 
-      } ......
+    } ......
 
-   }
+}
 
-   booleanfitsOnSd = false;
+booleanfitsOnSd = false;
 
-   if(!emulated && (checkBoth || prefer == PREFER_EXTERNAL)) {
+if(!emulated && (checkBoth || prefer == PREFER_EXTERNAL)) {
 
-        try{ //检查外部存储空间是否足够大
+    try{ //检查外部存储空间是否足够大
 
-         fitsOnSd = isUnderExternalThreshold(apkFile);
+        fitsOnSd = isUnderExternalThreshold(apkFile);
 
-       } ......
+    } ......
 
-   }
+}
 
-  if (prefer== PREFER_INTERNAL) {
+if (prefer== PREFER_INTERNAL) {
 
-      if(fitsOnInternal) {//返回推荐安装路径为内部空间
-
-        return PackageHelper.RECOMMEND_INSTALL_INTERNAL;
-
-         }
-
-    } elseif (!emulated && prefer == PREFER_EXTERNAL) {
-
-      if(fitsOnSd) {//返回推荐安装路径为外部空间
-
-         returnPackageHelper.RECOMMEND_INSTALL_EXTERNAL;
-
-     }
-
- }
-
- 
-
- if(checkBoth) {
-
-     if(fitsOnInternal) {//如果内部存储满足条件，先返回内部空间
+    if(fitsOnInternal) {//返回推荐安装路径为内部空间
 
         return PackageHelper.RECOMMEND_INSTALL_INTERNAL;
 
-       }else if (!emulated && fitsOnSd) {
+    }
 
-         return PackageHelper.RECOMMEND_INSTALL_EXTERNAL;
+} elseif (!emulated && prefer == PREFER_EXTERNAL) {
 
-      }
+    if(fitsOnSd) {//返回推荐安装路径为外部空间
 
-  }
+        returnPackageHelper.RECOMMEND_INSTALL_EXTERNAL;
 
-     ...... //到此，前几个条件都不满足，此处将根据情况返回一个明确的错误值
+    }
 
-     returnPackageHelper.RECOMMEND_FAILED_INSUFFICIENT_STORAGE;
+}
 
-   }
+
+
+if(checkBoth) {
+
+    if(fitsOnInternal) {//如果内部存储满足条件，先返回内部空间
+
+        return PackageHelper.RECOMMEND_INSTALL_INTERNAL;
+
+    }else if (!emulated && fitsOnSd) {
+
+        return PackageHelper.RECOMMEND_INSTALL_EXTERNAL;
+
+    }
+
+}
+
+...... //到此，前几个条件都不满足，此处将根据情况返回一个明确的错误值
+
+returnPackageHelper.RECOMMEND_FAILED_INSUFFICIENT_STORAGE;
+
+}
 
 }
 ```
@@ -3071,63 +3071,63 @@ DCS的getMinimalPackageInfo函数为了得到一个推荐的安装路径做了�
 ```java
 int copyApk(IMediaContainerService imcs, booleantemp) throws RemoteException {
 
-   if (temp){
+    if (temp){
 
-  /*
+        /*
 
-    本例中temp参数为true，createCopyFile将在/data/app下创建一个临时文件。
+           本例中temp参数为true，createCopyFile将在/data/app下创建一个临时文件。
 
-    临时文件名为vmdl-随机数.tmp。为什么会用这样的文件名呢？
+           临时文件名为vmdl-随机数.tmp。为什么会用这样的文件名呢？
 
-    因为PKMS通过Linux的inotify机制监控了/data/app,目录，如果新复制生成的文件名后缀
+           因为PKMS通过Linux的inotify机制监控了/data/app,目录，如果新复制生成的文件名后缀
 
-    为apk，将触发PKMS扫描。为了防止发生这种情况，这里复制生成的文件才有了
+           为apk，将触发PKMS扫描。为了防止发生这种情况，这里复制生成的文件才有了
 
-    如此奇怪的名字
+           如此奇怪的名字
 
-  */
+         */
 
-   createCopyFile();
+        createCopyFile();
 
-  }
+    }
 
-   FilecodeFile = new File(codeFileName);
+    FilecodeFile = new File(codeFileName);
 
-   ......
+    ......
 
-  ParcelFileDescriptor out = null;
+        ParcelFileDescriptor out = null;
 
-   try {
+    try {
 
-     out =ParcelFileDescriptor.open(codeFile,
+        out =ParcelFileDescriptor.open(codeFile,
 
-                            ParcelFileDescriptor.MODE_READ_WRITE);
+                ParcelFileDescriptor.MODE_READ_WRITE);
 
-           }......
+    }......
 
-     int ret= PackageManager.INSTALL_FAILED_INSUFFICIENT_STORAGE;
+    int ret= PackageManager.INSTALL_FAILED_INSUFFICIENT_STORAGE;
 
-     try {
+    try {
 
-       mContext.grantUriPermission(DEFAULT_CONTAINER_PACKAGE,
+        mContext.grantUriPermission(DEFAULT_CONTAINER_PACKAGE,
 
-                   packageURI,Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                packageURI,Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         //调用DCS的copyResource，该函数将执行复制操作，最终结果是/data/local/tmp
 
-       //下的APK文件被复制到/data/app下，文件名也被换成vmdl-随机数.tmp
+        //下的APK文件被复制到/data/app下，文件名也被换成vmdl-随机数.tmp
 
-         ret= imcs.copyResource(packageURI, out);
+        ret= imcs.copyResource(packageURI, out);
 
     }finally {
 
-      ......//关闭out，撤销URI授权
+        ......//关闭out，撤销URI授权
 
-           }
+    }
 
     returnret;
 
- }
+}
  ```
 
 关于临时文件，这里提供一个示例，如图4-9所示。
@@ -3145,9 +3145,9 @@ int copyApk(IMediaContainerService imcs, booleantemp) throws RemoteException {
 ```java
 void handleReturnCode() {
 
-       if(mArgs != null) {
+    if(mArgs != null) {
 
-         //调用processPendingInstall函数，mArgs指向之前创建的FileInstallArgs对象
+        //调用processPendingInstall函数，mArgs指向之前创建的FileInstallArgs对象
 
         processPendingInstall(mArgs, mRet);
 
@@ -3160,57 +3160,57 @@ void handleReturnCode() {
 ```java
 private void processPendingInstall(finalInstallArgs args,
 
-                                  final intcurrentStatus) {
+        final intcurrentStatus) {
 
-   //向mHandler中抛一个Runnable对象
+    //向mHandler中抛一个Runnable对象
 
-  mHandler.post(new Runnable() {
+    mHandler.post(new Runnable() {
 
-       publicvoid run() {
+            publicvoid run() {
 
-        mHandler.removeCallbacks(this);
+            mHandler.removeCallbacks(this);
 
-         //创建一个PackageInstalledInfo对象，
+            //创建一个PackageInstalledInfo对象，
 
-       PackageInstalledInfo res = new PackageInstalledInfo();
+            PackageInstalledInfo res = new PackageInstalledInfo();
 
-       res.returnCode = currentStatus;
+            res.returnCode = currentStatus;
 
-       res.uid = -1;
+            res.uid = -1;
 
-       res.pkg = null;
+            res.pkg = null;
 
-       res.removedInfo = new PackageRemovedInfo();
+            res.removedInfo = new PackageRemovedInfo();
 
-        if(res.returnCode == PackageManager.INSTALL_SUCCEEDED) {
+            if(res.returnCode == PackageManager.INSTALL_SUCCEEDED) {
 
-           //①调用FileInstallArgs的doPreInstall
+            //①调用FileInstallArgs的doPreInstall
 
-           args.doPreInstall(res.returnCode);
+                args.doPreInstall(res.returnCode);
 
-           synchronized (mInstallLock) {
+                synchronized (mInstallLock) {
 
-               //②调用installPackageLI进行安装
+                    //②调用installPackageLI进行安装
 
-               installPackageLI(args, true, res);
+                    installPackageLI(args, true, res);
+
+                }
+
+                //③调用FileInstallArgs的doPostInstall
+
+                args.doPostInstall(res.returnCode);
 
             }
 
-          //③调用FileInstallArgs的doPostInstall
+            final boolean update = res.removedInfo.removedPackage != null;
 
-         args.doPostInstall(res.returnCode);
-
-        }
-
-       final boolean update = res.removedInfo.removedPackage != null;
-
-       boolean doRestore = (!update&& res.pkg != null &&
+            boolean doRestore = (!update&& res.pkg != null &&
 
                     res.pkg.applicationInfo.backupAgentName!= null);
 
-       int token;//计算一个ID号
+            int token;//计算一个ID号
 
-        if(mNextInstallToken < 0) mNextInstallToken = 1;
+            if(mNextInstallToken < 0) mNextInstallToken = 1;
 
             token = mNextInstallToken++;
 
@@ -3218,31 +3218,31 @@ private void processPendingInstall(finalInstallArgs args,
 
             PostInstallData data = new PostInstallData(args, res);
 
-           //保存到mRunningInstalls结构中，以token为key
+            //保存到mRunningInstalls结构中，以token为key
 
-           mRunningInstalls.put(token, data);
+            mRunningInstalls.put(token, data);
 
-           if (res.returnCode ==PackageManager.INSTALL_SUCCEEDED && doRestore)
+            if (res.returnCode ==PackageManager.INSTALL_SUCCEEDED && doRestore)
 
-             {
+            {
 
-                  ......//备份恢复的情况暂时不考虑
+                ......//备份恢复的情况暂时不考虑
 
             }
 
-           if(!doRestore) {
+            if(!doRestore) {
 
-            //④抛一个POST_INSTALL消息给mHandler进行处理
+                //④抛一个POST_INSTALL消息给mHandler进行处理
 
-            Message msg = mHandler.obtainMessage(POST_INSTALL, token, 0);
+                Message msg = mHandler.obtainMessage(POST_INSTALL, token, 0);
 
-            mHandler.sendMessage(msg);
+                mHandler.sendMessage(msg);
 
-           }
+            }
 
-        }
+            }
 
-        });
+    });
 
 }
 ```
@@ -3270,79 +3270,79 @@ private void processPendingInstall(finalInstallArgs args,
 
 case POST_INSTALL: {
 
-  PostInstallData data = mRunningInstalls.get(msg.arg1);
+                       PostInstallData data = mRunningInstalls.get(msg.arg1);
 
- mRunningInstalls.delete(msg.arg1);
+                       mRunningInstalls.delete(msg.arg1);
 
-  booleandeleteOld = false;
+                       booleandeleteOld = false;
 
- 
 
-  if (data!= null) {
 
-      InstallArgs args = data.args;
+                       if (data!= null) {
 
-      PackageInstalledInfo res = data.res;
+                           InstallArgs args = data.args;
 
-       if(res.returnCode == PackageManager.INSTALL_SUCCEEDED) {
+                           PackageInstalledInfo res = data.res;
 
-           res.removedInfo.sendBroadcast(false, true);
+                           if(res.returnCode == PackageManager.INSTALL_SUCCEEDED) {
 
-           Bundle extras = new Bundle(1);
+                               res.removedInfo.sendBroadcast(false, true);
 
-           extras.putInt(Intent.EXTRA_UID, res.uid);
+                               Bundle extras = new Bundle(1);
 
-           final boolean update = res.removedInfo.removedPackage != null;
+                               extras.putInt(Intent.EXTRA_UID, res.uid);
 
-           if (update) {
+                               final boolean update = res.removedInfo.removedPackage != null;
 
-                extras.putBoolean(Intent.EXTRA_REPLACING, true);
+                               if (update) {
 
-           }
+                                   extras.putBoolean(Intent.EXTRA_REPLACING, true);
 
-           //发送PACKAGE_ADDED广播
+                               }
 
-           sendPackageBroadcast(Intent.ACTION_PACKAGE_ADDED,
+                               //发送PACKAGE_ADDED广播
 
-                    res.pkg.applicationInfo.packageName,extras, null, null);
+                               sendPackageBroadcast(Intent.ACTION_PACKAGE_ADDED,
 
-           if (update) {
+                                       res.pkg.applicationInfo.packageName,extras, null, null);
 
-           /*
+                               if (update) {
 
-           如果是APK升级，那么发送PACKAGE_REPLACE和MY_PACKAGE_REPLACED广播。
+                                   /*
 
-          二者不同之处在于PACKAGE_REPLACE将携带一个extra信息
+                                      如果是APK升级，那么发送PACKAGE_REPLACE和MY_PACKAGE_REPLACED广播。
 
-         */
+                                      二者不同之处在于PACKAGE_REPLACE将携带一个extra信息
 
-       }
+                                    */
 
-      Runtime.getRuntime().gc();
+                               }
 
-       if(deleteOld) {
+                               Runtime.getRuntime().gc();
 
-         synchronized (mInstallLock) {
+                               if(deleteOld) {
 
-           //调用FileInstallArgs的doPostDeleteLI进行资源清理
+                                   synchronized (mInstallLock) {
 
-           res.removedInfo.args.doPostDeleteLI(true);
+                                       //调用FileInstallArgs的doPostDeleteLI进行资源清理
 
-            }
+                                       res.removedInfo.args.doPostDeleteLI(true);
 
-        }
+                                   }
 
-      if(args.observer != null) {
+                               }
 
-      try {
+                               if(args.observer != null) {
 
-          // 向pm通知安装的结果
+                                   try {
 
-        args.observer.packageInstalled(res.name, res.returnCode);
+                                       // 向pm通知安装的结果
 
-      } ......
+                                       args.observer.packageInstalled(res.name, res.returnCode);
 
-} break;
+                                   } ......
+
+                               } break;
 ``` 
 
 ### 4.4.4  APK 安装流程总结
@@ -3367,147 +3367,147 @@ Verification功能的出现将打乱图4-10的工作流程，所以这部分内�
 
 [-->PackageManagerService.java::InstallParams.handleStartCopy函数]
 ```java
-  ......//此处已经获得了合适的安装位置
+......//此处已经获得了合适的安装位置
 
-  finalInstallArgs args = createInstallArgs(this);
+finalInstallArgs args = createInstallArgs(this);
 
-  mArgs =args;
+mArgs =args;
 
 if (ret == PackageManager.INSTALL_SUCCEEDED) {
 
     final int requiredUid =mRequiredVerifierPackage == null ? -1
 
-                        :getPackageUid(mRequiredVerifierPackage);
+        :getPackageUid(mRequiredVerifierPackage);
 
-  if (requiredUid != -1 &&isVerificationEnabled()) {
+    if (requiredUid != -1 &&isVerificationEnabled()) {
 
-     //创建一个Intent，用于查找满足条件的广播接收者
+        //创建一个Intent，用于查找满足条件的广播接收者
 
-   finalIntent verification = new
+        finalIntent verification = new
 
-                    Intent(Intent.ACTION_PACKAGE_NEEDS_VERIFICATION);
+            Intent(Intent.ACTION_PACKAGE_NEEDS_VERIFICATION);
 
-   verification.setDataAndType(packageURI, PACKAGE_MIME_TYPE);
+        verification.setDataAndType(packageURI, PACKAGE_MIME_TYPE);
 
-   verification.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        verification.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-    //查找满足Intent条件的广播接收者
+        //查找满足Intent条件的广播接收者
 
-    finalList<ResolveInfo> receivers = queryIntentReceivers(
+        finalList<ResolveInfo> receivers = queryIntentReceivers(
 
-               verification,null,PackageManager.GET_DISABLED_COMPONENTS);
+                verification,null,PackageManager.GET_DISABLED_COMPONENTS);
 
-    // verificationId为当前等待Verification的安装包个数
+        // verificationId为当前等待Verification的安装包个数
 
-    finalint verificationId = mPendingVerificationToken++;
+        finalint verificationId = mPendingVerificationToken++;
 
-   //设置Intent的参数，例如要校验的包名
+        //设置Intent的参数，例如要校验的包名
 
-    verification.putExtra(PackageManager.EXTRA_VERIFICATION_ID,
+        verification.putExtra(PackageManager.EXTRA_VERIFICATION_ID,
 
-                              VerificationId);
+                VerificationId);
 
-    verification.putExtra(
+        verification.putExtra(
 
-                            PackageManager.EXTRA_VERIFICATION_INSTALLER_PACKAGE,
+                PackageManager.EXTRA_VERIFICATION_INSTALLER_PACKAGE,
 
-                            installerPackageName);
+                installerPackageName);
 
-  verification.putExtra(
+        verification.putExtra(
 
-                   PackageManager.EXTRA_VERIFICATION_INSTALL_FLAGS,flags);
+                PackageManager.EXTRA_VERIFICATION_INSTALL_FLAGS,flags);
 
-   if(verificationURI != null) {
+        if(verificationURI != null) {
 
-     verification.putExtra(PackageManager.EXTRA_VERIFICATION_URI,
+            verification.putExtra(PackageManager.EXTRA_VERIFICATION_URI,
 
-                                verificationURI);
-
-    }
-
-  finalPackageVerificationState verificationState = new
-
-                       PackageVerificationState(requiredUid,args);
-
-  //将上面创建的PackageVerificationState保存到mPendingVerification中
-
- mPendingVerification.append(verificationId, verificationState);
-
-  //筛选符合条件的广播接收者
-
-  finalList<ComponentName> sufficientVerifiers =
-
-                   matchVerifiers(pkgLite,receivers,verificationState);
-
-  if (sufficientVerifiers != null) {
-
-      finalint N = sufficientVerifiers.size();
-
-      ......
-
-      for(int i = 0; i < N; i++) {
-
-       finalComponentName verifierComponent = sufficientVerifiers.get(i);
-
-       final Intent sufficientIntent = newIntent(verification);
-
-       sufficientIntent.setComponent(verifierComponent);
-
-       //向校验包发送广播
-
-       mContext.sendBroadcast(sufficientIntent);
-
-       }
-
-    }
-
- }
-
-   //除此之外，如果在执行adb install的时候指定了校验包，则需要向其单独发送校验广播
-
-   finalComponentName requiredVerifierComponent =
-
-                        matchComponentForVerifier(mRequiredVerifierPackage,
-
-                       receivers);
-
-   if (ret == PackageManager.INSTALL_SUCCEEDED
-
-        &&mRequiredVerifierPackage != null) {
-
-      verification.setComponent(requiredVerifierComponent);
-
-      mContext.sendOrderedBroadcast(verification,
-
-      android.Manifest.permission.PACKAGE_VERIFICATION_AGENT,
-
-           new BroadcastReceiver() {
-
-           //调用sendOrderdBroadcast，并传递一个BroadcastReceiver，该对象将在
-
-          //广播发送的最后被调用。读者可参考sendOrderdBroadcast的文档说明
-
-           public void onReceive(Context context, Intent intent) {
-
-            final Message msg =mHandler.obtainMessage(
-
-                      CHECK_PENDING_VERIFICATION);
-
-            msg.arg1 = verificationId;
-
-            //设置一个超时执行时间，该值来自Settings数据库的secure表，默认为60秒
-
-            mHandler.sendMessageDelayed(msg, getVerificationTimeout());
-
-           }
-
-         },null, 0, null, null);
-
-           mArgs = null;
+                    verificationURI);
 
         }
 
-    }......//不用做Verification的流程
+        finalPackageVerificationState verificationState = new
+
+            PackageVerificationState(requiredUid,args);
+
+        //将上面创建的PackageVerificationState保存到mPendingVerification中
+
+        mPendingVerification.append(verificationId, verificationState);
+
+        //筛选符合条件的广播接收者
+
+        finalList<ComponentName> sufficientVerifiers =
+
+            matchVerifiers(pkgLite,receivers,verificationState);
+
+        if (sufficientVerifiers != null) {
+
+            finalint N = sufficientVerifiers.size();
+
+            ......
+
+                for(int i = 0; i < N; i++) {
+
+                    finalComponentName verifierComponent = sufficientVerifiers.get(i);
+
+                    final Intent sufficientIntent = newIntent(verification);
+
+                    sufficientIntent.setComponent(verifierComponent);
+
+                    //向校验包发送广播
+
+                    mContext.sendBroadcast(sufficientIntent);
+
+                }
+
+        }
+
+    }
+
+    //除此之外，如果在执行adb install的时候指定了校验包，则需要向其单独发送校验广播
+
+    finalComponentName requiredVerifierComponent =
+
+        matchComponentForVerifier(mRequiredVerifierPackage,
+
+                receivers);
+
+    if (ret == PackageManager.INSTALL_SUCCEEDED
+
+            &&mRequiredVerifierPackage != null) {
+
+        verification.setComponent(requiredVerifierComponent);
+
+        mContext.sendOrderedBroadcast(verification,
+
+                android.Manifest.permission.PACKAGE_VERIFICATION_AGENT,
+
+                new BroadcastReceiver() {
+
+                //调用sendOrderdBroadcast，并传递一个BroadcastReceiver，该对象将在
+
+                //广播发送的最后被调用。读者可参考sendOrderdBroadcast的文档说明
+
+                public void onReceive(Context context, Intent intent) {
+
+                final Message msg =mHandler.obtainMessage(
+
+                    CHECK_PENDING_VERIFICATION);
+
+                msg.arg1 = verificationId;
+
+                //设置一个超时执行时间，该值来自Settings数据库的secure表，默认为60秒
+
+                mHandler.sendMessageDelayed(msg, getVerificationTimeout());
+
+                }
+
+                },null, 0, null, null);
+
+        mArgs = null;
+
+    }
+
+}......//不用做Verification的流程
 ```
 
 PKMS的Verification工作其实就是收集安装包的信息，然后向对应的校验者发送广播。但遗憾的是，当前Android中还没有能处理Verification的组件。
@@ -3579,23 +3579,23 @@ IntentFilter中的Data可以包括两个内容。
 
 [-->PacakgeManagerService.java::scanPackageLI函数]
 ```java
-     ......//此时APK文件已经解析完成
+......//此时APK文件已经解析完成
 
-     N =pkg.activities.size();//取出该APK中包含的Activities信息
+N =pkg.activities.size();//取出该APK中包含的Activities信息
 
-     r =null;
+r =null;
 
-     for (i=0; i<N; i++) {
+for (i=0; i<N; i++) {
 
-        PackageParser.Activity a = pkg.activities.get(i);
+    PackageParser.Activity a = pkg.activities.get(i);
 
-        a.info.processName = fixProcessName(pkg.applicationInfo.processName,
+    a.info.processName = fixProcessName(pkg.applicationInfo.processName,
 
-                                     a.info.processName,pkg.applicationInfo.uid);
+            a.info.processName,pkg.applicationInfo.uid);
 
-         mActivities.addActivity(a,"activity");//①加到mActivities中保存
+    mActivities.addActivity(a,"activity");//①加到mActivities中保存
 
- }
+}
 ```
 
 上面的代码中有两个比较重要的数据结构，如图4-11所示。
@@ -3616,33 +3616,33 @@ IntentFilter中的Data可以包括两个内容。
 ```java
 public final voidaddActivity(PackageParser.Activity a, String type) {
 
-     finalboolean systemApp = isSystemApp(a.info.applicationInfo);
+    finalboolean systemApp = isSystemApp(a.info.applicationInfo);
 
-     //将Component和Activity保存到mActivities中
+    //将Component和Activity保存到mActivities中
 
     mActivities.put(a.getComponentName(), a);
 
-     finalint NI = a.intents.size();
+    finalint NI = a.intents.size();
 
-     for(int j=0; j<NI; j++) {
+    for(int j=0; j<NI; j++) {
 
-     //ActivityIntentInfo存储的就是XML中声明的IntentFilter信息
+        //ActivityIntentInfo存储的就是XML中声明的IntentFilter信息
 
-    PackageParser.ActivityIntentInfo intent = a.intents.get(j);
+        PackageParser.ActivityIntentInfo intent = a.intents.get(j);
 
-     if(!systemApp && intent.getPriority() > 0 &&"activity".equals(type)) {
+        if(!systemApp && intent.getPriority() > 0 &&"activity".equals(type)) {
 
-          //非系统APK的priority必须为0。后续分析中将介绍priority的作用
+            //非系统APK的priority必须为0。后续分析中将介绍priority的作用
 
-          intent.setPriority(0);
+            intent.setPriority(0);
 
         }
 
-         addFilter(intent);//接下来将分析这个函数
+        addFilter(intent);//接下来将分析这个函数
 
-      }
+    }
 
- }
+}
  ```
 
 下面来分析addFilter函数，这里涉及较多的复杂数据结构，代码如下：
@@ -3651,37 +3651,37 @@ public final voidaddActivity(PackageParser.Activity a, String type) {
 ```java
 public void addFilter(F f) {
 
-        ......
+    ......
 
-       mFilters.add(f);//mFilters保存所有IntentFilter信息
+        mFilters.add(f);//mFilters保存所有IntentFilter信息
 
-       //除此之外，为了加快匹配工作的速度，还需要分类保存IntentFilter信息
+    //除此之外，为了加快匹配工作的速度，还需要分类保存IntentFilter信息
 
-       //下边register_xxx函数的最后一个参数用于打印信息
+    //下边register_xxx函数的最后一个参数用于打印信息
 
-        intnumS = register_intent_filter(f, f.schemesIterator(),
+    intnumS = register_intent_filter(f, f.schemesIterator(),
 
-                         mSchemeToFilter,"      Scheme: ");
+            mSchemeToFilter,"      Scheme: ");
 
-        intnumT = register_mime_types(f, "     Type: ");
+    intnumT = register_mime_types(f, "     Type: ");
 
-        if(numS == 0 && numT == 0) {
+    if(numS == 0 && numT == 0) {
 
-           register_intent_filter(f, f.actionsIterator(),
+        register_intent_filter(f, f.actionsIterator(),
 
-                           mActionToFilter,"      Action: ");
+                mActionToFilter,"      Action: ");
 
-        }
+    }
 
-        if(numT != 0) {
+    if(numT != 0) {
 
-           register_intent_filter(f, f.actionsIterator(),
+        register_intent_filter(f, f.actionsIterator(),
 
-                   mTypedActionToFilter, "     TypedAction: ");
+                mTypedActionToFilter, "     TypedAction: ");
 
-        }
+    }
 
- }
+}
  ```
 
 正如代码注释中所说，为了加快匹配工作的速度，这里使用了泛型编程并定义了较多的成员变量。下面总结一下这些变量的作用（注意，除mFilters为HashSet<F>类型外，其他成员变量的类型都是HashMap<String, ArrayList<F>>，其中F为模板参数）。
@@ -3730,17 +3730,17 @@ public void addFilter(F f) {
 ```java
 public List<ResolveInfo>queryIntentActivities(Intent intent, int flags) {
 
-   try {
+try {
 
-           return mPM.queryIntentActivities(
+return mPM.queryIntentActivities(
 
-               intent,//下面这句话很重要
+intent,//下面这句话很重要
 
-               intent.resolveTypeIfNeeded(mContext.getContentResolver()),
+intent.resolveTypeIfNeeded(mContext.getContentResolver()),
 
-               flags);
+flags);
 
-        }......
+}......
 
 }
 ```
@@ -3758,67 +3758,67 @@ public List<ResolveInfo>queryIntentActivities(Intent intent, int flags) {
 ```java
 public List<ResolveInfo>queryIntentActivities(Intent intent,
 
-                                  String resolvedType, int flags) {
+String resolvedType, int flags) {
 
-       final ComponentName comp = intent.getComponent();
+final ComponentName comp = intent.getComponent();
 
-        if(comp != null) {
+if(comp != null) {
 
-            //Explicit的Intents，直接根据component得到对应的ActivityInfo
+//Explicit的Intents，直接根据component得到对应的ActivityInfo
 
-           final List<ResolveInfo> list = new ArrayList<ResolveInfo>(1);
+final List<ResolveInfo> list = new ArrayList<ResolveInfo>(1);
 
-           final ActivityInfo ai = getActivityInfo(comp, flags);
+final ActivityInfo ai = getActivityInfo(comp, flags);
 
-           if (ai != null) {
+if (ai != null) {
 
-               final ResolveInfo ri = new ResolveInfo();
+    final ResolveInfo ri = new ResolveInfo();
 
-               //ResovlerInfo的activityInfo指向查询得到的ActivityInfo
+    //ResovlerInfo的activityInfo指向查询得到的ActivityInfo
 
-               ri.activityInfo = ai;
+    ri.activityInfo = ai;
 
-               list.add(ri);
+    list.add(ri);
 
-           }
+}
 
-           return list;
+return list;
 
-        }
+}
 
- 
 
-       synchronized (mPackages) {
 
-           final String pkgName = intent.getPackage();
+synchronized (mPackages) {
 
-           if (pkgName == null) {
+    final String pkgName = intent.getPackage();
 
-                        //Implicit Intents，我们重点分析此中情况
+    if (pkgName == null) {
 
-               return mActivities.queryIntent(intent, resolvedType, flags);
+        //Implicit Intents，我们重点分析此中情况
 
-           }
-
-            //Intent指明了PackageName，比Explicit Intents情况差一点
-
-           final PackageParser.Package pkg = mPackages.get(pkgName);
-
-           if (pkg != null) {
-
-               //其实是从该Package包含的Activities中进行匹配查询
-
-               return mActivities.queryIntentForPackage(intent, resolvedType,
-
-                                           flags, pkg.activities);
-
-           }
-
-           return new ArrayList<ResolveInfo>();
-
-        }
+        return mActivities.queryIntent(intent, resolvedType, flags);
 
     }
+
+    //Intent指明了PackageName，比Explicit Intents情况差一点
+
+    final PackageParser.Package pkg = mPackages.get(pkgName);
+
+    if (pkg != null) {
+
+        //其实是从该Package包含的Activities中进行匹配查询
+
+        return mActivities.queryIntentForPackage(intent, resolvedType,
+
+                flags, pkg.activities);
+
+    }
+
+    return new ArrayList<ResolveInfo>();
+
+}
+
+}
 ```
 
 上边代码分三种情况：
@@ -3835,127 +3835,127 @@ public List<ResolveInfo> queryIntent(Intentintent, String resolvedType, intflags
 
     mFlags =flags;
 
-   //调用基类的queryIntent函数
+    //调用基类的queryIntent函数
 
-   returnsuper.queryIntent(intent, resolvedType,
+    returnsuper.queryIntent(intent, resolvedType,
 
-               (flags&PackageManager.MATCH_DEFAULT_ONLY) != 0);
+            (flags&PackageManager.MATCH_DEFAULT_ONLY) != 0);
 
- }
+}
  ```
 
 [-->IntentResolver.java::queryIntent]
 ```java
 public List<R> queryIntent(Intent intent,String resolvedType,
-                             booleandefaultOnly) {
+        booleandefaultOnly) {
 
-  Stringscheme = intent.getScheme();
+    Stringscheme = intent.getScheme();
 
- ArrayList<R> finalList = new ArrayList<R>();
+    ArrayList<R> finalList = new ArrayList<R>();
 
- //最多有四轮匹配工作要做
+    //最多有四轮匹配工作要做
 
- ArrayList<F> firstTypeCut = null;
+    ArrayList<F> firstTypeCut = null;
 
- ArrayList<F> secondTypeCut = null;
+    ArrayList<F> secondTypeCut = null;
 
- ArrayList<F> thirdTypeCut = null;
+    ArrayList<F> thirdTypeCut = null;
 
- ArrayList<F> schemeCut = null;
+    ArrayList<F> schemeCut = null;
 
- //下面将设置各轮校验者
+    //下面将设置各轮校验者
 
- if(resolvedType != null) {
+    if(resolvedType != null) {
 
-     intslashpos = resolvedType.indexOf('/');
+        intslashpos = resolvedType.indexOf('/');
 
-      if(slashpos > 0) {
+        if(slashpos > 0) {
 
-         final String baseType = resolvedType.substring(0, slashpos);
+            final String baseType = resolvedType.substring(0, slashpos);
 
-          if (!baseType.equals("*")) {
+            if (!baseType.equals("*")) {
 
-               if (resolvedType.length() != slashpos+2
+                if (resolvedType.length() != slashpos+2
 
-                   || resolvedType.charAt(slashpos+1) != '*') {
+                        || resolvedType.charAt(slashpos+1) != '*') {
 
-                       firstTypeCut =mTypeToFilter.get(resolvedType);
+                    firstTypeCut =mTypeToFilter.get(resolvedType);
 
-                       secondTypeCut =mWildTypeToFilter.get(baseType);
+                    secondTypeCut =mWildTypeToFilter.get(baseType);
 
-                   }......//略去一部分内容
+                }......//略去一部分内容
 
-           }
-
-        }
-
- 
-
-      if(scheme != null) {
-
-           schemeCut = mSchemeToFilter.get(scheme);
+            }
 
         }
 
-      if(resolvedType == null && scheme == null && intent.getAction()!= null)
 
-      {
 
-        //看来action的filter优先级最低
+        if(scheme != null) {
 
-       firstTypeCut = mActionToFilter.get(intent.getAction());
+            schemeCut = mSchemeToFilter.get(scheme);
 
-      }
+        }
 
-   //FastImmutableArraySet是一种特殊的数据结构，用于保存该Intent中携带的
+        if(resolvedType == null && scheme == null && intent.getAction()!= null)
 
-   //Category相关的信息。
+        {
 
-   FastImmutableArraySet<String>categories = getFastIntentCategories(intent);
+            //看来action的filter优先级最低
 
-    if(firstTypeCut != null) {
+            firstTypeCut = mActionToFilter.get(intent.getAction());
 
-     //匹配查询，第一轮过关斩将
+        }
 
-     buildResolveList(intent, categories, debug, defaultOnly,
+        //FastImmutableArraySet是一种特殊的数据结构，用于保存该Intent中携带的
 
-             resolvedType, scheme, firstTypeCut,finalList);
+        //Category相关的信息。
+
+        FastImmutableArraySet<String>categories = getFastIntentCategories(intent);
+
+        if(firstTypeCut != null) {
+
+            //匹配查询，第一轮过关斩将
+
+            buildResolveList(intent, categories, debug, defaultOnly,
+
+                    resolvedType, scheme, firstTypeCut,finalList);
+
+        }
+
+        if(secondTypeCut != null) {
+
+            buildResolveList(intent, categories, debug, defaultOnly,
+
+                    resolvedType, scheme, secondTypeCut, finalList);
+
+        }
+
+        if(thirdTypeCut != null) {
+
+            buildResolveList(intent, categories, debug, defaultOnly,
+
+                    resolvedType, scheme, thirdTypeCut, finalList);
+
+        }
+
+        if(schemeCut != null) {
+
+            //生成符合schemeCut条件的finalList
+
+            buildResolveList(intent, categories, debug, defaultOnly,
+
+                    resolvedType, scheme, schemeCut, finalList);
+
+        }
+
+        //将匹配结果按Priority的大小排序
+
+        sortResults(finalList);
+
+        returnfinalList;
 
     }
-
-    if(secondTypeCut != null) {
-
-        buildResolveList(intent, categories, debug, defaultOnly,
-
-                   resolvedType, scheme, secondTypeCut, finalList);
-
-     }
-
-    if(thirdTypeCut != null) {
-
-        buildResolveList(intent, categories, debug, defaultOnly,
-
-                   resolvedType, scheme, thirdTypeCut, finalList);
-
-     }
-
-    if(schemeCut != null) {
-
-        //生成符合schemeCut条件的finalList
-
-        buildResolveList(intent, categories, debug, defaultOnly,
-
-                   resolvedType, scheme, schemeCut, finalList);
-
-    }
-
-   //将匹配结果按Priority的大小排序
-
-   sortResults(finalList);
-
-    returnfinalList;
-
-}
 ```
 
 在以上代码中设置了最多四轮匹配关卡，然后逐一执行匹配工作。具体的匹配代码由buildResolveList完成，无非是一项查找工作而已。此处就不再深究细节了，建议读者在研究代码时以目的为导向，不宜深究其中的数据结构。
@@ -4382,35 +4382,35 @@ mUserManager = new UserManager(mInstaller,mUserAppDataDir);
 ```java
 public UserManager(Installer installer, FilebaseUserPath) {
 
-   this(Environment.getDataDirectory(), baseUserPath);
+    this(Environment.getDataDirectory(), baseUserPath);
 
-   mInstaller = installer;
+    mInstaller = installer;
 
 }
 
 UserManager(File dataDir, File baseUserPath) {
 
-   //mUsersDir指向/data/system/users目录
+    //mUsersDir指向/data/system/users目录
 
-   mUsersDir = new File(dataDir, USER_INFO_DIR);
+    mUsersDir = new File(dataDir, USER_INFO_DIR);
 
-   mUsersDir.mkdirs();//创建该目录
+    mUsersDir.mkdirs();//创建该目录
 
-   mBaseUserPath = baseUserPath;
+    mBaseUserPath = baseUserPath;
 
-   FileUtils.setPermissions(mUsersDir.toString(),
+    FileUtils.setPermissions(mUsersDir.toString(),
 
             FileUtils.S_IRWXU|FileUtils.S_IRWXG
 
-           |FileUtils.S_IROTH|FileUtils.S_IXOTH,
+            |FileUtils.S_IROTH|FileUtils.S_IXOTH,
 
-               -1, -1);
+            -1, -1);
 
-   //mUserListFile指向/data/system/user/userlist.xml
+    //mUserListFile指向/data/system/user/userlist.xml
 
-   mUserListFile = new File(mUsersDir, USER_LIST_FILENAME);
+    mUserListFile = new File(mUsersDir, USER_LIST_FILENAME);
 
-   readUserList();//解析userlist.xml文件
+    readUserList();//解析userlist.xml文件
 
 }
 ```
@@ -4427,11 +4427,11 @@ UserManager(File dataDir, File baseUserPath) {
 ```java
 public class UserInfo implements Parcelable {
 
-   //主用户，全系统只能有一个这样的用户
+    //主用户，全系统只能有一个这样的用户
 
     publicstatic final int FLAG_PRIMARY = 0x00000001;
 
- 
+
 
     //管理员，可以创建、删除其他用户信息
 
@@ -4463,23 +4463,23 @@ mUserManager.installPackageForAllUsers(pkgName,pkg.applicationInfo.uid);
 ```java
 public void installPackageForAllUsers(StringpackageName, int uid) {
 
- for (intuserId : mUserIds) {
+    for (intuserId : mUserIds) {
 
-   if(userId == 0)
+        if(userId == 0)
 
-      continue;
+            continue;
 
-  //向installd发送命令，其中getUid将组合userId和uid为一个整型值
+        //向installd发送命令，其中getUid将组合userId和uid为一个整型值
 
-  //installd将在/data/对应user/目录下创建相应的package子目录
+        //installd将在/data/对应user/目录下创建相应的package子目录
 
-  mInstaller.createUserData(packageName, PackageManager.getUid(userId,uid),
+        mInstaller.createUserData(packageName, PackageManager.getUid(userId,uid),
 
-                                  userId);
+                userId);
 
-        }
+    }
 
- }
+}
 ```
  
 

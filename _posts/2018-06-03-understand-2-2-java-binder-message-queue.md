@@ -114,16 +114,16 @@ int register_android_os_Binder(JNIEnv* env)
 {
     //初始化Java Binder类和Native层的关系
     if(int_register_android_os_Binder(env) < 0)
-       return -1;
+        return -1;
     //初始化Java BinderInternal类和Native层的关系
     if(int_register_android_os_BinderInternal(env) < 0)
-       return -1;
-   //初始化Java BinderProxy类和Native层的关系
+        return -1;
+    //初始化Java BinderProxy类和Native层的关系
     if(int_register_android_os_BinderProxy(env) < 0)
-       return -1;
-   //初始化Java Parcel类和Native层的关系
+        return -1;
+    //初始化Java Parcel类和Native层的关系
     if(int_register_android_os_Parcel(env) < 0)
-       return -1;
+        return -1;
     return0;
 }
 ```
@@ -136,23 +136,23 @@ int_register_android_os_Binder函数完成了Binder类的初始化工作，代�
 ```java
 static int int_register_android_os_Binder(JNIEnv*env)
 {
-  jclassclazz;
+    jclassclazz;
 
-  //kBinderPathName为Java层中Binder类的全路径名，“android/os/Binder“
-  clazz =env->FindClass(kBinderPathName);
-  /*
-  gBinderOffSets是一个静态类对象，它专门保存Binder类的一些在JNI层中使用的信息，
-  如成员函数execTranscat的methodID,Binder类中成员mObject的fildID
-  */
-   gBinderOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
-   gBinderOffsets.mExecTransact
-                     = env->GetMethodID(clazz,"execTransact", "(IIII)Z");
-   gBinderOffsets.mObject
-                     = env->GetFieldID(clazz,"mObject", "I");
-   //注册Binder类中native函数的实现
+    //kBinderPathName为Java层中Binder类的全路径名，“android/os/Binder“
+    clazz =env->FindClass(kBinderPathName);
+    /*
+       gBinderOffSets是一个静态类对象，它专门保存Binder类的一些在JNI层中使用的信息，
+       如成员函数execTranscat的methodID,Binder类中成员mObject的fildID
+     */
+    gBinderOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
+    gBinderOffsets.mExecTransact
+        = env->GetMethodID(clazz,"execTransact", "(IIII)Z");
+    gBinderOffsets.mObject
+        = env->GetFieldID(clazz,"mObject", "I");
+    //注册Binder类中native函数的实现
     returnAndroidRuntime::registerNativeMethods(
-                            env, kBinderPathName,
-                            gBinderMethods,NELEM(gBinderMethods));
+            env, kBinderPathName,
+            gBinderMethods,NELEM(gBinderMethods));
 }
 ```
 
@@ -168,19 +168,19 @@ static int int_register_android_os_Binder(JNIEnv*env)
 ```java
 static intint_register_android_os_BinderInternal(JNIEnv* env)
 {
-   jclass clazz;
-   //根据BinderInternal的全路径名找到代表该类的jclass对象。全路径名为
-   // “com/android/internal/os/BinderInternal”
-   clazz =env->FindClass(kBinderInternalPathName);
-   //gBinderInternalOffsets也是一个静态对象，用来保存BinderInternal类的一些信息
-   gBinderInternalOffsets.mClass = (jclass)env->NewGlobalRef(clazz);
-   //获取forceBinderGc的methodID
-  gBinderInternalOffsets.mForceGc
-                 = env->GetStaticMethodID(clazz,"forceBinderGc", "()V");
-     //注册BinderInternal类中native函数的实现
+    jclass clazz;
+    //根据BinderInternal的全路径名找到代表该类的jclass对象。全路径名为
+    // “com/android/internal/os/BinderInternal”
+    clazz =env->FindClass(kBinderInternalPathName);
+    //gBinderInternalOffsets也是一个静态对象，用来保存BinderInternal类的一些信息
+    gBinderInternalOffsets.mClass = (jclass)env->NewGlobalRef(clazz);
+    //获取forceBinderGc的methodID
+    gBinderInternalOffsets.mForceGc
+        = env->GetStaticMethodID(clazz,"forceBinderGc", "()V");
+    //注册BinderInternal类中native函数的实现
     return AndroidRuntime::registerNativeMethods(
-                        env,kBinderInternalPathName,
-                         gBinderInternalMethods, NELEM(gBinderInternalMethods));
+            env,kBinderInternalPathName,
+            gBinderInternalMethods, NELEM(gBinderInternalMethods));
 }
 ```
 
@@ -198,30 +198,30 @@ static intint_register_android_os_BinderInternal(JNIEnv* env)
 static intint_register_android_os_BinderProxy(JNIEnv* env)
 {
     jclassclazz;
-  
-   clazz =env->FindClass("java/lang/ref/WeakReference");
-   //gWeakReferenceOffsets用来和WeakReference类打交道
-   gWeakReferenceOffsets.mClass = (jclass)env->NewGlobalRef(clazz);
-   //获取WeakReference类get函数的MethodID
-   gWeakReferenceOffsets.mGet= env->GetMethodID(clazz, "get",
-                                    "()Ljava/lang/Object;");
+
+    clazz =env->FindClass("java/lang/ref/WeakReference");
+    //gWeakReferenceOffsets用来和WeakReference类打交道
+    gWeakReferenceOffsets.mClass = (jclass)env->NewGlobalRef(clazz);
+    //获取WeakReference类get函数的MethodID
+    gWeakReferenceOffsets.mGet= env->GetMethodID(clazz, "get",
+            "()Ljava/lang/Object;");
     clazz = env->FindClass("java/lang/Error");
     //gErrorOffsets用来和Error类打交道
-   gErrorOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
- 
+    gErrorOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
+
     clazz =env->FindClass(kBinderProxyPathName);
     //gBinderProxyOffsets用来和BinderProxy类打交道
-   gBinderProxyOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
-   gBinderProxyOffsets.mConstructor= env->GetMethodID(clazz,"<init>", "()V");
+    gBinderProxyOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
+    gBinderProxyOffsets.mConstructor= env->GetMethodID(clazz,"<init>", "()V");
     ...... //获取BinderProxy的一些信息
-    clazz =env->FindClass("java/lang/Class");
+        clazz =env->FindClass("java/lang/Class");
     //gClassOffsets用来和Class类打交道
     gClassOffsets.mGetName=env->GetMethodID(clazz,
-                              "getName","()Ljava/lang/String;");
+            "getName","()Ljava/lang/String;");
     //注册BinderProxy native函数的实现
     returnAndroidRuntime::registerNativeMethods(env,
-          kBinderProxyPathName,gBinderProxyMethods,
-                                NELEM(gBinderProxyMethods));
+            kBinderProxyPathName,gBinderProxyMethods,
+            NELEM(gBinderProxyMethods));
 }
 ```
 
@@ -247,13 +247,13 @@ static intint_register_android_os_BinderProxy(JNIEnv* env)
 [-->ActivityManagerService.java]
 ```java
 public static void setSystemProcess() {
- try {
+    try {
         ActivityManagerService m = mSelf;
         //将ActivityManagerService服务注册到ServiceManager中
-       ServiceManager.addService("activity", m);......
-      }
-   ......
-   return;
+        ServiceManager.addService("activity", m);......
+    }
+    ......
+        return;
 }
 ```
 
@@ -270,19 +270,19 @@ public static void setSystemProcess() {
 [-->ServiceManager.java]
 ```java
 public static void addService(String name, IBinderservice) {
-  try {
-          //getIServiceManager返回什么
-         getIServiceManager().addService(name,service);
-     }
-     ......
- }
+    try {
+        //getIServiceManager返回什么
+        getIServiceManager().addService(name,service);
+    }
+    ......
+}
 
 //分析getIServiceManager函数
 private static IServiceManagergetIServiceManager() {
     ......
-    //调用asInterface，传递的参数类型为IBinder       
-    sServiceManager= ServiceManagerNative.asInterface(
-                        BinderInternal.getContextObject());
+        //调用asInterface，传递的参数类型为IBinder       
+        sServiceManager= ServiceManagerNative.asInterface(
+                BinderInternal.getContextObject());
     returnsServiceManager;
 }
 ```
@@ -292,12 +292,12 @@ private static IServiceManagergetIServiceManager() {
 [-->android_util_Binder.cpp]
 ```java
 static jobjectandroid_os_BinderInternal_getContextObject(
-JNIEnv* env, jobject clazz)
+        JNIEnv* env, jobject clazz)
 {
-   /*
-    下面这句代码，我们在卷I第6章详细分析过，它将返回一个BpProxy对象，其中
-    NULL（即0，用于标识目的端）指定Proxy通信的目的端是ServiceManager
-   */
+    /*
+       下面这句代码，我们在卷I第6章详细分析过，它将返回一个BpProxy对象，其中
+       NULL（即0，用于标识目的端）指定Proxy通信的目的端是ServiceManager
+     */
     sp<IBinder>b = ProcessState::self()->getContextObject(NULL);
     //由Native对象创建一个Java对象,下面分析该函数
     returnjavaObjectForIBinder(env, b);
@@ -308,52 +308,52 @@ JNIEnv* env, jobject clazz)
 ```java
 jobject javaObjectForIBinder(JNIEnv* env, constsp<IBinder>& val)
 {
-   //mProxyLock是一个全局的静态CMutex对象
+    //mProxyLock是一个全局的静态CMutex对象
     AutoMutex_l(mProxyLock);
- 
-  /*
-    val对象实际类型是BpBinder，读者可自行分析BpBinder.cpp中的findObject函数。
-    事实上，在Native层的BpBinder中有一个ObjectManager，它用来管理在Native BpBinder
-    上创建的Java BpBinder对象。下面这个findObject用来判断gBinderProxyOffsets
-    是否已经保存在ObjectManager中。如果是，那就需要删除这个旧的object
-  */
-jobject object =(jobject)val->findObject(&gBinderProxyOffsets);
+
+    /*
+       val对象实际类型是BpBinder，读者可自行分析BpBinder.cpp中的findObject函数。
+       事实上，在Native层的BpBinder中有一个ObjectManager，它用来管理在Native BpBinder
+       上创建的Java BpBinder对象。下面这个findObject用来判断gBinderProxyOffsets
+       是否已经保存在ObjectManager中。如果是，那就需要删除这个旧的object
+     */
+    jobject object =(jobject)val->findObject(&gBinderProxyOffsets);
     if(object != NULL) {
-       jobject res = env->CallObjectMethod(object, gWeakReferenceOffsets.mGet);
-       android_atomic_dec(&gNumProxyRefs);
-       val->detachObject(&gBinderProxyOffsets);
-       env->DeleteGlobalRef(object);
+        jobject res = env->CallObjectMethod(object, gWeakReferenceOffsets.mGet);
+        android_atomic_dec(&gNumProxyRefs);
+        val->detachObject(&gBinderProxyOffsets);
+        env->DeleteGlobalRef(object);
     }
-   
-     //创建一个新的BinderProxy对象，并注册到Native BpBinder对象的ObjectManager中
-        object= env->NewObject(gBinderProxyOffsets.mClass,
-                            gBinderProxyOffsets.mConstructor);
+
+    //创建一个新的BinderProxy对象，并注册到Native BpBinder对象的ObjectManager中
+    object= env->NewObject(gBinderProxyOffsets.mClass,
+            gBinderProxyOffsets.mConstructor);
     if(object != NULL) {
-       env->SetIntField(object, gBinderProxyOffsets.mObject,(int)val.get());
-       val->incStrong(object);
-       jobject refObject = env->NewGlobalRef(
-               env->GetObjectField(object, gBinderProxyOffsets.mSelf));
+        env->SetIntField(object, gBinderProxyOffsets.mObject,(int)val.get());
+        val->incStrong(object);
+        jobject refObject = env->NewGlobalRef(
+                env->GetObjectField(object, gBinderProxyOffsets.mSelf));
         /*
-        将这个新创建的BinderProxy对象注册（attach）到BpBinder的ObjectManager中，
-       同时注册一个回收函数proxy_cleanup。当BinderProxy对象撤销（detach）的时候，
-        该函数会 被调用，以释放一些资源。读者可自行研究proxy_cleanup函数。
-      */
-       val->attachObject(&gBinderProxyOffsets, refObject,
-                             jnienv_to_javavm(env),proxy_cleanup);
- 
+           将这个新创建的BinderProxy对象注册（attach）到BpBinder的ObjectManager中，
+           同时注册一个回收函数proxy_cleanup。当BinderProxy对象撤销（detach）的时候，
+           该函数会 被调用，以释放一些资源。读者可自行研究proxy_cleanup函数。
+         */
+        val->attachObject(&gBinderProxyOffsets, refObject,
+                jnienv_to_javavm(env),proxy_cleanup);
+
         //DeathRecipientList保存了一个用于死亡通知的list
         sp<DeathRecipientList>drl = new DeathRecipientList;
-       drl->incStrong((void*)javaObjectForIBinder);
+        drl->incStrong((void*)javaObjectForIBinder);
         //将死亡通知list和BinderProxy对象联系起来
-       env->SetIntField(object, gBinderProxyOffsets.mOrgue,
-                             reinterpret_cast<jint>(drl.get()));
+        env->SetIntField(object, gBinderProxyOffsets.mOrgue,
+                reinterpret_cast<jint>(drl.get()));
         //增加该Proxy对象的引用计数
         android_atomic_inc(&gNumProxyRefs);
         //下面这个函数用于垃圾回收。创建的Proxy对象一旦超过200个，该函数
         //将调用BinderInter类的ForceGc做一次垃圾回收
-       incRefsCreated(env);
+        incRefsCreated(env);
     }
- 
+
     returnobject;
 }
 ```
@@ -368,10 +368,10 @@ jobject object =(jobject)val->findObject(&gBinderProxyOffsets);
 [-->ServiceManagerNative.java]
 ```java
 static public IServiceManager asInterface(IBinderobj)
- {
-       ...... //以obj为参数，创建一个ServiceManagerProxy对象
-       return new ServiceManagerProxy(obj);
- }
+{
+    ...... //以obj为参数，创建一个ServiceManagerProxy对象
+        return new ServiceManagerProxy(obj);
+}
  ```
 
 上面代码和Native层interface_cast非常类似，都是以一个BpProxy对象为参数构造一个和业务相关的Proxy对象，例如这里的ServiceManagerProxy对象。ServiceManagerProxy对象的各个业务函数会将相应请求打包后交给BpProxy对象，最终由BpProxy对象发送给Binder驱动以完成一次通信。
@@ -386,19 +386,19 @@ static public IServiceManager asInterface(IBinderobj)
 [-->ServcieManagerNative.java]
 ```java
 public void addService(String name, IBinderservice)
-                           throws RemoteException {
-       Parcel data = Parcel.obtain();
-       Parcel reply = Parcel.obtain();
-       data.writeInterfaceToken(IServiceManager.descriptor);
-       data.writeString(name);
+    throws RemoteException {
+        Parcel data = Parcel.obtain();
+        Parcel reply = Parcel.obtain();
+        data.writeInterfaceToken(IServiceManager.descriptor);
+        data.writeString(name);
         //注意下面这个writeStrongBinder函数，后面我们会详细分析它
-       data.writeStrongBinder(service);
-       //mRemote实际上就是BinderProxy对象，调用它的transact，将封装好的请求数据
-       //发送出去
-       mRemote.transact(ADD_SERVICE_TRANSACTION, data, reply, 0);
-       reply.recycle();
-       data.recycle();
-}
+        data.writeStrongBinder(service);
+        //mRemote实际上就是BinderProxy对象，调用它的transact，将封装好的请求数据
+        //发送出去
+        mRemote.transact(ADD_SERVICE_TRANSACTION, data, reply, 0);
+        reply.recycle();
+        data.recycle();
+    }
 ```
 
 BinderProxy的transact，是一个native函数，其实现函数的代码如下所示：
@@ -406,28 +406,28 @@ BinderProxy的transact，是一个native函数，其实现函数的代码如下�
 [-->android_util_Binder.cpp]
 ```java
 static jbooleanandroid_os_BinderProxy_transact(JNIEnv* env, jobject obj,
-                                           jintcode, jobject dataObj,
-                                           jobject replyObj, jint flags)
+        jintcode, jobject dataObj,
+        jobject replyObj, jint flags)
 {
-        ......
-    //从Java的Parcel对象中得到Native的Parcel对象
-    Parcel*data = parcelForJavaObject(env, dataObj);
+    ......
+        //从Java的Parcel对象中得到Native的Parcel对象
+        Parcel*data = parcelForJavaObject(env, dataObj);
     if (data== NULL) {
-       return JNI_FALSE;
+        return JNI_FALSE;
     }
     //得到一个用于接收回复的Parcel对象
     Parcel*reply = parcelForJavaObject(env, replyObj);
     if(reply == NULL && replyObj != NULL) {
-       return JNI_FALSE;
+        return JNI_FALSE;
     }
     //从Java的BinderProxy对象中得到之前已经创建好的那个Native的BpBinder对象
     IBinder*target = (IBinder*)
-       env->GetIntField(obj, gBinderProxyOffsets.mObject);
+        env->GetIntField(obj, gBinderProxyOffsets.mObject);
     ......
-    //通过Native的BpBinder对象，将请求发送给ServiceManager
-    status_terr = target->transact(code, *data, reply, flags);
+        //通过Native的BpBinder对象，将请求发送给ServiceManager
+        status_terr = target->transact(code, *data, reply, flags);
     ......
-    signalExceptionForError(env, obj, err);
+        signalExceptionForError(env, obj, err);
     returnJNI_FALSE;
 }
 ```
@@ -447,8 +447,8 @@ ActivityManagerService从ActivityManagerNative类派生，并实现了一些接�
 [-->ActivityManagerNative.java]
 ```java
 public abstract class ActivityManagerNative
-                          extends Binder
-                          implementsIActivityManager
+extends Binder
+implementsIActivityManager
 ```
 
 ActivityManagerNative从Binder派生，并实现了IActivityManager接口。下面来看ActivityManagerNative的构造函数：
@@ -456,11 +456,11 @@ ActivityManagerNative从Binder派生，并实现了IActivityManager接口。下�
 [-->ActivityManagerNative.java]
 ```java
 public ActivityManagerNative() {
-       attachInterface(this, descriptor);//该函数很简单，读者可自行分析
-    }
+    attachInterface(this, descriptor);//该函数很简单，读者可自行分析
+}
 //这是ActivityManagerNative父类的构造函数，即Binder的构造函数
 public Binder() {
-       init();
+    init();
 }
 ```
 
@@ -471,10 +471,10 @@ Binder构造函数中会调用native的init函数，其实现的代码如下：
 static void android_os_Binder_init(JNIEnv* env,jobject obj)
 {
     //创建一个JavaBBinderHolder对象
-   JavaBBinderHolder* jbh = new JavaBBinderHolder();
-     bh->incStrong((void*)android_os_Binder_init);
-   //将这个JavaBBinderHolder对象保存到Java Binder对象的mObject成员中
-   env->SetIntField(obj, gBinderOffsets.mObject, (int)jbh);
+    JavaBBinderHolder* jbh = new JavaBBinderHolder();
+    bh->incStrong((void*)android_os_Binder_init);
+    //将这个JavaBBinderHolder对象保存到Java Binder对象的mObject成员中
+    env->SetIntField(obj, gBinderOffsets.mObject, (int)jbh);
 }
 ```
 
@@ -484,22 +484,22 @@ static void android_os_Binder_init(JNIEnv* env,jobject obj)
 ```java
 class JavaBBinderHolder : public RefBase
 {
-public:
-   sp<JavaBBinder> get(JNIEnv* env, jobject obj)
-    {
-       AutoMutex _l(mLock);
-       sp<JavaBBinder> b = mBinder.promote();
-        if(b == NULL) {
-          //创建一个JavaBBinder，obj实际上是Java层中的Binder对象
-           b = new JavaBBinder(env, obj);
-           mBinder = b;
-       }
-       return b;
-    }
-    ......
-private:
-   Mutex           mLock;
-   wp<JavaBBinder> mBinder;
+    public:
+        sp<JavaBBinder> get(JNIEnv* env, jobject obj)
+        {
+            AutoMutex _l(mLock);
+            sp<JavaBBinder> b = mBinder.promote();
+            if(b == NULL) {
+                //创建一个JavaBBinder，obj实际上是Java层中的Binder对象
+                b = new JavaBBinder(env, obj);
+                mBinder = b;
+            }
+            return b;
+        }
+        ......
+    private:
+            Mutex           mLock;
+            wp<JavaBBinder> mBinder;
 };
 ```
 
@@ -515,12 +515,12 @@ writeStrongBinder会做一个替换工作，下面是它的native代码实现：
 [-->android_util_Binder.cpp]
 ```java
 static void android_os_Parcel_writeStrongBinder(JNIEnv*env,
-                                               jobjectclazz, jobject object)
+        jobjectclazz, jobject object)
 {
-   //parcel是一个Native的对象，writeStrongBinder的真正参数是
- //ibinderForJavaObject的返回值
-  conststatus_t err = parcel->writeStrongBinder(
-                                    ibinderForJavaObject(env,object));
+    //parcel是一个Native的对象，writeStrongBinder的真正参数是
+    //ibinderForJavaObject的返回值
+    conststatus_t err = parcel->writeStrongBinder(
+            ibinderForJavaObject(env,object));
 }
 ```
 
@@ -528,19 +528,19 @@ static void android_os_Parcel_writeStrongBinder(JNIEnv*env,
 ```java
 sp<IBinder> ibinderForJavaObject(JNIEnv*env, jobject obj)
 {
-   //如果Java的obj是Binder类，则首先获得JavaBBinderHolder对象，然后调用
-  //它的get函数。而这个get将返回一个JavaBBinder
-  if(env->IsInstanceOf(obj, gBinderOffsets.mClass)) {
-     JavaBBinderHolder*jbh = (JavaBBinderHolder*)env->GetIntField(obj,
-                                      gBinderOffsets.mObject);
-       return jbh != NULL ? jbh->get(env, obj) : NULL;
+    //如果Java的obj是Binder类，则首先获得JavaBBinderHolder对象，然后调用
+    //它的get函数。而这个get将返回一个JavaBBinder
+    if(env->IsInstanceOf(obj, gBinderOffsets.mClass)) {
+        JavaBBinderHolder*jbh = (JavaBBinderHolder*)env->GetIntField(obj,
+                gBinderOffsets.mObject);
+        return jbh != NULL ? jbh->get(env, obj) : NULL;
     }
     //如果obj是BinderProxy类，则返回Native的BpBinder对象
     if(env->IsInstanceOf(obj, gBinderProxyOffsets.mClass)) {
-       return (IBinder*)
-           env->GetIntField(obj, gBinderProxyOffsets.mObject);
+        return (IBinder*)
+            env->GetIntField(obj, gBinderProxyOffsets.mObject);
     }
-   returnNULL;
+    returnNULL;
 }
 ```
 
@@ -575,17 +575,17 @@ sp<IBinder> ibinderForJavaObject(JNIEnv*env, jobject obj)
 [-->android_util_Binder.cpp]
 ```java
 virtual status_t onTransact(
-       uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags =0)
+        uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags =0)
 {
-       JNIEnv* env = javavm_to_jnienv(mVM);
-       IPCThreadState* thread_state = IPCThreadState::self();
-       .......
-       //调用Java层Binder对象的execTranscat函数
-       jboolean res = env->CallBooleanMethod(mObject,
-                    gBinderOffsets.mExecTransact,code,
-                   (int32_t)&data,(int32_t)reply, flags);
-        ......
-       return res != JNI_FALSE ? NO_ERROR : UNKNOWN_TRANSACTION;
+    JNIEnv* env = javavm_to_jnienv(mVM);
+    IPCThreadState* thread_state = IPCThreadState::self();
+    .......
+        //调用Java层Binder对象的execTranscat函数
+        jboolean res = env->CallBooleanMethod(mObject,
+                gBinderOffsets.mExecTransact,code,
+                (int32_t)&data,(int32_t)reply, flags);
+    ......
+        return res != JNI_FALSE ? NO_ERROR : UNKNOWN_TRANSACTION;
 }
 ```
 
@@ -593,18 +593,18 @@ virtual status_t onTransact(
 
  [-->Binder.java]
  ```java
-private boolean execTransact(int code, intdataObj, int replyObj,int flags) {
-       Parcel data = Parcel.obtain(dataObj);
-       Parcel reply = Parcel.obtain(replyObj);
-       boolean res;
-        try{
-           //调用onTransact函数，派生类可以重新实现这个函数，以完成业务功能
-           res = onTransact(code, data, reply, flags);
-        }......
-       reply.recycle();
-       data.recycle();
-       return res;
-    }
+ private boolean execTransact(int code, intdataObj, int replyObj,int flags) {
+     Parcel data = Parcel.obtain(dataObj);
+     Parcel reply = Parcel.obtain(replyObj);
+     boolean res;
+     try{
+         //调用onTransact函数，派生类可以重新实现这个函数，以完成业务功能
+         res = onTransact(code, data, reply, flags);
+     }......
+     reply.recycle();
+     data.recycle();
+     return res;
+ }
 }
 ```
 
@@ -613,22 +613,22 @@ ActivityManagerNative类实现了onTransact函数，代码如下：
 [-->ActivityManagerNative.java]
 ```java
 public boolean onTransact(int code, Parcel data,Parcel reply, int flags)
-           throws RemoteException {
-       switch (code) {
-        caseSTART_ACTIVITY_TRANSACTION:
-        {
-           data.enforceInterface(IActivityManager.descriptor);
-           IBinder b = data.readStrongBinder();
-           ......
-           //再由ActivityManagerService实现业务函数startActivity
-           intresult = startActivity(app, intent, resolvedType,
-                   grantedUriPermissions, grantedMode, resultTo, resultWho,
-                   requestCode, onlyIfNeeded, debug, profileFile,
-                   profileFd, autoStopProfiler);
-           reply.writeNoException();
-           reply.writeInt(result);
-           return true;
-}
+    throws RemoteException {
+        switch (code) {
+caseSTART_ACTIVITY_TRANSACTION:
+            {
+                data.enforceInterface(IActivityManager.descriptor);
+                IBinder b = data.readStrongBinder();
+                ......
+                    //再由ActivityManagerService实现业务函数startActivity
+                    intresult = startActivity(app, intent, resolvedType,
+                            grantedUriPermissions, grantedMode, resultTo, resultWho,
+                            requestCode, onlyIfNeeded, debug, profileFile,
+                            profileFd, autoStopProfiler);
+                reply.writeNoException();
+                reply.writeInt(result);
+                return true;
+            }
 ```
 
 由此可以看出，JavaBBinder仅是一个传声筒，它本身不实现任何业务函数，其工作是：
@@ -667,9 +667,9 @@ public boolean onTransact(int code, Parcel data,Parcel reply, int flags)
 
 [-->MessageQueue.java]
 ```java
- MessageQueue() {
-       nativeInit(); //构造函数调用nativeInit，该函数由Native层实现
- }
+MessageQueue() {
+    nativeInit(); //构造函数调用nativeInit，该函数由Native层实现
+}
  ```
 
 nativeInit函数的真正实现为android_os_MessageQueue_nativeInit，其代码如下：
@@ -677,12 +677,12 @@ nativeInit函数的真正实现为android_os_MessageQueue_nativeInit，其代码
 [-->android_os_MessageQueue.cpp]
 ```java
 static voidandroid_os_MessageQueue_nativeInit(JNIEnv* env, jobject obj) {
-   //NativeMessageQueue是MessageQueue在Native层的代表
-   NativeMessageQueue*nativeMessageQueue = new NativeMessageQueue();
-   ......
-   //将这个NativeMessageQueue对象设置到Java层保存
-   android_os_MessageQueue_setNativeMessageQueue(env,obj,
-                                                         nativeMessageQueue);
+    //NativeMessageQueue是MessageQueue在Native层的代表
+    NativeMessageQueue*nativeMessageQueue = new NativeMessageQueue();
+    ......
+        //将这个NativeMessageQueue对象设置到Java层保存
+        android_os_MessageQueue_setNativeMessageQueue(env,obj,
+                nativeMessageQueue);
 }
 ```
 
@@ -691,19 +691,19 @@ static voidandroid_os_MessageQueue_nativeInit(JNIEnv* env, jobject obj) {
 [-->android_os_MessageQueue.cpp]
 ```java
 NativeMessageQueue::NativeMessageQueue() {
- /*
-   代表消息循环的Looper也在Native层中呈现身影了。根据消息驱动的知识，一个线程会有一个
-   Looper来循环处理消息队列中的消息。下面一行的调用就是取得保存在线程本地存储空间
-   （Thread Local Storage）中的Looper对象
-   */
-    mLooper= Looper::getForThread();
-   if(mLooper == NULL) {
     /*
-     如为第一次进来，则该线程没有设置本地存储，所以须先创建一个Looper，然后再将其保存到
-     TLS中，这是很常见的一种以线程为单位的单例模式
+       代表消息循环的Looper也在Native层中呈现身影了。根据消息驱动的知识，一个线程会有一个
+       Looper来循环处理消息队列中的消息。下面一行的调用就是取得保存在线程本地存储空间
+       （Thread Local Storage）中的Looper对象
      */
-     mLooper = new Looper(false);
-     Looper::setForThread(mLooper);
+    mLooper= Looper::getForThread();
+    if(mLooper == NULL) {
+        /*
+           如为第一次进来，则该线程没有设置本地存储，所以须先创建一个Looper，然后再将其保存到
+           TLS中，这是很常见的一种以线程为单位的单例模式
+         */
+        mLooper = new Looper(false);
+        Looper::setForThread(mLooper);
     }
 }
 ```
@@ -716,42 +716,42 @@ Native的Looper是Native世界中参与消息循环的一位重要角色。虽�
 [-->MessagQueue.java]
 ```java
 final Message next() {
-        intpendingIdleHandlerCount = -1;
-        intnextPollTimeoutMillis = 0;
- 
-        for(;;) {
-           ......
+    intpendingIdleHandlerCount = -1;
+    intnextPollTimeoutMillis = 0;
+
+    for(;;) {
+        ......
             //mPtr保存了NativeMessageQueue的指针，调用nativePollOnce进行等待
-           nativePollOnce(mPtr, nextPollTimeoutMillis);
-           synchronized (this) {
-               final long now = SystemClock.uptimeMillis();
-               //mMessages用来存储消息，这里从其中取一个消息进行处理
-               final Message msg = mMessages;
-               if (msg != null) {
-                   final long when = msg.when;
-                   if (now >= when) {
-                        mBlocked = false;
-                        mMessages = msg.next;
-                        msg.next = null;
-                        msg.markInUse();
-                        return msg; //返回一个Message给Looper进行派发和处理
-                   } else {
-                        nextPollTimeoutMillis =(int) Math.min(when - now,
-                                                     Integer.MAX_VALUE);
-                   }
-               } else {
-                   nextPollTimeoutMillis = -1;
-               }
-           ......
-           /*
-           处理注册的IdleHandler，当MessageQueue中没有Message时，
-           Looper会调用IdleHandler做一些工作，例如做垃圾回收等
-           */
-           ......
-           pendingIdleHandlerCount = 0;
-          nextPollTimeoutMillis = 0;
+            nativePollOnce(mPtr, nextPollTimeoutMillis);
+        synchronized (this) {
+            final long now = SystemClock.uptimeMillis();
+            //mMessages用来存储消息，这里从其中取一个消息进行处理
+            final Message msg = mMessages;
+            if (msg != null) {
+                final long when = msg.when;
+                if (now >= when) {
+                    mBlocked = false;
+                    mMessages = msg.next;
+                    msg.next = null;
+                    msg.markInUse();
+                    return msg; //返回一个Message给Looper进行派发和处理
+                } else {
+                    nextPollTimeoutMillis =(int) Math.min(when - now,
+                            Integer.MAX_VALUE);
+                }
+            } else {
+                nextPollTimeoutMillis = -1;
+            }
+            ......
+                /*
+                   处理注册的IdleHandler，当MessageQueue中没有Message时，
+                   Looper会调用IdleHandler做一些工作，例如做垃圾回收等
+                 */
+                ......
+                pendingIdleHandlerCount = 0;
+            nextPollTimeoutMillis = 0;
         }
-}
+    }
 ```
 
 看到这里，可能会有人觉得这个MessageQueue很简单，不就是从以前在Java层的wait变成现在Native层的wait了吗？但是事情本质比表象要复杂得多，来思考下面的情况：
@@ -769,43 +769,43 @@ MessageQueue的enqueueMessage函数完成将一个Message投递到MessageQueue�
 [-->MesssageQueue.java]
 ```java
 final boolean enqueueMessage(Message msg, longwhen) {
-        ......
-       final boolean needWake;
-       synchronized (this) {
-           if (mQuiting) {
-               return false;
-           } else if (msg.target == null) {
-               mQuiting = true;
-           }
-           msg.when = when;
-           Message p = mMessages;
-           if (p == null || when == 0 || when < p.when) {
-               /*
-                如果p为空，表明消息队列中没有消息，那么msg将是第一个消息，needWake
-                需要根据mBlocked的情况考虑是否触发
-               */
-               msg.next = p;
-               mMessages = msg;
-               needWake = mBlocked;
-           } else {
-               //如果p不为空，表明消息队列中还有剩余消息，需要将新的msg加到消息尾
-               Message prev = null;
-               while (p != null && p.when <= when) {
-                   prev = p;
-                   p = p.next;
-               }
-               msg.next = prev.next;
-               prev.next = msg;
-               //因为消息队列之前还剩余有消息，所以这里不用调用nativeWakeup
-               needWake = false;
-           }
+    ......
+        final boolean needWake;
+    synchronized (this) {
+        if (mQuiting) {
+            return false;
+        } else if (msg.target == null) {
+            mQuiting = true;
         }
-        if(needWake) {
-           //调用nativeWake，以触发nativePollOnce函数结束等待
-           nativeWake(mPtr);
+        msg.when = when;
+        Message p = mMessages;
+        if (p == null || when == 0 || when < p.when) {
+            /*
+               如果p为空，表明消息队列中没有消息，那么msg将是第一个消息，needWake
+               需要根据mBlocked的情况考虑是否触发
+             */
+            msg.next = p;
+            mMessages = msg;
+            needWake = mBlocked;
+        } else {
+            //如果p不为空，表明消息队列中还有剩余消息，需要将新的msg加到消息尾
+            Message prev = null;
+            while (p != null && p.when <= when) {
+                prev = p;
+                p = p.next;
+            }
+            msg.next = prev.next;
+            prev.next = msg;
+            //因为消息队列之前还剩余有消息，所以这里不用调用nativeWakeup
+            needWake = false;
         }
-       return true;
     }
+    if(needWake) {
+        //调用nativeWake，以触发nativePollOnce函数结束等待
+        nativeWake(mPtr);
+    }
+    return true;
+}
 ```
 
 上面的代码比较简单，主要功能是：
@@ -822,29 +822,29 @@ nativeWake函数的代码如下所示：
 [-->android_os_MessageQueue.cpp]
 ```java
 static voidandroid_os_MessageQueue_nativeWake(JNIEnv* env, jobject obj,
-                                                      jint ptr)
+        jint ptr)
 {
     NativeMessageQueue*nativeMessageQueue =  //取出NativeMessageQueue对象
-                       reinterpret_cast<NativeMessageQueue*>(ptr);
+        reinterpret_cast<NativeMessageQueue*>(ptr);
     returnnativeMessageQueue->wake(); //调用它的wake函数
 }
 
 void NativeMessageQueue::wake() {
-   mLooper->wake();//层层调用，现在转到mLooper的wake函数
+    mLooper->wake();//层层调用，现在转到mLooper的wake函数
 }
- 
+
 Native Looper的wake函数代码如下：
 [-->Looper.cpp]
 void Looper::wake() {
     ssize_tnWrite;
-       do {
-           //向管道的写端写入一个字符
-       nWrite = write(mWakeWritePipeFd, "W", 1);
+    do {
+        //向管道的写端写入一个字符
+        nWrite = write(mWakeWritePipeFd, "W", 1);
     } while(nWrite == -1 && errno == EINTR);
- 
+
     if(nWrite != 1) {
         if(errno != EAGAIN) {
-           LOGW("Could not write wake signal, errno=%d", errno);
+            LOGW("Could not write wake signal, errno=%d", errno);
         }
     }
 }
@@ -860,15 +860,15 @@ nativePollOnce的实现函数是android_os_MessageQueue_nativePollOnce，代码�
 ```java
 static void android_os_MessageQueue_nativePollOnce(JNIEnv*env, jobject obj,
         jintptr, jint timeoutMillis)
-     NativeMessageQueue*nativeMessageQueue =
-                            reinterpret_cast<NativeMessageQueue*>(ptr);
+    NativeMessageQueue*nativeMessageQueue =
+    reinterpret_cast<NativeMessageQueue*>(ptr);
     //取出NativeMessageQueue对象，并调用它的pollOnce
-   nativeMessageQueue->pollOnce(timeoutMillis);
-}
+    nativeMessageQueue->pollOnce(timeoutMillis);
+    }
 
 //分析pollOnce函数
 void NativeMessageQueue::pollOnce(inttimeoutMillis) {
-   mLooper->pollOnce(timeoutMillis); //重任传递到Looper的pollOnce函数
+    mLooper->pollOnce(timeoutMillis); //重任传递到Looper的pollOnce函数
 }
 ```
 
@@ -877,7 +877,7 @@ Looper的pollOnce函数如下：
 [-->Looper.cpp]
 ```java
 inline int pollOnce(int timeoutMillis) {
-       return pollOnce(timeoutMillis, NULL, NULL, NULL);
+    return pollOnce(timeoutMillis, NULL, NULL, NULL);
 }
 ```
 
@@ -913,78 +913,78 @@ epoll机制提供了Linux平台上最高效的I/O复用机制，因此有必要�
 
 [-->epoll工作流程分析案例]
 ```java
-  /*
-  使用epoll前，需要先通过epoll_create函数创建一个epoll句柄。
-  下面一行代码中的10表示该epoll句柄初次创建时候分配能容纳10个fd相关信息的缓存。
-  对于2.6.8版本以后的内核，该值没有实际作用，这里可以忽略。其实这个值的主要目的是
-  确定分配一块多大的缓存。现在的内核都支持动态拓展这块缓存，所以该值就没有意义了
-  */ 
-  int epollHandle = epoll_create(10);
-  
-  /*
-     得到epoll句柄后，下一步就是通过epoll_ctl把需要监听的文件句柄加入到epoll句柄中。
-     除了指定文件句柄本身的fd值外，同时还需要指定在该fd上等待什么事件。epoll支持四类事件，
-    分别是EPOLLIN(句柄可读)、EPOLLOUT(句柄可写),EPOLLERR(句柄错误)、EPOLLHUP(句柄断)。
-     epoll定义了一个结构体struct epoll_event来表达监听句柄的诉求。
-     假设现在有一个监听端的socket句柄listener，要把它加入到epoll句柄中。
-   */
-   structepoll_event listenEvent; //先定义一个event
-   /*
+/*
+   使用epoll前，需要先通过epoll_create函数创建一个epoll句柄。
+   下面一行代码中的10表示该epoll句柄初次创建时候分配能容纳10个fd相关信息的缓存。
+   对于2.6.8版本以后的内核，该值没有实际作用，这里可以忽略。其实这个值的主要目的是
+   确定分配一块多大的缓存。现在的内核都支持动态拓展这块缓存，所以该值就没有意义了
+ */ 
+int epollHandle = epoll_create(10);
+
+/*
+   得到epoll句柄后，下一步就是通过epoll_ctl把需要监听的文件句柄加入到epoll句柄中。
+   除了指定文件句柄本身的fd值外，同时还需要指定在该fd上等待什么事件。epoll支持四类事件，
+   分别是EPOLLIN(句柄可读)、EPOLLOUT(句柄可写),EPOLLERR(句柄错误)、EPOLLHUP(句柄断)。
+   epoll定义了一个结构体struct epoll_event来表达监听句柄的诉求。
+   假设现在有一个监听端的socket句柄listener，要把它加入到epoll句柄中。
+ */
+structepoll_event listenEvent; //先定义一个event
+/*
    EPOLLIN表示可读事件,EPOLLOUT表示可写事件，另外还有EPOLLERR,EPOLLHUP表示
    系统默认会将EPOLLERR加入到事件集合中
-   */
-   listenEvent.events= EPOLLIN;//指定该句柄的可读事件
-   //epoll_event中有一个联合体叫data，用来存储上下文数据，本例的上下文数据就是句柄自己
-   listenEvent.data.fd= listenEvent;
-  /*
+ */
+listenEvent.events= EPOLLIN;//指定该句柄的可读事件
+//epoll_event中有一个联合体叫data，用来存储上下文数据，本例的上下文数据就是句柄自己
+listenEvent.data.fd= listenEvent;
+/*
    EPOLL_CTL_ADD将监听fd和监听事件加入到epoll句柄的等待队列中；
    EPOLL_CTL_DEL将监听fd从epoll句柄中移除；
    EPOLL_CTL_MOD修改监听fd的监听事件，例如本来只等待可读事件，现在需要同时等待
-  可写事件，那么修改listenEvent.events 为EPOLLIN|EPOLLOUT后，再传给epoll句柄
-   */
-   epoll_ctl(epollHandle,EPOLL_CTL_ADD,listener,&listenEvent);
-   /*
+   可写事件，那么修改listenEvent.events 为EPOLLIN|EPOLLOUT后，再传给epoll句柄
+ */
+epoll_ctl(epollHandle,EPOLL_CTL_ADD,listener,&listenEvent);
+/*
    当把所有感兴趣的fd都加入到epoll句柄后，就可以开始坐等感兴趣的事情发生了。
    为了接收所发生的事情，先定义一个epoll_event数组
-   */
- struct  epoll_eventresultEvents[10];
-   inttimeout = -1;
-   while(1)
-   {
-      /*
-      调用epoll_wait用于等待事件，其中timeout可以指定一个超时时间，
-      resultEvents用于接收发生的事件，10为该数组的大小。
+ */
+struct  epoll_eventresultEvents[10];
+inttimeout = -1;
+while(1)
+{
+    /*
+       调用epoll_wait用于等待事件，其中timeout可以指定一个超时时间，
+       resultEvents用于接收发生的事件，10为该数组的大小。
        epoll_wait函数的返回值有如下含义：
        nfds大于0表示所监听的句柄上有事件发生；
        nfds等于0表示等待超时；
        nfds小于0表示等待过程中发生了错误
-      */
-   int nfds= epoll_wait(epollHandle, resultEvents, 10, timeout);
-   if(nfds== -1)
-   {
-      // epoll_wait发生了错误
-   }
-   elseif(nfds == 0)
-   {
-      //发生超时，期间没有发生任何事件
-   }
-   else
-   {
-      //resultEvents用于返回那些发生了事件的信息
-      for(int i = 0; i < nfds; i++)
-      {
-         struct epoll_event & event =resultEvents[i];
-         if(event & EPOLLIN)
+     */
+    int nfds= epoll_wait(epollHandle, resultEvents, 10, timeout);
+    if(nfds== -1)
+    {
+        // epoll_wait发生了错误
+    }
+    elseif(nfds == 0)
+    {
+        //发生超时，期间没有发生任何事件
+    }
+    else
+    {
+        //resultEvents用于返回那些发生了事件的信息
+        for(int i = 0; i < nfds; i++)
         {
-            /*
-             收到可读事件。到底是哪个文件句柄发生该事件呢？可通过event.data这个联合体取得
-              之前传递给epoll的上下文数据，该上下文信息可用于判断到底是谁发生了事件。
-            */
+            struct epoll_event & event =resultEvents[i];
+            if(event & EPOLLIN)
+            {
+                /*
+                   收到可读事件。到底是哪个文件句柄发生该事件呢？可通过event.data这个联合体取得
+                   之前传递给epoll的上下文数据，该上下文信息可用于判断到底是谁发生了事件。
+                 */
+            }
+            .......//其他处理 
         }
-         .......//其他处理 
-      }
-   }
- 
+    }
+
 }
 ```
 
@@ -1007,36 +1007,36 @@ epoll等待的事件有两种触发条件，一个是水平触发（EPOLLLEVEL�
 [-->Looper.cpp]
 ```java
 int Looper::pollOnce(int timeoutMillis, int*outFd, int* outEvents,
-void** outData) {
+        void** outData) {
     intresult = 0;
-   for (;;){ //一个无限循环
-   //mResponses是一个Vector，这里首先需要处理response
-       while (mResponseIndex < mResponses.size()) {
-           const Response& response = mResponses.itemAt(mResponseIndex++);
-           ALooper_callbackFunc callback = response.request.callback;
-           if (!callback) {//首先处理那些没有callback的Response
-               int ident = response.request.ident; //ident是这个Response的id
-               int fd = response.request.fd;
-               int events = response.events;
-               void* data = response.request.data;
-               ......
-               if (outFd != NULL) *outFd = fd;
-               if (outEvents != NULL) *outEvents = events;
-               if (outData != NULL) *outData = data;
-               //实际上，对于没有callback的Response，pollOnce只是返回它的
-              //ident，并没有实际做什么处理。因为没有callback，所以系统也不知道如何处理
-               return ident;
-           }
+    for (;;){ //一个无限循环
+        //mResponses是一个Vector，这里首先需要处理response
+        while (mResponseIndex < mResponses.size()) {
+            const Response& response = mResponses.itemAt(mResponseIndex++);
+            ALooper_callbackFunc callback = response.request.callback;
+            if (!callback) {//首先处理那些没有callback的Response
+                int ident = response.request.ident; //ident是这个Response的id
+                int fd = response.request.fd;
+                int events = response.events;
+                void* data = response.request.data;
+                ......
+                    if (outFd != NULL) *outFd = fd;
+                if (outEvents != NULL) *outEvents = events;
+                if (outData != NULL) *outData = data;
+                //实际上，对于没有callback的Response，pollOnce只是返回它的
+                //ident，并没有实际做什么处理。因为没有callback，所以系统也不知道如何处理
+                return ident;
+            }
         }
- 
+
         if(result != 0) {
-          if (outFd != NULL) *outFd = 0;
-           if (outEvents != NULL) *outEvents = NULL;
-           if (outData != NULL) *outData = NULL;
-           return result;
+            if (outFd != NULL) *outFd = 0;
+            if (outEvents != NULL) *outEvents = NULL;
+            if (outData != NULL) *outData = NULL;
+            return result;
         }
         //调用pollInner函数。注意，它在for循环内部
-       result = pollInner(timeoutMillis);
+        result = pollInner(timeoutMillis);
     }
 }
 ```

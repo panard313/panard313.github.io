@@ -96,32 +96,32 @@ SystemServer核心逻辑的入口是main函数，其代码如下：
 [-->SystemServer.java]
 ```java
 public static void main(String[] args) {
-     if(System.currentTimeMillis() < EARLIEST_SUPPORTED_TIME) {
-            //如果系统时钟早于1970，则设置系统时钟从1970开始
-           Slog.w(TAG, "System clock is before 1970; setting to 1970.");
-           SystemClock.setCurrentTimeMillis(EARLIEST_SUPPORTED_TIME);
-        }
-        //判断性能统计功能是否开启
-        if(SamplingProfilerIntegration.isEnabled()) {
-           SamplingProfilerIntegration.start();
-           timer = new Timer();
-           timer.schedule(new TimerTask() {
-               @Override
-               public void run() {
-                   //SystemServer性能统计，每小时统计一次，统计结果输出为文件
-                   SamplingProfilerIntegration.writeSnapshot("system_server",
-                                                      null);
-               }// SNAPSHOT_INTERVAL定义为1小时
-           }, SNAPSHOT_INTERVAL, SNAPSHOT_INTERVAL);
-        }
+    if(System.currentTimeMillis() < EARLIEST_SUPPORTED_TIME) {
+        //如果系统时钟早于1970，则设置系统时钟从1970开始
+        Slog.w(TAG, "System clock is before 1970; setting to 1970.");
+        SystemClock.setCurrentTimeMillis(EARLIEST_SUPPORTED_TIME);
+    }
+    //判断性能统计功能是否开启
+    if(SamplingProfilerIntegration.isEnabled()) {
+        SamplingProfilerIntegration.start();
+        timer = new Timer();
+        timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                //SystemServer性能统计，每小时统计一次，统计结果输出为文件
+                SamplingProfilerIntegration.writeSnapshot("system_server",
+                    null);
+                }// SNAPSHOT_INTERVAL定义为1小时
+                }, SNAPSHOT_INTERVAL, SNAPSHOT_INTERVAL);
+    }
 
-        //和Dalvik虚拟机相关的设置，主要是内存使用方面的控制
-       dalvik.system.VMRuntime.getRuntime().clearGrowthLimit();
-       VMRuntime.getRuntime().setTargetHeapUtilization(0.8f);
-        //加载动态库libandroid_servers.so
-       System.loadLibrary("android_servers");
-       init1(args);//调用native的init1函数
-  }
+    //和Dalvik虚拟机相关的设置，主要是内存使用方面的控制
+    dalvik.system.VMRuntime.getRuntime().clearGrowthLimit();
+    VMRuntime.getRuntime().setTargetHeapUtilization(0.8f);
+    //加载动态库libandroid_servers.so
+    System.loadLibrary("android_servers");
+    init1(args);//调用native的init1函数
+}
 ```
 
 main函数首先做一些初始化工作，然后加载动态库libandroid_servers.so，最后再调用native的init1函数。该函数在libandroid_servers.so库中实现，其代码如下：
@@ -142,22 +142,22 @@ static voidandroid_server_SystemServer_init1(JNIEnv* env, jobject clazz)
 ```java
 extern "C" status_t system_init()
 {
-     LOGI("Enteredsystem_init()");
-     //初始化Binder系统
-   sp<ProcessState> proc(ProcessState::self());
-     //获取ServiceManager的客户端对象BpServiceManager
-   sp<IServiceManager> sm = defaultServiceManager();
+    LOGI("Enteredsystem_init()");
+    //初始化Binder系统
+    sp<ProcessState> proc(ProcessState::self());
+    //获取ServiceManager的客户端对象BpServiceManager
+    sp<IServiceManager> sm = defaultServiceManager();
 
-   //GrimReaper是一个很“血腥“的名字，俗称死神
+    //GrimReaper是一个很“血腥“的名字，俗称死神
     sp<GrimReaper>grim = new GrimReaper();
 
     /*
-    下面这行代码的作用就是注册grim对象为ServiceManager死亡信息的接收者。一旦SM死亡，
-    Binder系统就会发送讣告信息，这样grim对象的binderDied函数就会被调用。该函数内部
-    将kill自己（即SystemServer）。
-    笔者觉得，对于这种因挚爱离世而自杀的物体，叫死神好像不太合适
-    */
-   sm->asBinder()->linkToDeath(grim, grim.get(), 0);
+       下面这行代码的作用就是注册grim对象为ServiceManager死亡信息的接收者。一旦SM死亡，
+       Binder系统就会发送讣告信息，这样grim对象的binderDied函数就会被调用。该函数内部
+       将kill自己（即SystemServer）。
+       笔者觉得，对于这种因挚爱离世而自杀的物体，叫死神好像不太合适
+     */
+    sm->asBinder()->linkToDeath(grim, grim.get(), 0);
 
     charpropBuf[PROPERTY_VALUE_MAX];
     //判断SystemServer是否启动SurfaceFlinger服务，该值由init.rc
@@ -165,37 +165,37 @@ extern "C" status_t system_init()
     property_get("system_init.startsurfaceflinger",propBuf, "1");
 
     /*
-    从4.0开始，和显示相关的核心服务surfaceflinger可独立到另外一个进程中。
-    笔者认为，这可能和目前SystemServer的负担过重有关。另外，随着智能终端上HDMI的普及，
-    未来和显示相关的工作将会越来越繁重。将SF放在单独进程中，不仅可加强集中管理，也可充分
-    利用未来智能终端上多核CPU的资源
-    */
+       从4.0开始，和显示相关的核心服务surfaceflinger可独立到另外一个进程中。
+       笔者认为，这可能和目前SystemServer的负担过重有关。另外，随着智能终端上HDMI的普及，
+       未来和显示相关的工作将会越来越繁重。将SF放在单独进程中，不仅可加强集中管理，也可充分
+       利用未来智能终端上多核CPU的资源
+     */
     if(strcmp(propBuf, "1") == 0) {
-       SurfaceFlinger::instantiate();
+        SurfaceFlinger::instantiate();
     }
 
     //判断SystemServer是否启动传感器服务，默认将启动传感器服务
-   property_get("system_init.startsensorservice", propBuf,"1");
+    property_get("system_init.startsensorservice", propBuf,"1");
     if(strcmp(propBuf, "1") == 0) {
         //和SF相同，传感器服务也支持在独立进程中实现
-       SensorService::instantiate();
+        SensorService::instantiate();
     }
 
     //获得AndroidRuntime对象
-   AndroidRuntime* runtime = AndroidRuntime::getRuntime();
+    AndroidRuntime* runtime = AndroidRuntime::getRuntime();
     JNIEnv*env = runtime->getJNIEnv();
     ......//查找Java层的SystemServer类，获取init2函数的methodID
 
-    jclassclazz = env->FindClass("com/android/server/SystemServer");
+        jclassclazz = env->FindClass("com/android/server/SystemServer");
 
     ......
 
-   jmethodID methodId = env->GetStaticMethodID(clazz, "init2","()V");
+        jmethodID methodId = env->GetStaticMethodID(clazz, "init2","()V");
     ......//通过JNI调用Java层的init2函数
-    env->CallStaticVoidMethod(clazz,methodId);
+        env->CallStaticVoidMethod(clazz,methodId);
     //主线程加入Binder线程池
-   ProcessState::self()->startThreadPool();
-   IPCThreadState::self()->joinThreadPool();
+    ProcessState::self()->startThreadPool();
+    IPCThreadState::self()->joinThreadPool();
     return NO_ERROR;
 }
 ```
@@ -216,9 +216,9 @@ init1函数看起来一点也不复杂，其实好戏都在init2中，其代码�
 [-->SystemServer.java]
 ```java
 public static final void init2() {
-        Thread thr = new ServerThread();
-       thr.setName("android.server.ServerThread");
-       thr.start();//启动一个线程，这个线程就像英雄大会一样，聚集了各路英雄
+    Thread thr = new ServerThread();
+    thr.setName("android.server.ServerThread");
+    thr.start();//启动一个线程，这个线程就像英雄大会一样，聚集了各路英雄
 }
 ```
 
@@ -273,21 +273,21 @@ ServiceManager.addService("entropy", newEntropyService());
 ```java
 public EntropyService() {
 
-        //调用另外一个构造函数，getSystemDir函数返回的是/data/system目录
-       this(getSystemDir() + "/entropy.dat","/dev/urandom");
+    //调用另外一个构造函数，getSystemDir函数返回的是/data/system目录
+    this(getSystemDir() + "/entropy.dat","/dev/urandom");
 }
 
 public EntropyService(String entropyFile, StringrandomDevice) {
-   this.randomDevice= randomDevice;//urandom是Linux系统中产生随机数的设备
+    this.randomDevice= randomDevice;//urandom是Linux系统中产生随机数的设备
 
-   // /data/system/entropy.dat文件保存了系统此前的熵信息
-  this.entropyFile = entropyFile;
+    // /data/system/entropy.dat文件保存了系统此前的熵信息
+    this.entropyFile = entropyFile;
 
-  //下面有4个关键函数
-  loadInitialEntropy();//①
-  addDeviceSpecificEntropy();//②
-  writeEntropy();//③
-  scheduleEntropyWriter();//④
+    //下面有4个关键函数
+    loadInitialEntropy();//①
+    addDeviceSpecificEntropy();//②
+    writeEntropy();//③
+    scheduleEntropyWriter();//④
 }
 ```
 
@@ -347,7 +347,7 @@ DropBoxManagerService（简称DBMS，下同）用于生成和管理系统运行�
 ```java
 ServiceManager.addService(Context.DROPBOX_SERVICE,//服务名为”dropbox”
 
-                           new DropBoxManagerService(context, newFile("/data/system/dropbox")));
+        new DropBoxManagerService(context, newFile("/data/system/dropbox")));
 ```
  
 
@@ -358,30 +358,30 @@ DBMS构造函数如下：
 ```java
 public DropBoxManagerService(final Contextcontext, File path) {
 
-       mDropBoxDir = path;//path指定dropbox目录为/data/system/dropbox
-       mContext = context;
-       mContentResolver = context.getContentResolver();
+    mDropBoxDir = path;//path指定dropbox目录为/data/system/dropbox
+    mContext = context;
+    mContentResolver = context.getContentResolver();
 
- 
-       IntentFilter filter = new IntentFilter();
-       filter.addAction(Intent.ACTION_DEVICE_STORAGE_LOW);
-       filter.addAction(Intent.ACTION_BOOT_COMPLETED);
 
-        //注册一个Broadcast监听对象，当系统启动完毕或者设备存储空间不足时，会收到广播
-       context.registerReceiver(mReceiver, filter);
+    IntentFilter filter = new IntentFilter();
+    filter.addAction(Intent.ACTION_DEVICE_STORAGE_LOW);
+    filter.addAction(Intent.ACTION_BOOT_COMPLETED);
 
-       //当Settings数据库相应项发生变化时候，也需要告知DBMS进行相应处理
-       mContentResolver.registerContentObserver(
-           Settings.Secure.CONTENT_URI, true,
-           new ContentObserver(new Handler()) {
-               public void onChange(boolean selfChange) {
+    //注册一个Broadcast监听对象，当系统启动完毕或者设备存储空间不足时，会收到广播
+    context.registerReceiver(mReceiver, filter);
 
-             //当Settings数据库发生变化时候， BroadcastReceiver的onReceive函数
-             //将被调用。注意第二个参数为null
-                   mReceiver.onReceive(context,(Intent) null);
-               }
+    //当Settings数据库相应项发生变化时候，也需要告知DBMS进行相应处理
+    mContentResolver.registerContentObserver(
+            Settings.Secure.CONTENT_URI, true,
+            new ContentObserver(new Handler()) {
+            public void onChange(boolean selfChange) {
 
-        });
+            //当Settings数据库发生变化时候， BroadcastReceiver的onReceive函数
+            //将被调用。注意第二个参数为null
+            mReceiver.onReceive(context,(Intent) null);
+            }
+
+            });
 }
 ```
 
@@ -405,16 +405,16 @@ public DropBoxManagerService(final Contextcontext, File path) {
 [-->ActivityManagerService.java]
 ```java
 public void handleApplicationCrash(IBinder app,
-                     ApplicationErrorReport.CrashInfocrashInfo) {
+        ApplicationErrorReport.CrashInfocrashInfo) {
 
-   ProcessRecordr = findAppProcess(app, "Crash");
+    ProcessRecordr = findAppProcess(app, "Crash");
 
-   ......
+    ......
 
-   //调用addErrorToDropBox函数，第一个参数是一个字符串，为“crash”
-   addErrorToDropBox("crash",r, null, null, null, null, null, crashInfo);
+        //调用addErrorToDropBox函数，第一个参数是一个字符串，为“crash”
+        addErrorToDropBox("crash",r, null, null, null, null, null, crashInfo);
 
-   ......
+    ......
 
 }
 ```
@@ -424,92 +424,92 @@ public void handleApplicationCrash(IBinder app,
 [-->ActivityManagerService.java]
 ```java
 public void addErrorToDropBox(String eventType,
-           ProcessRecord process, ActivityRecord activity,
-            ActivityRecordparent, String subject,
-           final String report, final File logFile,
-           final ApplicationErrorReport.CrashInfo crashInfo) {
-      
+        ProcessRecord process, ActivityRecord activity,
+        ActivityRecordparent, String subject,
+        final String report, final File logFile,
+        final ApplicationErrorReport.CrashInfo crashInfo) {
+
     /*
-    dropbox日志文件的命名有一定的规则，其前缀都是一个特定的tag（标签），
-    tag由两部分组成，合起来是”进程类型”_”事件类型”。
-    下边代码中的processClass函数返回该进程的类型，包括“system_server”、“system_app”
-    和“data_app”三种。eventType用于指定事件类型，目前也有三种类型：“crash“、”wtf“
-    （what aterrible failure）和“anr”
-    */
+       dropbox日志文件的命名有一定的规则，其前缀都是一个特定的tag（标签），
+       tag由两部分组成，合起来是”进程类型”_”事件类型”。
+       下边代码中的processClass函数返回该进程的类型，包括“system_server”、“system_app”
+       和“data_app”三种。eventType用于指定事件类型，目前也有三种类型：“crash“、”wtf“
+       （what aterrible failure）和“anr”
+     */
 
     finalString dropboxTag = processClass(process) + "_" + eventType;
 
     //获取DBMS Bn端的对象DropBoxManager
-       final DropBoxManager dbox = (DropBoxManager)
-               mContext.getSystemService(Context.DROPBOX_SERVICE);
+    final DropBoxManager dbox = (DropBoxManager)
+        mContext.getSystemService(Context.DROPBOX_SERVICE);
 
-     /*
-      对于DBMS，不仅通过tag于标示文件名，还可以根据配置的情况，允许或禁止特定tag日志
-      文件的记录。isTagEnable将判断DBMS是否禁止该标签，如果该tag已被禁止，则不允许记
-      录日志文件
-      */
-        if(dbox == null || !dbox.isTagEnabled(dropboxTag)) return;
-        //创建一个StringBuilder，用于保存日志信息
-       final StringBuilder sb = new StringBuilder(1024);
-       appendDropBoxProcessHeaders(process, sb);
-        ......//将信息保存到字符串sb中
+    /*
+       对于DBMS，不仅通过tag于标示文件名，还可以根据配置的情况，允许或禁止特定tag日志
+       文件的记录。isTagEnable将判断DBMS是否禁止该标签，如果该tag已被禁止，则不允许记
+       录日志文件
+     */
+    if(dbox == null || !dbox.isTagEnabled(dropboxTag)) return;
+    //创建一个StringBuilder，用于保存日志信息
+    final StringBuilder sb = new StringBuilder(1024);
+    appendDropBoxProcessHeaders(process, sb);
+    ......//将信息保存到字符串sb中
 
-         //单独启动一个线程用于向DBMS添加信息
-       Thread worker = new Thread("Error dump: " + dropboxTag) {
-           @Override
-           public void run() {
-               if (report != null) {
-                   sb.append(report);
-               }
+        //单独启动一个线程用于向DBMS添加信息
+        Thread worker = new Thread("Error dump: " + dropboxTag) {
+            @Override
+                public void run() {
+                    if (report != null) {
+                        sb.append(report);
+                    }
 
-               if (logFile != null) {
-                   try {//如果有log文件，那么就把log文件内容读到sb中
-                       sb.append(FileUtils.readTextFile(logFile,
-                                128 * 1024,"\n\n[[TRUNCATED]]"));
-                   } ......
-               }
+                    if (logFile != null) {
+                        try {//如果有log文件，那么就把log文件内容读到sb中
+                            sb.append(FileUtils.readTextFile(logFile,
+                                        128 * 1024,"\n\n[[TRUNCATED]]"));
+                        } ......
+                    }
 
-               //读取crashInfo信息，一般记录的是调用堆栈信息
-               if (crashInfo != null && crashInfo.stackTrace != null) {
-                   sb.append(crashInfo.stackTrace);
-               }
+                    //读取crashInfo信息，一般记录的是调用堆栈信息
+                    if (crashInfo != null && crashInfo.stackTrace != null) {
+                        sb.append(crashInfo.stackTrace);
+                    }
 
-               String setting = Settings.Secure.ERROR_LOGCAT_PREFIX + dropboxTag;
+                    String setting = Settings.Secure.ERROR_LOGCAT_PREFIX + dropboxTag;
 
-              //查询Settings数据库，判断该tag类型的日志是否对所记录的信息有行数限制，
-             //例如某些tag的日志文件只准记录1000行的信息
-              int lines =Settings.Secure.getInt(mContext.getContentResolver(),
+                    //查询Settings数据库，判断该tag类型的日志是否对所记录的信息有行数限制，
+                    //例如某些tag的日志文件只准记录1000行的信息
+                    int lines =Settings.Secure.getInt(mContext.getContentResolver(),
 
-                                                       setting, 0);
+                            setting, 0);
 
-               if (lines > 0) {
-                   sb.append("\n");
-                     InputStreamReader input =null;
-                   try {
-                        //创建一个新进程以运行logcat，后面的参数都是logcat常用的参数
-                        java.lang.Processlogcat = new
-                          ProcessBuilder("/system/bin/logcat",
-                        "-v","time", "-b", "events", "-b","system", "-b",
-                             "main", "-t", String.valueOf(lines))
+                    if (lines > 0) {
+                        sb.append("\n");
+                        InputStreamReader input =null;
+                        try {
+                            //创建一个新进程以运行logcat，后面的参数都是logcat常用的参数
+                            java.lang.Processlogcat = new
+                                ProcessBuilder("/system/bin/logcat",
+                                        "-v","time", "-b", "events", "-b","system", "-b",
+                                        "main", "-t", String.valueOf(lines))
                                 .redirectErrorStream(true).start();
 
-                     //由于新进程的输出已经重定向，因此这里可以获取最后lines行的信息，
-                   //不熟悉ProcessBuidler的读者可以查看SDK中关于它的用法说明
+                            //由于新进程的输出已经重定向，因此这里可以获取最后lines行的信息，
+                            //不熟悉ProcessBuidler的读者可以查看SDK中关于它的用法说明
 
-                     ......
+                            ......
 
-                  }
-               }
-              //调用DBMS的addText
-               dbox.addText(dropboxTag, sb.toString());
-           }
+                        }
+                    }
+                    //调用DBMS的addText
+                    dbox.addText(dropboxTag, sb.toString());
+                }
         };
 
-        if(process == null || process.pid == MY_PID) {
-           worker.run(); //如果是SystemServer进程crash了，则不能在别的线程执行
-        }else {
-           worker.start();
-     }
+    if(process == null || process.pid == MY_PID) {
+        worker.run(); //如果是SystemServer进程crash了，则不能在别的线程执行
+    }else {
+        worker.start();
+    }
 }
 ```
 
@@ -521,12 +521,12 @@ addText函数定义在DropBoxManager类中，代码如下：
 ```java
 public void addText(String tag, String data) {
 
-  /*
-   mService和DBMS交互。DBMS对外只提供一个add函数用于日志添加，而DBM提供了3个函数，
-   分别是addText、addData、addFile，以方便我们的使用
-  */
+    /*
+       mService和DBMS交互。DBMS对外只提供一个add函数用于日志添加，而DBM提供了3个函数，
+       分别是addText、addData、addFile，以方便我们的使用
+     */
 
-   try {mService.add(new Entry(tag, 0, data)); } ......
+    try {mService.add(new Entry(tag, 0, data)); } ......
 
 }
 ```
@@ -537,87 +537,87 @@ DBM向DBMS传递的数据被封装在一个Entry中。下面来看DBMS的add函�
 ```java
 public void add(DropBoxManager.Entry entry) {
 
-        Filetemp = null;
-       OutputStream output = null;
-        finalString tag = entry.getTag();//先取出这个Entry的tag
+    Filetemp = null;
+    OutputStream output = null;
+    finalString tag = entry.getTag();//先取出这个Entry的tag
 
-        try{
-           int flags = entry.getFlags();
+    try{
+        int flags = entry.getFlags();
 
-            ......
+        ......
 
             //做一些初始化工作，包括生成dropbox目录、统计当前已有的dropbox文件信息等
-           init();
+            init();
 
-           if (!isTagEnabled(tag)) return;//如果该tag被禁止，则不能生成日志文件
-           long max = trimToFit();
-           long lastTrim = System.currentTimeMillis();
+        if (!isTagEnabled(tag)) return;//如果该tag被禁止，则不能生成日志文件
+        long max = trimToFit();
+        long lastTrim = System.currentTimeMillis();
 
-           //BlockSize一般是4KB
-           byte[] buffer = new byte[mBlockSize];
+        //BlockSize一般是4KB
+        byte[] buffer = new byte[mBlockSize];
 
-           //从Entry中得到一个输入流。与Java I/O相关的类比较多，且用法非常灵活
-           //建议读者阅读《Java编程思想》中“Java I/O系统”一章
-            InputStreaminput = entry.getInputStream();
+        //从Entry中得到一个输入流。与Java I/O相关的类比较多，且用法非常灵活
+        //建议读者阅读《Java编程思想》中“Java I/O系统”一章
+        InputStreaminput = entry.getInputStream();
 
-            ......
+        ......
 
-           int read = 0;
-           while (read < buffer.length) {
-               int n = input.read(buffer, read, buffer.length - read);
-                if (n <= 0) break;
-               read += n;
-           }
+            int read = 0;
+        while (read < buffer.length) {
+            int n = input.read(buffer, read, buffer.length - read);
+            if (n <= 0) break;
+            read += n;
+        }
 
-           //先生成一个临时文件，命名方式为”drop线程id.tmp”
-           temp = new File(mDropBoxDir, "drop" +
-                         Thread.currentThread().getId()+ ".tmp");
+        //先生成一个临时文件，命名方式为”drop线程id.tmp”
+        temp = new File(mDropBoxDir, "drop" +
+                Thread.currentThread().getId()+ ".tmp");
 
-           int bufferSize = mBlockSize;
-           if (bufferSize > 4096) bufferSize = 4096;
-           if (bufferSize < 512) bufferSize = 512;
+        int bufferSize = mBlockSize;
+        if (bufferSize > 4096) bufferSize = 4096;
+        if (bufferSize < 512) bufferSize = 512;
 
-           FileOutputStream foutput = new FileOutputStream(temp);
-           output = new BufferedOutputStream(foutput, bufferSize);
+        FileOutputStream foutput = new FileOutputStream(temp);
+        output = new BufferedOutputStream(foutput, bufferSize);
 
-            //生成GZIP压缩文件
-           if (read == buffer.length &&
-                 ((flags &DropBoxManager.IS_GZIPPED) == 0)) {
-               output = new GZIPOutputStream(output);
-               flags = flags | DropBoxManager.IS_GZIPPED;
-            }
+        //生成GZIP压缩文件
+        if (read == buffer.length &&
+                ((flags &DropBoxManager.IS_GZIPPED) == 0)) {
+            output = new GZIPOutputStream(output);
+            flags = flags | DropBoxManager.IS_GZIPPED;
+        }
+
+        /*
+           DBMS很珍惜/data分区，若所生成文件的size大于一个BlockSize，
+           则一定要先压缩。
+         */
+
+        ......//写文件,这段代码非常繁琐，其主要目的是尽量节省存储空间
 
             /*
-                DBMS很珍惜/data分区，若所生成文件的size大于一个BlockSize，
-                则一定要先压缩。
-            */
+               生成一个EntryFile对象，并保存到DBMS内部的一个数据容器中。
+               DBMS除了负责生成文件外，还提供查询的功能，这个功能由getNextEntry完成。
+               另外，刚才生成的临时文件在createEntry函数中会重命为带标签的名字，
+               读者可自行分析createEntry函数
+             */
 
-            ......//写文件,这段代码非常繁琐，其主要目的是尽量节省存储空间
+            long time = createEntry(temp, tag, flags);
+        temp = null;
 
-            /*
-            生成一个EntryFile对象，并保存到DBMS内部的一个数据容器中。
-            DBMS除了负责生成文件外，还提供查询的功能，这个功能由getNextEntry完成。
-             另外，刚才生成的临时文件在createEntry函数中会重命为带标签的名字，
-            读者可自行分析createEntry函数
-            */
+        Intent dropboxIntent = new
+            Intent(DropBoxManager.ACTION_DROPBOX_ENTRY_ADDED);
 
-           long time = createEntry(temp, tag, flags);
-           temp = null;
+        dropboxIntent.putExtra(DropBoxManager.EXTRA_TAG, tag);
+        dropboxIntent.putExtra(DropBoxManager.EXTRA_TIME, time);
 
-           Intent dropboxIntent = new
-                         Intent(DropBoxManager.ACTION_DROPBOX_ENTRY_ADDED);
+        if (!mBooted) {
+            dropboxIntent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
+        }
 
-           dropboxIntent.putExtra(DropBoxManager.EXTRA_TAG, tag);
-           dropboxIntent.putExtra(DropBoxManager.EXTRA_TIME, time);
-
-           if (!mBooted) {
-               dropboxIntent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
-           }
-
-           //发送DROPBOX_ENTRY_ADDED广播。系统中目前还没有程序接收该广播
-           mContext.sendBroadcast(dropboxIntent,
-                            android.Manifest.permission.READ_LOGS);
-        }......
+        //发送DROPBOX_ENTRY_ADDED广播。系统中目前还没有程序接收该广播
+        mContext.sendBroadcast(dropboxIntent,
+                android.Manifest.permission.READ_LOGS);
+    }......
 }
 ```
 
@@ -745,41 +745,41 @@ int main(int argc, char* const argv[])
 ```java
 protected void dump(FileDescriptor fd, PrintWriterpw, String[] args) {
 
-       byte[] junk = new byte[512];
-        for(int i = 0; i < junk.length; i++) junk[i] = (byte) i; 
-        //输出/data/system/perftest.tmp文件信息，输出后即删除该文件
-        //目前还不清楚这个文件由谁生成。从名字上看应该和性能测试有关
-        Filetmp = new File(Environment.getDataDirectory(),
-                                "system/perftest.tmp");
+    byte[] junk = new byte[512];
+    for(int i = 0; i < junk.length; i++) junk[i] = (byte) i; 
+    //输出/data/system/perftest.tmp文件信息，输出后即删除该文件
+    //目前还不清楚这个文件由谁生成。从名字上看应该和性能测试有关
+    Filetmp = new File(Environment.getDataDirectory(),
+            "system/perftest.tmp");
 
-       FileOutputStream fos = null;
-       IOException error = null;
-        longbefore = SystemClock.uptimeMillis();
-        try{
-           fos = new FileOutputStream(tmp);
-           fos.write(junk);
-        }
+    FileOutputStream fos = null;
+    IOException error = null;
+    longbefore = SystemClock.uptimeMillis();
+    try{
+        fos = new FileOutputStream(tmp);
+        fos.write(junk);
+    }
 
-         ......
+    ......
 
         longafter = SystemClock.uptimeMillis();
-        if(tmp.exists()) tmp.delete();
+    if(tmp.exists()) tmp.delete();
 
-        if(error != null) {
+    if(error != null) {
 
-            ......
+        ......
 
-        }else {
-           pw.print("Latency: ");
-           pw.print(after - before);
-           pw.println("ms [512B Data Write]");
-        }
+    }else {
+        pw.print("Latency: ");
+        pw.print(after - before);
+        pw.println("ms [512B Data Write]");
+    }
 
-        //打印内部存储设备各个分区的信息
-       reportFreeSpace(Environment.getDataDirectory(), "Data", pw);
-       reportFreeSpace(Environment.getDownloadCacheDirectory(),"Cache", pw);
-       reportFreeSpace(new File("/system"), "System", pw);
-        //有些厂商还会将/proc/yaffs信息打印出来
+    //打印内部存储设备各个分区的信息
+    reportFreeSpace(Environment.getDataDirectory(), "Data", pw);
+    reportFreeSpace(Environment.getDownloadCacheDirectory(),"Cache", pw);
+    reportFreeSpace(new File("/system"), "System", pw);
+    //有些厂商还会将/proc/yaffs信息打印出来
 }
 ```
 
@@ -792,7 +792,7 @@ DeviceStorageManagerService（简称DSMS，下同）是用来监测系统内部�
 //DSMS的服务名为“devicestoragemonitor “
 
 ServiceManager.addService(DeviceStorageMonitorService.SERVICE,
-                        newDeviceStorageMonitorService(context));
+        newDeviceStorageMonitorService(context));
 ```
 
 DSMS的构造函数的代码如下：
@@ -801,46 +801,46 @@ DSMS的构造函数的代码如下：
 ```java
 public DeviceStorageMonitorService(Contextcontext) {
 
-       mLastReportedFreeMemTime = 0;
-       mContext = context;
-       mContentResolver = mContext.getContentResolver();
-       mDataFileStats = new StatFs(DATA_PATH);//获取data分区的信息
-       mSystemFileStats = new StatFs(SYSTEM_PATH);// 获取system分区的信息
-       mCacheFileStats = new StatFs(CACHE_PATH);// 获取cache分区的信息
+    mLastReportedFreeMemTime = 0;
+    mContext = context;
+    mContentResolver = mContext.getContentResolver();
+    mDataFileStats = new StatFs(DATA_PATH);//获取data分区的信息
+    mSystemFileStats = new StatFs(SYSTEM_PATH);// 获取system分区的信息
+    mCacheFileStats = new StatFs(CACHE_PATH);// 获取cache分区的信息
 
-        //获得data分区的总大小
-       mTotalMemory = ((long)mDataFileStats.getBlockCount() *
-                       mDataFileStats.getBlockSize())/100L;
+    //获得data分区的总大小
+    mTotalMemory = ((long)mDataFileStats.getBlockCount() *
+            mDataFileStats.getBlockSize())/100L;
 
-        /*
-        创建三个Intent，分别用于通知存储空间不足、存储空间恢复正常和存储空间满。
-        由于设置了REGISTERED_ONLY_BEFORE_BOOT标志，这3个Intent广播只能由
-        系统服务接收
-        */
+    /*
+       创建三个Intent，分别用于通知存储空间不足、存储空间恢复正常和存储空间满。
+       由于设置了REGISTERED_ONLY_BEFORE_BOOT标志，这3个Intent广播只能由
+       系统服务接收
+     */
 
-       mStorageLowIntent = newIntent(Intent.ACTION_DEVICE_STORAGE_LOW);
-       mStorageLowIntent.addFlags(
-                        Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
-       mStorageOkIntent = new Intent(Intent.ACTION_DEVICE_STORAGE_OK);
-       mStorageOkIntent.addFlags(
-                   Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
-       mStorageFullIntent = new Intent(Intent.ACTION_DEVICE_STORAGE_FULL);
-       mStorageFullIntent.addFlags(
-                   Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
-       mStorageNotFullIntent = new Intent(Intent.ACTION_DEVICE_STORAGE_NOT_FULL);
+    mStorageLowIntent = newIntent(Intent.ACTION_DEVICE_STORAGE_LOW);
+    mStorageLowIntent.addFlags(
+            Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+    mStorageOkIntent = new Intent(Intent.ACTION_DEVICE_STORAGE_OK);
+    mStorageOkIntent.addFlags(
+            Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+    mStorageFullIntent = new Intent(Intent.ACTION_DEVICE_STORAGE_FULL);
+    mStorageFullIntent.addFlags(
+            Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+    mStorageNotFullIntent = new Intent(Intent.ACTION_DEVICE_STORAGE_NOT_FULL);
 
-       mStorageNotFullIntent.addFlags(
-                   Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+    mStorageNotFullIntent.addFlags(
+            Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
 
-        //查询Settings数据库中sys_storage_threshold_percentage的值，默认是10，
-        //即当/data空间只剩下10%的时候，,认为空间不足
-       mMemLowThreshold = getMemThreshold();
-       //查询Settings数据库中的sys_storage_full_threshold_bytes的值，默认是1MB，
-       //即当data分区只剩1MB时，就认为空间已满，剩下的这1MB空间保留给系统自用
-       mMemFullThreshold = getMemFullThreshold();
+    //查询Settings数据库中sys_storage_threshold_percentage的值，默认是10，
+    //即当/data空间只剩下10%的时候，,认为空间不足
+    mMemLowThreshold = getMemThreshold();
+    //查询Settings数据库中的sys_storage_full_threshold_bytes的值，默认是1MB，
+    //即当data分区只剩1MB时，就认为空间已满，剩下的这1MB空间保留给系统自用
+    mMemFullThreshold = getMemFullThreshold();
 
-        //检查内存
-       checkMemory(true);
+    //检查内存
+    checkMemory(true);
 }
 ```
 
@@ -849,25 +849,25 @@ public DeviceStorageMonitorService(Contextcontext) {
 ```java
 private final void checkMemory(boolean checkCache){
 
-  if(mClearingCache) {
-      ......//如果正在清理空间，则不作处理
-     } else{
-           restatDataDir();//重新计算三个分区的剩余空间大小
+    if(mClearingCache) {
+        ......//如果正在清理空间，则不作处理
+    } else{
+        restatDataDir();//重新计算三个分区的剩余空间大小
 
-            //如果剩余空间低于mMemLowThreshold，那么先清理一次空间
-            clearCache();
+        //如果剩余空间低于mMemLowThreshold，那么先清理一次空间
+        clearCache();
 
-            //如果空间仍不足，则发送广播，并在状态栏上设置一个警告通知
-             sendNotification();
+        //如果空间仍不足，则发送广播，并在状态栏上设置一个警告通知
+        sendNotification();
 
-             ......
+        ......
 
             //如果空间已满，则调用下面这个函数，以发送一次存储已满的广播
-             sendFullNotification();
-        } ......
+            sendFullNotification();
+    } ......
 
-      //DEFAULT_CHECK_INTERVAL为1分钟，即每一分钟会触发一次检查，似乎有点短
-       postCheckMemoryMsg(true, DEFAULT_CHECK_INTERVAL);
+    //DEFAULT_CHECK_INTERVAL为1分钟，即每一分钟会触发一次检查，似乎有点短
+    postCheckMemoryMsg(true, DEFAULT_CHECK_INTERVAL);
 
 }
 ```
@@ -878,21 +878,21 @@ private final void checkMemory(boolean checkCache){
 ```java
 private final void clearCache() {
 
- if(mClearCacheObserver == null) {
-      //创建一个CachePackageDataObserver对象,当PKM清理完空间时会回调该对象的
-      //onRemoveCompleted函数
-      mClearCacheObserver = new CachePackageDataObserver();
-   }
+    if(mClearCacheObserver == null) {
+        //创建一个CachePackageDataObserver对象,当PKM清理完空间时会回调该对象的
+        //onRemoveCompleted函数
+        mClearCacheObserver = new CachePackageDataObserver();
+    }
 
- mClearingCache= true;//设置mClearingCache的值为true，表示我们正在清理空间
- try {
-     //调用PKM的freeStorageAndNotify函数以清理空间，这个函数在分析PKM时再介绍
-    IPackageManager.Stub.asInterface(
-            ServiceManager.getService("package")).
+    mClearingCache= true;//设置mClearingCache的值为true，表示我们正在清理空间
+    try {
+        //调用PKM的freeStorageAndNotify函数以清理空间，这个函数在分析PKM时再介绍
+        IPackageManager.Stub.asInterface(
+                ServiceManager.getService("package")).
             freeStorageAndNotify(mMemLowThreshold,mClearCacheObserver);
-   } 
-   
-   ......
+    } 
+
+    ......
 
 }
 ```
@@ -906,7 +906,7 @@ DeviceStorageManagerService的功能单一，没有重载dump函数。而DiskSta
 
 ```java
 ServiceManager.addService("samplingprofiler",//服务名
-                            newSamplingProfilerService(context));
+        newSamplingProfilerService(context));
 ```
 
 ### 3.6.1 SamplingProfilerService构造函数分析
@@ -916,11 +916,11 @@ ServiceManager.addService("samplingprofiler",//服务名
 ```java
 public SamplingProfilerService(Context context) {
 
-       //注册一个CotentObserver，用于监测Settings数据库的变化
+    //注册一个CotentObserver，用于监测Settings数据库的变化
 
-       registerSettingObserver(context);
+    registerSettingObserver(context);
 
-       startWorking(context);//① startWorking函数，见下文的分析
+    startWorking(context);//① startWorking函数，见下文的分析
 
 }
 ```
@@ -931,45 +931,45 @@ public SamplingProfilerService(Context context) {
 ```java
 private void startWorking(Context context) {
 
-      finalDropBoxManager dropbox = //得到DropBoxManager对象
+    finalDropBoxManager dropbox = //得到DropBoxManager对象
 
-               (DropBoxManager)
+        (DropBoxManager)
 
-                   context.getSystemService(Context.DROPBOX_SERVICE);
+        context.getSystemService(Context.DROPBOX_SERVICE);
 
-        //枚举/data/snapshots目录下的文件
+    //枚举/data/snapshots目录下的文件
 
-       File[] snapshotFiles = new File(SNAPSHOT_DIR).listFiles();
+    File[] snapshotFiles = new File(SNAPSHOT_DIR).listFiles();
 
-        for(int i = 0; snapshotFiles != null && i < snapshotFiles.length;
+    for(int i = 0; snapshotFiles != null && i < snapshotFiles.length;
 
-             i++) {
+            i++) {
 
-            //将这些文件的内容转移到dropbox中，然后删除这个文件
+        //将这些文件的内容转移到dropbox中，然后删除这个文件
 
-           handleSnapshotFile(snapshotFiles[i], dropbox);
+        handleSnapshotFile(snapshotFiles[i], dropbox);
 
-        }
+    }
 
-        //创建一个FileObserver对象监控shots目录，如果目录中来了新的文件，那么把它们
+    //创建一个FileObserver对象监控shots目录，如果目录中来了新的文件，那么把它们
 
-        //转移到dropbox中
+    //转移到dropbox中
 
-       snapshotObserver = new FileObserver(SNAPSHOT_DIR, FileObserver.ATTRIB) {
+    snapshotObserver = new FileObserver(SNAPSHOT_DIR, FileObserver.ATTRIB) {
 
-           @Override
+        @Override
 
-           public void onEvent(int event, String path) {
+            public void onEvent(int event, String path) {
 
-               handleSnapshotFile(new File(SNAPSHOT_DIR, path), dropbox);
+                handleSnapshotFile(new File(SNAPSHOT_DIR, path), dropbox);
 
-           }
+            }
 
-        };
+    };
 
-        //启动文件夹监控，采用了Linux平台的inotify机制，感兴趣的读者可以研究下inotify
+    //启动文件夹监控，采用了Linux平台的inotify机制，感兴趣的读者可以研究下inotify
 
-       snapshotObserver.startWatching();
+    snapshotObserver.startWatching();
 
 }
 ```
@@ -988,14 +988,14 @@ private void startWorking(Context context) {
  [-->zygoteInit.java]
 ```java
 public static void main(String argv[]) {
-try {
-            //启动性能统计
-           SamplingProfilerIntegration.start();
-           ......//Zygote做自己的工作
+    try {
+        //启动性能统计
+        SamplingProfilerIntegration.start();
+        ......//Zygote做自己的工作
             //结束统计并生成结果文件
-           SamplingProfilerIntegration.writeZygoteSnapshot();
-           ......
-}
+            SamplingProfilerIntegration.writeZygoteSnapshot();
+        ......
+    }
 ```
 
 先看start函数，代码如下：
@@ -1003,20 +1003,20 @@ try {
 [-->SamplingProfilerIntegration.java]
 ```java
 public static void start() {
-        if(!enabled) {//判断是否开启性能统计。enable由谁控制？
-           return;
-        }
-        ......
-       ThreadGroup group = Thread.currentThread().getThreadGroup();
-       SamplingProfiler.ThreadSet threadSet =
-                             SamplingProfiler.newThreadGroupTheadSet(group);
-        //创建一个dalvik的SamplingProfiler，我们暂时不会对它进行分析
-        samplingProfiler= new SamplingProfiler(samplingProfilerDepth,
-                                                        threadSet);
-        //启动统计
-       samplingProfiler.start(samplingProfilerMilliseconds);
-       startMillis = System.currentTimeMillis();
+    if(!enabled) {//判断是否开启性能统计。enable由谁控制？
+        return;
     }
+    ......
+        ThreadGroup group = Thread.currentThread().getThreadGroup();
+    SamplingProfiler.ThreadSet threadSet =
+        SamplingProfiler.newThreadGroupTheadSet(group);
+    //创建一个dalvik的SamplingProfiler，我们暂时不会对它进行分析
+    samplingProfiler= new SamplingProfiler(samplingProfilerDepth,
+            threadSet);
+    //启动统计
+    samplingProfiler.start(samplingProfilerMilliseconds);
+    startMillis = System.currentTimeMillis();
+}
 ```
 
 上边代码中提出了一个问题，即用于判断是否启动性能统计的enable变量由谁控制，答案在该类的static语句中，其代码如下：
@@ -1024,29 +1024,29 @@ public static void start() {
 [-->SamplingProfilerIntegration.java]
 ```java
 static {
-       samplingProfilerMilliseconds = //取系统属性，默认值为0，即禁止性能统计
-                   SystemProperties.getInt("persist.sys.profiler_ms", 0);
-       samplingProfilerDepth =
-                   SystemProperties.getInt("persist.sys.profiler_depth", 4);
-         //如果samplingProfilerMilliseconds的值大于零，则允许性能统计
-        if(samplingProfilerMilliseconds > 0) {
-           File dir = new File(SNAPSHOT_DIR);
-            ......//创建/data/snapshots目录，并使其可写
-           if (dir.isDirectory()) {
-               snapshotWriter = Executors.newSingleThreadExecutor(
-                                                   new ThreadFactory() {
+    samplingProfilerMilliseconds = //取系统属性，默认值为0，即禁止性能统计
+        SystemProperties.getInt("persist.sys.profiler_ms", 0);
+    samplingProfilerDepth =
+        SystemProperties.getInt("persist.sys.profiler_depth", 4);
+    //如果samplingProfilerMilliseconds的值大于零，则允许性能统计
+    if(samplingProfilerMilliseconds > 0) {
+        File dir = new File(SNAPSHOT_DIR);
+        ......//创建/data/snapshots目录，并使其可写
+            if (dir.isDirectory()) {
+                snapshotWriter = Executors.newSingleThreadExecutor(
+                        new ThreadFactory() {
                         public ThreadnewThread(Runnable r) {
-                            return newThread(r, TAG);//创建用于输出统计文件的工作线程
+                        return newThread(r, TAG);//创建用于输出统计文件的工作线程
                         }
-                   });
-               enabled = true;
+                        });
+                enabled = true;
             } ......
-        }else {
-           snapshotWriter = null;
-           enabled = false;
-           Log.i(TAG, "Profiling disabled.");
-        }
- }
+    }else {
+        snapshotWriter = null;
+        enabled = false;
+        Log.i(TAG, "Profiling disabled.");
+    }
+}
  ```
 
 enable的控制竟然放在static语句中，这表明要使用性能统计，就必须重新启动要统计的进程。
@@ -1056,12 +1056,12 @@ enable的控制竟然放在static语句中，这表明要使用性能统计，�
 [-->SamplingProfilerIntegration.java]
 ```java
 public static void writeZygoteSnapshot() {
-        ......
+    ......
         //调用writeSnapshotFile函数，注意第一个参数为“zygote”，用于表示进程名
-       writeSnapshotFile("zygote", null);
-       samplingProfiler.shutdown();//关闭统计
-       samplingProfiler = null;
-       startMillis = 0;
+        writeSnapshotFile("zygote", null);
+    samplingProfiler.shutdown();//关闭统计
+    samplingProfiler = null;
+    startMillis = 0;
 }
 ```
 
@@ -1099,10 +1099,10 @@ ClipboardService（简称CBS，下同）是Android系统中的元老级服务了
 
 ClipboardManager clipboard = (ClipboardManager)
 
-                          getSystemService(Context.CLIPBOARD_SERVICE);
-//调用setPrimaryClip函数，参数是ClipData.newUri函数的返回值
-clipboard.setPrimaryClip(ClipData.newUri( 
-                                   getContentResolver(),"Note",noteUri));
+    getSystemService(Context.CLIPBOARD_SERVICE);
+    //调用setPrimaryClip函数，参数是ClipData.newUri函数的返回值
+    clipboard.setPrimaryClip(ClipData.newUri( 
+                getContentResolver(),"Note",noteUri));
 ```
 
 ClipData的newUri是一个static函数，用于返回一个存储URI数据类型的ClipData，代码如下。根据前文所述可知，ClipData对象装载的就是可保存在剪贴板中的数据。
@@ -1110,38 +1110,38 @@ ClipData的newUri是一个static函数，用于返回一个存储URI数据类型
 [-->ClipData.java]
 ```java
 static public ClipData newUri(ContentResolverresolver, CharSequence label,
-                                      Uri uri) {
-     Itemitem = new Item(uri); //创建一个Item，将Uri直接传给它的构造函数
+        Uri uri) {
+    Itemitem = new Item(uri); //创建一个Item，将Uri直接传给它的构造函数
     String[] mimeTypes = null;
-      /*
-        下边代码的功能是获取这个Uri代表的数据的MIME类型。先尝试利用ContentResolver
-        从ContentProvider那查询，如果查询不到，则设置mimeTypes为
-        MIMETYPES_TEXT_URILIST，它的定义是new String[“text/uri-list”]
-      */
-      if("content".equals(uri.getScheme())) {
-           String realType = resolver.getType(uri);
-           //查询该uri所指向的数据的mimeTypes
-           mimeTypes = resolver.getStreamTypes(uri, "*/*");
-           if (mimeTypes == null) {
-               if (realType != null) {
-                   mimeTypes = new String[] {
-                            realType,ClipDescription.MIMETYPE_TEXT_URILIST };
-               }
-           } else {
-               ......
+    /*
+       下边代码的功能是获取这个Uri代表的数据的MIME类型。先尝试利用ContentResolver
+       从ContentProvider那查询，如果查询不到，则设置mimeTypes为
+       MIMETYPES_TEXT_URILIST，它的定义是new String[“text/uri-list”]
+     */
+    if("content".equals(uri.getScheme())) {
+        String realType = resolver.getType(uri);
+        //查询该uri所指向的数据的mimeTypes
+        mimeTypes = resolver.getStreamTypes(uri, "*/*");
+        if (mimeTypes == null) {
+            if (realType != null) {
+                mimeTypes = new String[] {
+                    realType,ClipDescription.MIMETYPE_TEXT_URILIST };
+            }
+        } else {
+            ......
         }
         if(mimeTypes == null) {
-           mimeTypes = MIMETYPES_TEXT_URILIST;
+            mimeTypes = MIMETYPES_TEXT_URILIST;
         }
         //创建一个ClipData对象
-       return new ClipData(label, mimeTypes, item);
-}
-//ClipData的构造函数
-public ClipData(CharSequence label, String[]mimeTypes, Item item) {
-       mClipDescription = new ClipDescription(label, mimeTypes);
+        return new ClipData(label, mimeTypes, item);
+    }
+    //ClipData的构造函数
+    public ClipData(CharSequence label, String[]mimeTypes, Item item) {
+        mClipDescription = new ClipDescription(label, mimeTypes);
         ......
-       mIcon = null;
-       mItems.add(item);//将item对象添加到mItems数组中
+            mIcon = null;
+        mItems.add(item);//将item对象添加到mItems数组中
     }
 ```
 
@@ -1155,11 +1155,11 @@ URI和MIME的关系： URI指向数据的位置，这和PC机上文件的存储�
 
 ```java
 public void setPrimaryClip(ClipData clip) {
-   try {
-             //跨Binder调用，先要把参数打包。有兴趣的读者可以看看writToParcel函数
-            getService().setPrimaryClip(clip);
-        }catch (RemoteException e) {
-   }
+    try {
+        //跨Binder调用，先要把参数打包。有兴趣的读者可以看看writToParcel函数
+        getService().setPrimaryClip(clip);
+    }catch (RemoteException e) {
+    }
 }
 ```
 
@@ -1168,32 +1168,32 @@ public void setPrimaryClip(ClipData clip) {
 [-->ClipboardService.java]
 ```java
 public void setPrimaryClip(ClipData clip) {
-       synchronized (this) {
+    synchronized (this) {
         ......
-         //权限检查，后面会在3.7.3中单独分析
-          checkDataOwnerLocked(clip,Binder.getCallingUid());
-         */
-        //和权限相关，后续会分析
-       clearActiveOwnersLocked();
-        //保存新的clipData到mPrimaryClip中
-       mPrimaryClip = clip;
-        / *
-           mPrimaryClipListeners是一个RemoteCallbackList数组，
-           当CBS中的ClipData发生变化时，CBS需要向那些监控剪切板的
-           客户端发送通知。客户端通过addPrimaryClipChangedListener函数
-           注册回调
+            //权限检查，后面会在3.7.3中单独分析
+            checkDataOwnerLocked(clip,Binder.getCallingUid());
         */
-       final int n = mPrimaryClipListeners.beginBroadcast();
+            //和权限相关，后续会分析
+            clearActiveOwnersLocked();
+        //保存新的clipData到mPrimaryClip中
+        mPrimaryClip = clip;
+        / *
+            mPrimaryClipListeners是一个RemoteCallbackList数组，
+            当CBS中的ClipData发生变化时，CBS需要向那些监控剪切板的
+            客户端发送通知。客户端通过addPrimaryClipChangedListener函数
+            注册回调
+            */
+            final int n = mPrimaryClipListeners.beginBroadcast();
         for (int i = 0; i < n; i++) {
-        try{
-               //通知客户端，剪切板的内容发生变化
+            try{
+                //通知客户端，剪切板的内容发生变化
                 mPrimaryClipListeners.getBroadcastItem(i).
-                                        dispatchPrimaryClipChanged();
-               }......
-           }
-           mPrimaryClipListeners.finishBroadcast();
+                    dispatchPrimaryClipChanged();
+            }......
         }
+        mPrimaryClipListeners.finishBroadcast();
     }
+}
 ```
 
 setPrimaryClip比较简单。但是由于新增支持Uri和Intent这两种数据类型，因此在安全性方面还有一些需要考虑的地方。这部分内容我们放到3.7.3小节去分析。
@@ -1209,39 +1209,39 @@ RemoteCallbackList是一个比较重要的常用类，很有必要掌握它的�
 ```java
 final void performPaste() {
     //获取ClipboardManager对象
-   ClipboardManager clipboard = (ClipboardManager)
-           getSystemService(Context.CLIPBOARD_SERVICE);
- 
+    ClipboardManager clipboard = (ClipboardManager)
+        getSystemService(Context.CLIPBOARD_SERVICE);
+
 
     //获取ContentResolver对象
-   ContentResolver cr = getContentResolver();
+    ContentResolver cr = getContentResolver();
     //从剪贴板中取出ClipData   
     ClipDataclip = clipboard.getPrimaryClip();
     if (clip!= null) {
-       String text=null;
-       String title=null;
+        String text=null;
+        String title=null;
         //取剪切板ClipData中的第一项Item
-       ClipData.Item item = clip.getItemAt(0);
+        ClipData.Item item = clip.getItemAt(0);
         /*
-            下面这行代码取出Item中所包含的Uri。看起来顺理成章，其实不然。
-            应思考这样一个问题，为什么这里一定是取Uri呢？原因是在本例中，
-            copy方和paste方都事先了解ClipData中的数据类型。
-            如果paste方不了解ClipData中的数据类型，该如何处理？
-            一种简单的方法就是采用if/else的判断语句。另外还有别的方法，
-            下文将做分析。
+           下面这行代码取出Item中所包含的Uri。看起来顺理成章，其实不然。
+           应思考这样一个问题，为什么这里一定是取Uri呢？原因是在本例中，
+           copy方和paste方都事先了解ClipData中的数据类型。
+           如果paste方不了解ClipData中的数据类型，该如何处理？
+           一种简单的方法就是采用if/else的判断语句。另外还有别的方法，
+           下文将做分析。
          */
         Uriuri = item.getUri();
-       Cursor orig = cr.query(uri,PROJECTION, null, null,null);
-           ......//查询数据库并获取信息
-          orig.close();
-           }
-        }
-        if(text == null) {
-           //如果paste方不了解ClipData中的数据类型，可调用coerceToText
-          //函数，强制得到文本类型的数据
-           text = item.coerceToText(this).toString();//强制为文本
-        }
-      ......
+        Cursor orig = cr.query(uri,PROJECTION, null, null,null);
+        ......//查询数据库并获取信息
+            orig.close();
+    }
+}
+if(text == null) {
+    //如果paste方不了解ClipData中的数据类型，可调用coerceToText
+    //函数，强制得到文本类型的数据
+    text = item.coerceToText(this).toString();//强制为文本
+}
+......
 }
 ```
 
@@ -1250,21 +1250,21 @@ final void performPaste() {
 [-->ClipboardManager.java]
 ```java
 public ClipData getPrimaryClip() {
-   try {
-           //调用CBS的getPrimaryClip，并传递自己的package名
-           return getService().getPrimaryClip(mContext.getPackageName());
-        }......
+    try {
+        //调用CBS的getPrimaryClip，并传递自己的package名
+        return getService().getPrimaryClip(mContext.getPackageName());
+    }......
 }
 ```
 
 [-->ClipboardManagerService.java]
 ```java
 public ClipData getPrimaryClip(String pkg) {
-       synchronized (this) {
-           //赋予该pkg相应的权限，后文再作分析
-           addActiveOwnerLocked(Binder.getCallingUid(), pkg);
-           return mPrimaryClip;//返回ClipData给客户端
-        }
+    synchronized (this) {
+        //赋予该pkg相应的权限，后文再作分析
+        addActiveOwnerLocked(Binder.getCallingUid(), pkg);
+        return mPrimaryClip;//返回ClipData给客户端
+    }
 }
 ```
 
@@ -1273,42 +1273,42 @@ public ClipData getPrimaryClip(String pkg) {
 [-->ClipData.java]
 ```java
 public CharSequence coerceToText(Context context){
-   //如果该Item已经有mText，则直接返回文本
-   if (mText!= null) {
-       return mText;
-   }
-   //如果该Item中的数据是URI类型
-   if (mUri!= null) {
-       FileInputStream stream = null;
+    //如果该Item已经有mText，则直接返回文本
+    if (mText!= null) {
+        return mText;
+    }
+    //如果该Item中的数据是URI类型
+    if (mUri!= null) {
+        FileInputStream stream = null;
         try{
-              /*
-                ContentProvider需要实现openTypedAssetFileDescriptor函数，
-                以返回指定MIME（这里是text/*）类型的数据源（AssetFileDescriptor）
-              */
-              AssetFileDescriptor descr = context.getContentResolver()
-                           .openTypedAssetFileDescriptor(mUri, "text/*", null);
-              //创建一个输入流
-              stream = descr.createInputStream();
-              //创建一个InputStreamReader，读出来的数据将转换成UTF-8的文本
-              InputStreamReader reader = new InputStreamReader(stream,
-                                                      "UTF-8");
-              StringBuilder builder = new StringBuilder(128);
-              char[] buffer = new char[8192];
-              int len;
-              //从ContentProvider那读取数据，然后转换成UTF-8的字符串
-              while ((len=reader.read(buffer)) > 0) {
-                   builder.append(buffer, 0, len);
-              }
-              //返回String
-              return builder.toString();
-         } ......
-   }
+            /*
+               ContentProvider需要实现openTypedAssetFileDescriptor函数，
+               以返回指定MIME（这里是text/*）类型的数据源（AssetFileDescriptor）
+             */
+            AssetFileDescriptor descr = context.getContentResolver()
+                .openTypedAssetFileDescriptor(mUri, "text/*", null);
+            //创建一个输入流
+            stream = descr.createInputStream();
+            //创建一个InputStreamReader，读出来的数据将转换成UTF-8的文本
+            InputStreamReader reader = new InputStreamReader(stream,
+                    "UTF-8");
+            StringBuilder builder = new StringBuilder(128);
+            char[] buffer = new char[8192];
+            int len;
+            //从ContentProvider那读取数据，然后转换成UTF-8的字符串
+            while ((len=reader.read(buffer)) > 0) {
+                builder.append(buffer, 0, len);
+            }
+            //返回String
+            return builder.toString();
+        } ......
+    }
     //如果是Intent，则调用toUri返回一个字符串
-   if (mIntent != null) {
-      returnmIntent.toUri(Intent.URI_INTENT_SCHEME);
-     }
-   return"";
-  }
+    if (mIntent != null) {
+        returnmIntent.toUri(Intent.URI_INTENT_SCHEME);
+    }
+    return"";
+}
 }
 ```
 
@@ -1379,24 +1379,24 @@ checkDataOwnerLocked函数的代码如下：
 [-->ClipboardService.java]
 ```java
 private final void checkDataOwnerLocked(ClipDatadata, int uid) {
-        //第二个参数uid为copy方进程的uid
-       final int N = data.getItemCount();
-        for(int i=0; i<N; i++) {
-           //为每一个item调用checkItemOwnerLocked
-           checkItemOwnerLocked(data.getItemAt(i), uid);
-        }
+    //第二个参数uid为copy方进程的uid
+    final int N = data.getItemCount();
+    for(int i=0; i<N; i++) {
+        //为每一个item调用checkItemOwnerLocked
+        checkItemOwnerLocked(data.getItemAt(i), uid);
+    }
 }
 // checkItemOwnerLocked函数分析
 private final voidcheckItemOwnerLocked(ClipData.Item item, int uid) {
-        if(item.getUri() != null) {//检查Uri
-           checkUriOwnerLocked(item.getUri(), uid);
-        }
+    if(item.getUri() != null) {//检查Uri
+        checkUriOwnerLocked(item.getUri(), uid);
+    }
 
-       Intent intent = item.getIntent();
-       //getData函数返回的也是一个URI，因此这里实际上检查的也是URI
-        if(intent != null && intent.getData() != null) {
-           checkUriOwnerLocked(intent.getData(), uid);
-        }
+    Intent intent = item.getIntent();
+    //getData函数返回的也是一个URI，因此这里实际上检查的也是URI
+    if(intent != null && intent.getData() != null) {
+        checkUriOwnerLocked(intent.getData(), uid);
+    }
 }
 ```
 
@@ -1407,24 +1407,24 @@ private final voidcheckItemOwnerLocked(ClipData.Item item, int uid) {
 [-->ClipboardService.java]
 ```java
 private final void checkUriOwnerLocked(Uri uri,int uid) {
-        ......
+    ......
 
         longident = Binder.clearCallingIdentity();
 
-       boolean allowed = false;
-        try{
-           /*
-             调用ActivityManagerService的checkGrantUriPermission函数，
-              该函数内部将检查copy方是否能被赋予URI_READ权限。如果不允许，
-              该函数会抛SecurityException异常
-           */
-           mAm.checkGrantUriPermission(uid, null, uri,
-                                           Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        }catch (RemoteException e) {
-        }finally {
-           Binder.restoreCallingIdentity(ident);
-        }
+    boolean allowed = false;
+    try{
+        /*
+           调用ActivityManagerService的checkGrantUriPermission函数，
+           该函数内部将检查copy方是否能被赋予URI_READ权限。如果不允许，
+           该函数会抛SecurityException异常
+         */
+        mAm.checkGrantUriPermission(uid, null, uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    }catch (RemoteException e) {
+    }finally {
+        Binder.restoreCallingIdentity(ident);
     }
+}
 ```
 
 根据前面的知识，这里先要检查copy方是否有读取URI的权限。下面来分析paste方的权限管理
@@ -1435,46 +1435,46 @@ clearActiveOwnersLocked函数的代码如下：
 [-->ClipboardService.java]
 ```java
 private final void addActiveOwnerLocked(int uid,String pkg) {
-       PackageInfo pi;
+    PackageInfo pi;
 
-        try{
-          /*
+    try{
+        /*
            调用PackageManagerService的getPackageInfo函数得到相关信息
-            然后做一次安全检查，如果PacakgeInfo的uid信息和当前调用的uid不一致，
-            则抛SecurityException。这个很好理解，因为paste方可以传递虚假的
+           然后做一次安全检查，如果PacakgeInfo的uid信息和当前调用的uid不一致，
+           则抛SecurityException。这个很好理解，因为paste方可以传递虚假的
            packagename，但uid是没法造假的
-           */
-           pi = mPm.getPackageInfo(pkg, 0);
-           if (pi.applicationInfo.uid != uid) {
-               throw new SecurityException("Calling uid " + uid
-                        + " does not ownpackage " + pkg);
-           }
-         } ......
+         */
+        pi = mPm.getPackageInfo(pkg, 0);
+        if (pi.applicationInfo.uid != uid) {
+            throw new SecurityException("Calling uid " + uid
+                    + " does not ownpackage " + pkg);
         }
+    } ......
+}
 
-        //mActivePermissionOwners用来保存已经通过安全检查的package
-        if(mPrimaryClip != null && !mActivePermissionOwners.contains(pkg)) {
-           //针对ClipData中的每一个Item，都需要调用grantItemLocked来检查权限
-           final int N = mPrimaryClip.getItemCount();
-           for (int i=0; i<N; i++) {
-               grantItemLocked(mPrimaryClip.getItemAt(i), pkg);
-           }//保存package信息到mActivePermissionOwners
-           mActivePermissionOwners.add(pkg);
-        }
+//mActivePermissionOwners用来保存已经通过安全检查的package
+if(mPrimaryClip != null && !mActivePermissionOwners.contains(pkg)) {
+    //针对ClipData中的每一个Item，都需要调用grantItemLocked来检查权限
+    final int N = mPrimaryClip.getItemCount();
+    for (int i=0; i<N; i++) {
+        grantItemLocked(mPrimaryClip.getItemAt(i), pkg);
+    }//保存package信息到mActivePermissionOwners
+    mActivePermissionOwners.add(pkg);
+}
 }
 
 //grantItemLocked分析
 
 private final void grantItemLocked(ClipData.Itemitem, String pkg) {
 
-        if(item.getUri() != null) {
-           grantUriLocked(item.getUri(), pkg);
-        } //和copy方一样，这里仅检查URI的情况
-       Intent intent = item.getIntent();
+    if(item.getUri() != null) {
+        grantUriLocked(item.getUri(), pkg);
+    } //和copy方一样，这里仅检查URI的情况
+    Intent intent = item.getIntent();
 
-        if(intent != null && intent.getData() != null) {
-           grantUriLocked(intent.getData(), pkg);
-        }
+    if(intent != null && intent.getData() != null) {
+        grantUriLocked(intent.getData(), pkg);
+    }
 }
 ```
 
@@ -1484,20 +1484,20 @@ private final void grantItemLocked(ClipData.Itemitem, String pkg) {
 ```java
 private final void grantUriLocked(Uri uri, Stringpkg) {
 
-        longident = Binder.clearCallingIdentity();
-        try{
-          /*
-              调用ActivityManagerService的grantUriPermissionFromOwner函数，
-              注意第二个参数传递的是CBS所在进程的uid。该函数内部也会检查权限。
-               该函数调用成功后，paste方就被授予了对应URI的读权限
-            */
-           mAm.grantUriPermissionFromOwner(mPermissionOwner,
-                                    Process.myUid(),pkg, uri,
-                                   Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        }catch (RemoteException e) {
-        } finally {
-           Binder.restoreCallingIdentity(ident);
-        }
+    longident = Binder.clearCallingIdentity();
+    try{
+        /*
+           调用ActivityManagerService的grantUriPermissionFromOwner函数，
+           注意第二个参数传递的是CBS所在进程的uid。该函数内部也会检查权限。
+           该函数调用成功后，paste方就被授予了对应URI的读权限
+         */
+        mAm.grantUriPermissionFromOwner(mPermissionOwner,
+                Process.myUid(),pkg, uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    }catch (RemoteException e) {
+    } finally {
+        Binder.restoreCallingIdentity(ident);
+    }
 }
 ```
 

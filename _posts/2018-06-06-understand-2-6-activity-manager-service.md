@@ -421,8 +421,11 @@ Android运行环境是构建在进程之上的。有Android开发经验的读者
 由图6-3可知：
 
 -  ContextWrapper比较有意思，其在SDK中的说明为“Proxying implementation ofContext that simply delegates all of its calls to another Context. Can besubclassed to modify behavior without changing the original Context.”大概意思是：ContextWrapper是一个代理类，被代理的对象是另外一个Context。在图6-3中，被代理的类其实是ContextImpl，由ContextWrapper通过mBase成员变量指定。读者可查看ContextWrapper.java，其内部函数功能的实现最终都由mBase完成。这样设计的目的是想把ContextImpl隐藏起来。
+
 -  Application从ContextWrapper派生，并实现了ComponentCallbacks2接口。Application中有一个LoadedApk类型的成员变量mLoadedApk。LoadedApk代表一个APK文件。由于一个AndroidManifest.xml文件只能声明一个Application标签，所以一个Application必然会和一个LoadedApk绑定。
+
 -  Service从ContextWrapper派生，其中Service内部成员变量mApplication指向Application（在AndroidManifest.xml中，Service只能作为Application的子标签，所以在代码中Service必然会和一个Application绑定）。
+
 -  ContextThemeWrapper重载了和Theme（主题）相关的两个函数。这些和界面有关，所以Activity作为Android系统中的UI容器，必然也会从ContextThemeWrapper派生。与Service一样，Activity内部也通过mApplication成员变量指向Application。
 
 对Context的分析先到这里，再来分析第三个关键函数startRunning。
@@ -534,7 +537,9 @@ public static void setSystemProcess() {
 ```
 
 在以上代码中列出了一个重要说明和两个关键点。
+
 -  重要说明：AMS向PKMS查询名为“android”的ApplicationInfo。此处AMS和PKMS的交互是通过Context来完成的，查看这一系列函数调用的代码，最终发现AMS将通过Binder发送请求给PKMS来完成查询功能。AMS和PKMS同属一个进程，它们完全可以不通过Context来交互。此处为何要如此大费周章呢？原因很简单，Android希望SystemServer中的服务也通过Android运行环境来交互。这更多是从设计上来考虑的，比如组件之间交互接口的统一及未来系统的可扩展性。
+
 
     -  关键点一：ActivityThread的installSystemApplicationInfo函数。
 
@@ -2792,8 +2797,11 @@ returntrue;
 }
 ```
 attachApplicationLocked第三阶段的工作就是通知应用进程启动Activity和Service等组件，其中用于启动Activity的函数是ActivityStack realStartActivityLocked。
+
 此处先来分析应用进程的bindApplication，该函数将为应用进程绑定一个Application。
+
 提示还记得AMS中System Context执行的两次init吗？第二次init的功能就是将Context和对应的Application绑定在一起。
+
 ##### （4） ApplicationThread的bindApplication分析
 bindApplication在ApplicationThread中的实现，其代码如下：
 [-->ActivityThread.java::bindApplication]
@@ -2816,6 +2824,7 @@ public final void bindApplication(......) {
 }
 ```
 由以上代码可知，ApplicationThread接收到来自AMS的指令后，均会将指令中的参数封装到一个数据结构中，然后通过发送消息的方式转交给主线程去处理。BIND_APPLICATION最终将由handleBindApplication函数处理。该函数并不复杂，但是其中有些点是值得关注的，这些点主要是初始化应用进程的一些参数。handleBindApplication函数的代码如下：
+
 [-->ActivityThread.java::handleBindApplication]
 ```java
 private void handleBindApplication(AppBindDatadata) {
@@ -2922,16 +2931,26 @@ private void handleBindApplication(AppBindDatadata) {
 }
 ```
 由以上代码可知，bindApplication函数将设置一些初始化参数，其中最重要的有：
+
 -  创建一个Application对象，该对象是本进程中运行的第一个Application。
+
 -  如果该Application有ContentProvider，则应安装它们。
+
 提示从以上代码可知，ContentProvider的创建就在bindApplication函数中，其时机早于其他组件的创建。
+
 ##### （5） 应用进程的创建及初始化总结
 本节从应用进程的入口函数main开始，分析了应用进程和AMS之间的两次重要交互，它们分别是：
+
 -  在应用进程启动后，需要尽快调用AMS的attachApplication函数，该函数是这个刚呱呱坠地的应用进程第一次和AMS交互。此时的它还默默“无名”，连一个确定的进程名都没有。不过没关系，attachApplication函数将根据创建该应用进程之前所保存的ProcessRecord为其准备一切“手续”。
+
 -  attachApplication准备好一切后，将调用应用进程的bindApplication函数，在该函数内部将发消息给主线程，最终该消息由handleBindApplication处理。handleBindApplication将为该进程设置进程名，初始化一些策略和参数信息等。另外，它还创建一个Application对象。同时，如果该Application声明了ContentProvider，还需要为该进程安装ContentProvider。
+
 提示这个流程有点类似生孩子，一般生之前需要到医院去登记，生完后又需去注册户口，如此这般，这个孩子才会在社会有合法的身份。
+
 #### 6.  ActivityStack realStartActivityLocked分析
+
 如前所述，AMS调用完bindApplication后，将通过realStartActivityLocked启动Activity。在此之前，要创建完应用进程并初始化Android运行环境（除此之外，连ContentProvider都安装好了）。
+
 [-->ActivityStack.java::realStartActivityLocked]
 ```java
 //注意，在本例中该函数的最后两个参数的值都为true
@@ -3003,6 +3022,7 @@ returntrue;
 }
 ```
 在以上代码中有两个关键函数，分别是：scheduleLaunchActivity和completeResumeLocked。其中，scheduleLaunchActivity用于和应用进程交互，通知它启动目标Activity。而completeResumeLocked将继续AMS的处理流程。先来看第一个关键函数。
+
 ##### （1） scheduleLaunchActivity函数分析
 [-->ActivityThread.java::scheduleLaunchActivity]
 ```java
@@ -3064,8 +3084,11 @@ private voidhandleLaunchActivity(ActivityClientRecord r,
     }
 ```
 handleLaunchActivity的工作包括：
+
 -  首先调用performLaunchActivity，该在函数内部通过Java反射机制创建目标Activity，然后调用它的onCreate及onStart函数。
+
 -  调用handleResumeActivity，会在其内部调用目标Activity的onResume函数。除此之外，handleResumeActivity还完成了一件很重要的事情，见下面的代码：
+
 [-->ActivityThread.java::handleResumeActivity]
 ```java
 final void handleResumeActivity(IBinder token,boolean clearHide,
@@ -3090,8 +3113,10 @@ final void handleResumeActivity(IBinder token,boolean clearHide,
         r.onlyLocalRequest = false;
         ......
     }
-    根据第2章对MessageQueue的分析，当消息队列中没有其他要处理的消息时，将处理以上代码中通过addIdleHandler添加的Idler对象，也就是说，Idler对象的优先级最低，这是不是说它的工作不重要呢？非也。至少在handleResumeActivity函数中添加的这个Idler并不不简单，其代码如下：
-        [-->ActivityThread.java::Idler]
+```
+根据第2章对MessageQueue的分析，当消息队列中没有其他要处理的消息时，将处理以上代码中通过addIdleHandler添加的Idler对象，也就是说，Idler对象的优先级最低，这是不是说它的工作不重要呢？非也。至少在handleResumeActivity函数中添加的这个Idler并不不简单，其代码如下：
+
+[-->ActivityThread.java::Idler]
 ```java
 private class Idler implements MessageQueue.IdleHandler{
     publicfinal boolean queueIdle() {
@@ -3120,6 +3145,7 @@ private class Idler implements MessageQueue.IdleHandler{
 }
 ```
 由以上代码可知，Idler将为那些已经完成onResume的Activity调用AMS的activityIdle函数。该函数是Activity成功创建并启动的流程中与AMS交互的最后一步。虽然对应用进程来说，Idler处理的优先级最低，但AMS似乎不这么认为，因为它还设置了超时等待，以处理应用进程没有及时调用activityIdle的情况。这个超时等待即由realStartActivityLocked中最后一个关键点completeResumeLocked函数设置。
+
 ##### （2） completeResumeLocked函数分析
 [-->ActivityStack.java::completeResumeLocked]
 ```java
@@ -3137,7 +3163,9 @@ private final voidcompleteResumeLocked(ActivityRecord next) {
 }
 ```
 由以上代码可知，AMS给了应用进程10秒的时间，希望它在10秒内调用activityIdle函数。这个时间不算长，和前面AMS等待应用进程启动的超时时间一样。所以，笔者有些困惑，为什么要把这么重要的操作放到idler中去做。
+
 下面来看activityIdle函数，在其内部将调用ActivityStack activityIdleInternal。
+
 ##### （3） activityIdleInternal函数分析
 [-->ActivityStack.java::activityIdleInternal]
 ```java
@@ -3219,17 +3247,27 @@ final ActivityRecord activityIdleInternal(IBindertoken, boolean fromTimeout,
     }
 ```
 在activityIdleInternal中有一个非常重要的关键点，即处理那些因为本次Activity启动而被暂停的Activity。有两种情况需考虑：
+
 -  如果被暂停的Activity处于finishing状态（例如Activity在其onStop中调用了finish函数），则调用finishCurrentActivityLocked。
+
 -  否则，要调用stopActivityLocked处理暂停的Activity。
+
 此处涉及除AMS和目标进程外的第三个进程，即被切换到后台的那个进程。不过至此，我们的目标Activity终于正式登上了历史舞台。
+
 提示本例的分析结束了吗？没有。因为am设置了-W选项，所以其实我们还在startActivityAndWait函数中等待结果。ActivityStack中有两个函数能够触发AMS notifyAll，一个是reportActivityLaunchedLocked，另一个是reportActivityVisibleLocked。前面介绍的activityInternal函数只在fromTimeout为true时才会调用reportActivityLaunchedLocked，而本例中fromTimeout为false，如何是好？该问题的解答非常复杂，姑且先一语带过：当Activity显示出来时，其在AMS中对应ActivityRecord对象的windowVisible函数将被调用，其内部会触发reportActivityLaunchedLocked函数，这样我们的startActivityAndWait才能被唤醒。
+
 #### 7.  startActivity分析之后半程总结
 总结startActivity后半部分的流程，主要涉及目标进程和AMS的交互，如图6-15所示。
 ![图6-15  startActivity后半程总结](/images/understand2/6-15.png)
+
 图6-15中涉及16个重要函数调用，而且这仅是startActivity后半部分的调用流程，可见整个流程有多么复杂！
+
 ##### 8. startPausingLocked函数分析
+
 现在我们分析图6-14中的startPausingLocked分支。根据前面的介绍，当启动一个新Activity时，系统将先行处理当前的Activity，即调用startPausingLocked函数来暂停当前Activity。
+
 ##### （1） startPausingLocked分析
+
 [-->ActivityStack.java::startPausingLocked]
 ```java
 private final void startPausingLocked(booleanuserLeaving, boolean uiSleeping) {
@@ -3273,6 +3311,7 @@ private final void startPausingLocked(booleanuserLeaving, boolean uiSleeping) {
 }
 ```
 startPausingLocked将调用应用进程的schedulePauseActivity函数，并设置500毫秒的超时时间，所以应用进程需尽快完成相关处理。和scheduleLaunchActivity一样，schedulePauseActivity将向ActivityThread主线程发送PAUSE_ACTIVITY消息，最终该消息由handlePauseActivity来处理。
+
 ##### （2） handlePauseActivity分析
 [-->ActivityThread.java::handlePauseActivity]
 ```java
@@ -3349,9 +3388,13 @@ private final void completePauseLocked() {
     }
 ```
 就本例而言，以上代码还算简单，最后还是通过resumeTopActivityLocked来启动目标Activity。当然，由于之前已经设置了mPausingActivity为null，所以最终会走到图6-14中③的分支。
+
 ##### （4） stopActivityLocked分析
+
 根据前面的介绍，此次目标Activity将走完onCreate、onStart和onResume流程，但是被暂停的Activity才刚走完onPause流程，那么它的onStop什么时候调用呢？
+
 答案就在activityIdelInternal中，它将为mStoppingActivities中的成员调用stopActivityLocked函数。
+
 [-->ActivityStack.java::stopActivityLocked]
 ```java
 privatefinal void stopActivityLocked(ActivityRecord r) {
@@ -3371,7 +3414,9 @@ privatefinal void stopActivityLocked(ActivityRecord r) {
         }......
     }
 ```
+
 对应进程的scheduleStopActivity函数将根据visible的情况，向主线程消息循环发送H. STOP_ACTIVITY_HIDE或H. STOP_ACTIVITY_SHOW消息。不论哪种情况，最终都由handleStopActivity来处理。
+
 [-->ActivityThread.java::handleStopActivity]
 ```java
 private void handleStopActivity(IBinder token,boolean show, int configChanges) {
@@ -3389,37 +3434,69 @@ private void handleStopActivity(IBinder token,boolean show, int configChanges) {
 }
 ```
 AMS没有为stop设置超时消息处理。严格来说，还是有超时限制的，只是这个超时处理与activityIdleInternal结合起来了。
+
 ##### （5） startPausingLocked总结
 总结startPausingLocked流程，如图6-16所示。
+
 ![图6-16  startPausingActivity流程总结](/images/understand2/6-16.png)
+
 图6-16比较简单，读者最好结合代码再把流程走一遍，以加深理解。
+
 #### 9.  startActivity总结
+
 Activity的启动就介绍到这里。这一路分析下来，相信读者也和笔者一样觉得此行绝不轻松。先回顾一下此次旅程：
+
 -   行程的起点是am。am是Android中很重要的程序，读者务必要掌握它的用法。我们利用am start命令，发起本次目标Activity的启动请求。
+
 -  接下来进入ActivityManagerService和ActivityStack这两个核心类。对于启动Activity来说，这段行程又可分细分为两个阶段：第一阶段的主要工作就是根据启动模式和启动标志找到或创建ActivityRecord及对应的TaskRecord；第二阶段工作就是处理Activity启动或切换相关的工作。
+
 -  首先讨论了AMS直接创建目标进程并运行Activity的流程，其中涉及目标进程的创建，在目标进程中Android运行环境的初始化，目标Activity的创建以及触发onCreate、onStart及onResume等其生命周期中重要函数调用等相关知识点。
+
 -  接着又讨论了AMS先pause当前Activity，然后再创建目标进程并运行Activity的流程。其中牵扯到两个应用进程和AMS的交互，其难度之大可见一斑。
+
+
 读者在阅读本节时，务必要区分此旅程中两个阶段工作的重点：其一是找到合适的ActivityRecord和TaskRecord；其二是调度相关进程进行Activity切换。在SDK文档中，介绍最为详细的是第一阶段中系统的处理策略，例如启动模式、启动标志的作用等。第二阶段工作其实是与Android组件调度相关的工作。SDK文档只是针对单个Activity进行生命周期方面的介绍。
+
 坦诚地说，这次旅程略过不少逻辑情况。原因有二，一方面受限于精力和篇幅，另方面是作为调度核心类，和AMS相关的代码及处理逻辑非常复杂，而且其间还夹杂了与WMS的交互逻辑，使复杂度更甚。再者，笔者个人感觉这部分代码绝谈不上高效、严谨和美观，甚至有些丑陋（在分析它们的过程中，远没有研究Audio、Surface时那种畅快淋漓的感觉）。
+
 此处列出几个供读者深入研究的点：
+
 -  各种启动模式、启动标志的处理流程。
+
 -  Configuration发生变化时Activity的处理，以及在Activity中对状态保存及恢复的处理流程。
+
 -  Activity生命周期各个阶段的转换及相关处理。Android 2.3以后新增的与Fragment的生命周期相关的转换及处理。
+
 建议在研究代码前，先仔细阅读SDK文档相关内容，以获取必要的感性认识，否则直接看代码很容易迷失方向。
+
 ## 6.4  Broadcast和BroadcastReceiver分析
+
 Broadcast，汉语意思为“广播”。它是Android平台中的一种通知机制。从广义来说，它是一种进程间通信的手段。有广播，就对应有广播接收者。Android中四大组件之一的BroadcastReceiver即代表广播接收者。目前，系统提供两种方式来声明一个广播接收者。
+
 -  在AndroidManifest.xml中声明<receiver>标签。在应用程序运行时，系统会利用Java反射机制构造一个广播接收者实例。本书将这种广播接收者称为静态注册者或静态接收者。
+
 -  在应用程序运行过程中，可调用Context提供的registerReceiver函数注册一个广播接收者实例。本书将这种广播接收者称为动态注册者或动态接收者。与之相对应，当应用程序不再需要监听广播时（例如当应用程序退到后台时），则要调用unregisterReceiver函数撤销之前注册的BroadcastReceiver实例。
+
 当系统将广播派发给对应的广播接收者时，广播接收者的onReceive函数会被调用。在此函数中，可对该广播进行相应处理。
+
 另外，Android定义了三种不同类型的广播发送方式，它们分别是：
+
 -  普通广播发送方式，由sendBroadcast及相关函数发送。以工作中的场景为例，当程序员们正埋头工作之时，如果有人大喊一声“吃午饭去”，前刻还在专心编码的人即作鸟兽散。这种方式即为普通广播发送方式，所有对“吃午饭”感兴趣的接收者都会响应。
+
 -  串行广播发送方式，即ordered广播，由sendOrdedBroadcast及相关函数发送。在该类型方式下，按接收者的优先级将广播一个个地派发给接收者。只有等这一个接收者处理完毕，系统才将该广播派发给下一个接收者。其中，任意一个接收者都可以中止后续的派发流程。还是以工作中的场景为例：经常有项目经理（PM）深夜组织一帮人跟踪bug的状态。PM看见一个bug，问某程序员，“这个bug你能改吗?”如果得到的答案是“暂时不会”或“暂时没时间”，他会将目光转向下一个神情轻松者，直到找到一个担当者为止。这种方式即为ordered广播发送方式，很明显，它的特点是“一个一个来”。
+
 -  Sticky广播发送方式，由sendStickyBroadcast及相关函数发送。Sticky的意思是“粘”，其背后有一个很重要的考虑。我们举个例子：假设某广播发送者每5秒发送一次携带自己状态信息的广播，此时某个应用进程注册了一个动态接收者来监听该广播，那么该接收者的OnReceive函数何时被调用呢？在正常情况下需要等这一轮的5秒周期结束后才调用（因为发送者在本周期结束后会主动再发一个广播）。而在Sticky模式下，系统将马上派发该广播给刚注册的接收者。注意，这个广播是系统发送的，其中存储的是上一次广播发送者的状态信息。也就是说，在Sticky模式下，广播接收者能立即得到广播发送者的信息，而不用等到这一轮周期结束。其实就是系统会保存Sticky的广播[⑤]，当有新广播接收者来注册时，系统就把Sticky广播发给它。
+
+
 以上我们对广播及广播接收者做了一些简单介绍，读者也可参考SDK文档中的相关说明来加强理解。
+
 下面将以动态广播接收者为例，分析Android对广播的处理流程。
+
 ### 6.4.1  registerReceiver流程分析
 #### 1.  ContextImpl registerReceiver分析
+
 registerReceiver函数用于注册一个动态广播接收者，该函数在Context.java中声明。根据本章前面对Context家族的介绍（参考图6-3），其功能最终将通过ContextImpl类的registerReceiver函数来完成，可直接去看ContextImpl是如何实现此函数的。在SDK中一共定义了两个同名的registerReceiver函数，其代码如下：
+
 [-->ContextImpl.java::registerReceiver]
 ```java
 /*
@@ -3446,6 +3523,7 @@ publicIntent registerReceiver(BroadcastReceiver receiver,
 }
 ```
 殊途同归，最终的功能由registerReceiverInternal来完成，其代码如下：
+
 [-->ContextImpl.java::registerReceiverInternal]
 ```java
 privateIntent registerReceiverInternal(BroadcastReceiver receiver,
@@ -3476,17 +3554,29 @@ privateIntent registerReceiverInternal(BroadcastReceiver receiver,
     } ......
 }
 ```
+
 以上代码列出了两个关键点：其一是准备一个IIntentReceiver对象；其二是调用AMS的registerReceiver函数。
+
 先来看IIntentReceiver，它是一个Interface，图6-17列出了和它相关的成员图谱。
+
 ![图6-17  IIntentReceiver相关成员示意图](/images/understand2/6-17.png)
+
 由图6-17可知：
+
 -  BroadcastReceiver内部有一个PendingResult类。该类是Android 2.3以后新增的，用于异步处理广播消息。例如，当BroadcastReceiver收到一个广播时，其onReceive函数将被调用。一般都是在该函数中直接处理该广播。不过，当该广播处理比较耗时，还可采用异步的方式进行处理，即先调用BroadcastReceiver的goAsync函数得到一个PendingResult对象，然后将该对象放到工作线程中去处理，这样onReceive就可以立即返回而不至于耽误太长时间（这一点对于onReceive函数被主线程调用的情况尤为有用）。在工作线程处理完这条广播后，需调用PendingResult的finish函数来完成整个广播的处理流程。
+
 -  广播由AMS发出，而接收及处理工作却在另外一个进程中进行，整个过程一定涉及进程间通信。在图6-17中，虽然在BroadcastReceiver中定义了一个广播接收者，但是它与Binder没有有任何关系，故其并不直接参与进程间通信。与之相反，IIntentReceiver接口则和Binder有密切关系，故可推测广播的接收是由IIntentReceiver接口来完成的。确实，在整个流程中，首先接收到来自AMS的广播的将是该接口的Bn端，即LoadedApk.ReceiverDispather的内部类InnerReceiver。
+
 接收广播的处理将放到本节最后再来分析，下面先来看AMS 的registerReceiver函数。
+
 #### 2.  AMS的registerReceiver分析
+
 AMS的registerReceiver函数比较简单，但是由于其中将出现一些新的变量类型和成员，因此接下来按分两部分进行分析。
+
 ##### （1） registerReceiver分析之一
+
 registerReceiver的返回值是一个Intent，它指向一个匹配过滤条件（由filter参数指明）的Sticky Intent。即使有多个符合条件的Intent，也只返回一个。
+
 [-->ActivityManagerService.java::registerReceiver]
 ```java
 public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
@@ -3551,11 +3641,17 @@ public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
         mReceiverResolver.addFilter(bf);
 ```
 以上代码的流程倒是很简单，不过其中出现的几个成员变量和数据类型却严重阻碍了我们的思维活动。先解决它们，BroadcastFilter及相关成员变量如图6-18所示。
+
 ![图6-18  BroadcastFilter及相关成员变量](/images/understand2/6-18.png)
+
 结合代码，对图6-18中各数据类型和成员变量的作用及关系的解释如下：
+
 -  在AMS中，BroadcastReceiver的过滤条件由BroadcastFilter表示，该类从IntentFilter派生。由于一个BroadcastReceiver可设置多个过滤条件（即多次为同一个BroadcastReceiver对象调用registerReceiver函数以设置不同的过滤条件），故AMS使用ReceiverList（从ArrayList<BroadcastFilter>派生）这种数据类型来表达这种一对多的关系。
+
 -  ReceiverList除了能存储多个BroadcastFilter外，还应该有成员指向某一个具体BroadcastReceiver，否则如何知道到底是哪个BroadcastReceiver设置的过滤条件呢？前面说过，BroadcastReceiver接收广播是通过IIntentReceiver接口进行的，故ReceiverList中有receiver成员变量指向IIntentReceiver。
+
 -  AMS提供mRegisterReceivers用于保存IIntentReceiver和对应ReceiverList的关系。此外，AMS还提供mReceiverResolver变量用于存储所有动态注册的BroadcastReceiver所设置的过滤条件。
+
 清楚这些成员变量和数据类型之间的关系后，接着来分析registerReceiver第二阶段的工作。
 ##### （2） registerReceiver分析之二
 [-->ActivityManagerService.java::registerReceiver]
@@ -3620,10 +3716,15 @@ public void sendBroadcast(Intent intent) {
     }......
 }
 ```
+
 AMS的broadcastIntent函数的主要工作将交由AMS的broadcastIntentLocked来完成，故此处直接分析broadcastIntentLocked。
+
 #### 1.  broadcastIntentLocked分析
+
 我们分阶段来分析broadcastIntentLocked的工作，先来看第一阶段工作。
+
 ##### （1） broadcastIntentLocked分析之一
+
 [-->ActivityManagerService.java::broadcastIntentLocked]
 ```java
 private final int broadcastIntentLocked(ProcessRecordcallerApp,
