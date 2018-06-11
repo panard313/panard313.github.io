@@ -18,21 +18,26 @@ tags:
 
 面对芸芸众生，无尽变数，系统以不变应万变，一招绝杀神技forceStop腾空出世，此处以adb指令的方式为例来说说其内部机理：
 
+```java
     am force-stop pkgName
     am force-stop --user 2 pkgName //只杀用户userId=2的相关信息
+```
 
 force-stop命令杀掉所有用户空间下的包名pkgName相关的信息，也可以通过`--user`来指定用户Id。 当执行上述am指令时，则会触发调用Am.java的main()方法，接下来从main方法开始说起。
 
 ### 1.2 Am.main
 [-> Am.java]
 
+```java
     public static void main(String[] args) {
          (new Am()).run(args); //【见小节1.3】
     }
+```
 
 ### 1.3 Am.run
 [-> Am.java]
 
+```java
     public void run(String[] args) {
         ...
         mArgs = args;
@@ -41,10 +46,12 @@ force-stop命令杀掉所有用户空间下的包名pkgName相关的信息，也
         onRun(); //【见小节1.4】
         ...
     }
+```
 
 ### 1.4 Am.onRun
 [-> Am.java]
 
+```java
     public void onRun() throws Exception {
         //获取的是Binder proxy对象AMP
         mAm = ActivityManagerNative.getDefault();
@@ -57,10 +64,12 @@ force-stop命令杀掉所有用户空间下的包名pkgName相关的信息，也
         }
         ...
     }
+```
 
 ### 1.5 Am.runForceStop
 [-> Am.java]
 
+```java
     private void runForceStop() throws Exception {
         int userId = UserHandle.USER_ALL;
 
@@ -74,12 +83,14 @@ force-stop命令杀掉所有用户空间下的包名pkgName相关的信息，也
         //【见小节1.6】
         mAm.forceStopPackage(nextArgRequired(), userId);
     }
+```
 
 当不指定userId时，则默认为UserHandle.USER_ALL。
 
 ### 1.6 AMP.forceStopPackage
 [-> ActivityManagerNative.java ::AMP]
 
+```java
     public void forceStopPackage(String packageName, int userId) throws RemoteException {
          Parcel data = Parcel.obtain();
          Parcel reply = Parcel.obtain();
@@ -92,10 +103,12 @@ force-stop命令杀掉所有用户空间下的包名pkgName相关的信息，也
          data.recycle();
          reply.recycle();
      }
+```
 
 ### 1.7 AMN.onTransact
 [-> ActivityManagerNative.java]
 
+```java
     public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
             throws RemoteException {
         switch (code) {
@@ -111,6 +124,7 @@ force-stop命令杀掉所有用户空间下的包名pkgName相关的信息，也
           ...
         }
     }
+```
 
 AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Driver后，进入system_server进程的一个binder线程来执行AMN.forceStopPackage，从这开始的操作(包括当前操作)便都运行在system_server系统进程。
 
@@ -127,6 +141,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 ### 2.1 AMS.forceStopPackage
 [-> ActivityManagerService.java]
 
+```java
     public void forceStopPackage(final String packageName, int userId) {
         if (checkCallingPermission(android.Manifest.permission.FORCE_STOP_PACKAGES)
                         != PackageManager.PERMISSION_GRANTED) {
@@ -159,6 +174,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
                 Binder.restoreCallingIdentity(callingId);
         }
     }
+```
 
 这里有一个过程非常重要，那就是setPackageStoppedState()将包的状态设置为stopped，那么所有广播都无法接收，除非带有标记`FLAG_INCLUDE_STOPPED_PACKAGES`的广播，系统默认的广播几乎都是不带有该标志，也就意味着被force-stop的应用是无法通过建立手机网络状态或者亮灭的广播来拉起进程。
 
@@ -166,6 +182,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
 ### 2.2 AMS.forceStopPackageLocked
 
+```java
     private void forceStopPackageLocked(final String packageName, int uid, String reason) {
         //[见流程2.3]
         forceStopPackageLocked(packageName, UserHandle.getAppId(uid), false,
@@ -185,11 +202,13 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
                         null, null, 0, null, null, null, AppOpsManager.OP_NONE,
                         null, false, false, MY_PID, Process.SYSTEM_UID, UserHandle.getUserId(uid));
     }
+```
 
 清理跟该包名相关的进程和四大组件之外，还会发送广播ACTION_PACKAGE_RESTARTED，用于清理已注册的alarm,notification信息。
 
 ### 2.3 AMS.forceStopPackageLocked
 
+```java
     //callerWillRestart = false, doit = true;
     private final boolean forceStopPackageLocked(String packageName, int appId,
              boolean callerWillRestart, boolean purgeCache, boolean doit,
@@ -297,6 +316,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
          return didSomething;
      }
+```
 
 对于`didSomething`只指当方法中所有行为,则返回true.比如killPackageProcessesLocked(),只要杀过一个进程则代表didSomething为true.
 
@@ -314,6 +334,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
 ### 3.1 AMS.killPackageProcessesLocked
 
+```java
     //callerWillRestart = false, allowRestart = true, doit = true;
     private final boolean killPackageProcessesLocked(String packageName, int appId,
             int userId, int minOomAdj, boolean callerWillRestart, boolean allowRestart,
@@ -375,6 +396,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
         updateOomAdjLocked();
         return N > 0;
     }
+```
 
 一般地force-stop会指定包名，该方法会遍历当前所有运行中的进程`mProcessNames`，以下条件同时都不满足的进程，则会成为被杀的目标进程：(也就是说满足以下任一条件都可以免死)
 
@@ -400,6 +422,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
 ### 3.2 AMS.removeProcessLocked
 
+```java
     //callerWillRestart = false, allowRestart = true
     private final boolean removeProcessLocked(ProcessRecord app,
              boolean callerWillRestart, boolean allowRestart, String reason) {
@@ -445,6 +468,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
          return needRestart;
      }
+```
 
 该方法的主要功能:
 
@@ -458,6 +482,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 ### 4.1 ASS.finishDisabledPackageActivitiesLocked
 [-> ActivityStackSupervisor.java]
 
+```java
     boolean finishDisabledPackageActivitiesLocked(String packageName, Set<String> filterByClasses,
             boolean doit, boolean evenPersistent, int userId) {
         boolean didSomething = false;
@@ -475,10 +500,12 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
         }
         return didSomething;
     }
+```
 
 ### 4.2 AS.finishDisabledPackageActivitiesLocked
 [-> ActivityStack.java]
 
+```java
     // doit = true;
     boolean finishDisabledPackageActivitiesLocked(String packageName, Set<String> filterByClasses,
             boolean doit, boolean evenPersistent, int userId) {
@@ -527,10 +554,12 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
         }
         return didSomething;
     }
+```
 
 ### 4.3 AS.finishActivityLocked
 [-> ActivityStack.java]
 
+```java
     final boolean finishActivityLocked(ActivityRecord r, int resultCode, Intent resultData,
             String reason, boolean oomAdj) {
         if (r.finishing) {
@@ -587,10 +616,12 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
         return false;
     }
+```
 
 #### 4.3.1 AR.makeFinishingLocked
 [-> ActivityRecord.java]
 
+```java
     void makeFinishingLocked() {
         if (!finishing) {
             if (task != null && task.stack != null
@@ -604,9 +635,11 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
             }
         }
     }
+```
 
 #### 4.3.2 ASS.requestVisibleBehindLocked
 
+```java
     boolean requestVisibleBehindLocked(ActivityRecord r, boolean visible) {
         final ActivityStack stack = r.task.stack;
         if (stack == null) {
@@ -641,10 +674,12 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
         }
         return true;
     }
+```
 
 #### 4.3.3 TaskRecord.setFrontOfTask
 [-> TaskRecord.java]
 
+```java
     final void setFrontOfTask() {
         boolean foundFront = false;
         final int numActivities = mActivities.size();
@@ -662,6 +697,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
             mActivities.get(0).frontOfTask = true;
         }
     }
+```
 
 - 将该Task中从底部往上查询, 第一个处于非finishing状态的ActivityRecord,则设置为根Activity(即r.frontOfTask = true),其他都为false;
 - 当所有的activity都处于finishing状态,则把最底部的activity设置成跟Activity.
@@ -670,6 +706,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 #### 4.3.4 AS.adjustFocusedActivityLocked
 [-> ActivityStack.java]
 
+```java
     private void adjustFocusedActivityLocked(ActivityRecord r, String reason) {
         if (mStackSupervisor.isFrontStack(this) && mService.mFocusedActivity == r) {
             ActivityRecord next = topRunningActivityLocked(null);
@@ -715,9 +752,11 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
             }
         }
     }
+```
 
 #### 4.3.5 AS.finishCurrentActivityLocked
 
+```java
     final ActivityRecord finishCurrentActivityLocked(ActivityRecord r, int mode, boolean oomAdj) {
         if (mode == FINISH_AFTER_VISIBLE && r.nowVisible) {
             if (!mStackSupervisor.mStoppingActivities.contains(r)) {
@@ -767,6 +806,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
         mStackSupervisor.getFocusedStack().resumeTopActivityLocked(null);
         return r;
     }
+```
 
 满足下面其中之一的条件,则会执行finish以及destroy Activity.
 
@@ -776,6 +816,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
 #### 4.3.6 AS.destroyActivityLocked
 
+```java
     final boolean destroyActivityLocked(ActivityRecord r, boolean removeFromApp, String reason) {
 
          boolean removedFromHistory = false;
@@ -836,12 +877,14 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
      }
 
 
+```
 
 ## 五. Service
 
 ### 5.1 bringDownDisabledPackageServicesLocked
 [-> ActiveServices.java]
 
+```java
     //killProcess = true;  doit = true;
     boolean bringDownDisabledPackageServicesLocked(String packageName, Set<String> filterByClasses,
             int userId, boolean evenPersistent, boolean killProcess, boolean doit) {
@@ -880,10 +923,12 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
         return didSomething;
     }
 
+```
 
 ### 5.2 collectPackageServicesLocked
 [-> ActiveServices.java]
 
+```java
     //killProcess = true;  doit = true;
     private boolean collectPackageServicesLocked(String packageName, Set<String> filterByClasses,
             boolean evenPersistent, boolean doit, boolean killProcess,
@@ -919,12 +964,14 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
         }
         return didSomething;
     }
+```
 
 该方法的主要功能就是收集该满足条件service放入mTmpCollectionResults.
 
 ### 5.3  bringDownServiceLocked
 [-> ActiveServices.java]
 
+```java
     private final void bringDownServiceLocked(ServiceRecord r) {
         for (int conni=r.connections.size()-1; conni>=0; conni--) {
             ArrayList<ConnectionRecord> c = r.connections.valueAt(conni);
@@ -1014,9 +1061,11 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
         smap.ensureNotStartingBackground(r);
     }
+```
 
 ### 5.4 unscheduleServiceRestartLocked
 
+```java
     private final boolean unscheduleServiceRestartLocked(ServiceRecord r, int callingUid,
             boolean force) {
         if (!force && r.restartDelay == 0) {
@@ -1034,12 +1083,14 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
         mAm.mHandler.removeCallbacks(r.restarter);
         return true;
     }
+```
 
 ## 六. Provider
 
 ### 6.1  PM.collectPackageProvidersLocked
 [-> ProviderMap.java]
 
+```java
     boolean collectPackageProvidersLocked(String packageName, Set<String> filterByClasses,
             boolean doit, boolean evenPersistent, int userId,
             ArrayList<ContentProviderRecord> result) {
@@ -1072,6 +1123,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
         }
         return didSomething;
     }
+```
 
 - 当userId = UserHandle.USER_ALL时, 则会`mSingletonByClass`和`mProvidersByClassPerUser`结构中查询所有属于该package的providers.
 - 当userId = UserHandle.USER_OWNER时,则会从`mSingletonByClass`和`mProvidersByClassPerUser`中userId相等的 数据结构中查询所有属于该package的providers.
@@ -1080,6 +1132,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 ### 6.2 PM.collectPackageProvidersLocked
 [-> ProviderMap.java]
 
+```java
     private boolean collectPackageProvidersLocked(String packageName,
             Set<String> filterByClasses, boolean doit, boolean evenPersistent,
             HashMap<ComponentName, ContentProviderRecord> providers,
@@ -1102,9 +1155,11 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
         return didSomething;
     }
 
+```
 
 ### 6.3 AMS.removeDyingProviderLocked
 
+```java
     private final boolean removeDyingProviderLocked(ProcessRecord proc,
              ContentProviderRecord cpr, boolean always) {
          final boolean inLaunching = mLaunchingProviders.contains(cpr);
@@ -1155,6 +1210,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
          }
          return inLaunching;
      }
+```
 
 当其他app使用该provider, 且建立stable的连接, 那么对于非persistent进程,则会由于依赖该provider的缘故而被杀.
 
@@ -1164,6 +1220,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 ### 7.1  BQ.cleanupDisabledPackageReceiversLocked
 [-> BroadcastQueue.java]
 
+```java
     boolean cleanupDisabledPackageReceiversLocked(
             String packageName, Set<String> filterByClasses, int userId, boolean doit) {
         boolean didSomething = false;
@@ -1186,6 +1243,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
         return didSomething;
     }
+```
 
 该方法主要功能：
 
@@ -1195,6 +1253,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 ### 7.2 BR.cleanupDisabledPackageReceiversLocked
 [-> BroadcastRecord.java]
 
+```java
     boolean cleanupDisabledPackageReceiversLocked(
            String packageName, Set<String> filterByClasses, int userId, boolean doit) {
        if ((userId != UserHandle.USER_ALL && this.userId != userId) || receivers == null) {
@@ -1226,6 +1285,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
        nextReceiver = Math.min(nextReceiver, receivers.size());
        return didSomething;
     }
+```
 
 ## 八. Alarm和Notification
 
@@ -1234,6 +1294,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 ### 8.1 Alarm清理
 [-> AlarmManagerService.java]
 
+```java
     class UninstallReceiver extends BroadcastReceiver {
        public UninstallReceiver() {
            IntentFilter filter = new IntentFilter();
@@ -1281,12 +1342,14 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
            }
        }
    }
+```
 
 调用AlarmManagerService中的removeLocked()方法，从`mAlarmBatches`和`mPendingWhileIdleAlarms`队列中移除包所相关的alarm.
 
 ### 8.2 Notification清理
 [-> NotificationManagerService.java]
 
+```java
     private final BroadcastReceiver mPackageIntentReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -1331,6 +1394,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
             }
         }
     };
+```
 
 调用NotificationManagerService.java
 中的cancelAllNotificationsInt()方法，从`mNotificationList`队列中移除包所相关的Notification.
@@ -1348,15 +1412,18 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 ### 9.1 CI.getClassLoader
 [-> ContextImpl.java]
 
+```java
     public ClassLoader getClassLoader() {
         //【见小节9.2】
        return mPackageInfo != null ?
                  mPackageInfo.getClassLoader() : ClassLoader.getSystemClassLoader();
      }
+```
 
 ### 9.2 LA.getClassLoader
 [-> LoadedApk.java]
 
+```java
     public ClassLoader getClassLoader() {
         synchronized (this) {
             if (mClassLoader != null) {
@@ -1385,9 +1452,11 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
             return mClassLoader;
         }
     }
+```
 
 ### 9.3 AMS.addPackageDependency
 
+```java
     public void addPackageDependency(String packageName) {
         synchronized (this) {
             int callingPid = Binder.getCallingPid();
@@ -1407,6 +1476,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
             }
         }
     }
+```
 
 调用ClassLoader来加载启动包名时，则会将该包名加入到进程的pkgDeps。
 
