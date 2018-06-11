@@ -89,34 +89,34 @@ AMS由SystemServer的ServerThread线程创建，提取它的调用轨迹，代�
 ```java
 //①调用main函数，得到一个Context对象
 context =ActivityManagerService.main(factoryTest);
- 
+
 //②setSystemProcess：这样SystemServer进程可加到AMS中，并被它管理
 ActivityManagerService.setSystemProcess();
- 
+
 //③installSystemProviders：将SettingsProvider放到SystemServer进程中来运行
 ActivityManagerService.installSystemProviders();
- 
+
 //④在内部保存WindowManagerService（以后简称WMS）
 ActivityManagerService.self().setWindowManager(wm);
- 
+
 //⑤和WMS交互，弹出“启动进度“对话框
 ActivityManagerNative.getDefault().showBootMessage(
-             context.getResources().getText(
-               //该字符串中文为：“正在启动应用程序”
-               com.android.internal.R.string.android_upgrading_starting_apps),
-              false);
- 
+        context.getResources().getText(
+            //该字符串中文为：“正在启动应用程序”
+            com.android.internal.R.string.android_upgrading_starting_apps),
+        false);
+
 //⑥AMS是系统的核心，只有它准备好后，才能调用其他服务的systemReady
 //注意，有少量服务在AMS systemReady之前就绪，它们不影响此处的分析
 ActivityManagerService.self().systemReady(newRunnable() {
-    publicvoid run() {
-   startSystemUi(contextF);//启动systemUi。如此，状态栏就准备好了
-    if(batteryF != null) batteryF.systemReady();
-    if(networkManagementF != null) networkManagementF.systemReady();
-    ......
-    Watchdog.getInstance().start();//启动Watchdog
-    ......//调用其他服务的systemReady函数
-}
+        public void run() {
+        startSystemUi(contextF);//启动systemUi。如此，状态栏就准备好了
+        if(batteryF != null) batteryF.systemReady();
+        if(networkManagementF != null) networkManagementF.systemReady();
+        ......
+        Watchdog.getInstance().start();//启动Watchdog
+        ......//调用其他服务的systemReady函数
+        }
 ```
 
 在以上代码中，一共列出了6个重要调用及这些调用的简单说明，本节将分析除与WindowManagerService（以后简称WMS）交互的4、5外的其余四项调用。
@@ -129,22 +129,22 @@ AMS的main函数将返回一个Context类型的对象，该对象在SystemServer
 
 [-->ActivityManagerService.java::main]
 ```java
- publicstatic final Context main(int factoryTest) {
+publicstatic final Context main(int factoryTest) {
     AThreadthr = new AThread();//①创建一个AThread线程对象
     thr.start();
     ......//等待thr创建成功
-    ActivityManagerServicem = thr.mService;
+        ActivityManagerServicem = thr.mService;
     mSelf =m;
     //②调用ActivityThread的systemMain函数
     ActivityThreadat = ActivityThread.systemMain();
     mSystemThread= at;
- 
+
     //③得到一个Context对象，注意调用的函数名为getSystemContext，何为System Context
     Contextcontext = at.getSystemContext();
     context.setTheme(android.R.style.Theme_Holo);
     m.mContext= context;
     m.mFactoryTest= factoryTest;
- 
+
     //ActivtyStack是AMS中用来管理Activity的启动和调度的核心类，以后再分析它
     m.mMainStack = new ActivityStack(m, context,true);
     //调用BSS的publish函数，我们在第5章的BSS知识中介绍过了
@@ -152,14 +152,14 @@ AMS的main函数将返回一个Context类型的对象，该对象在SystemServer
     //另外一个service：UsageStatsService。后续再分析该服务
     m.mUsageStatsService.publish(context);
     synchronized (thr) {
-           thr.mReady = true;
-           thr.notifyAll();//通知thr线程，本线程工作完成
-     }
- 
+        thr.mReady = true;
+        thr.notifyAll();//通知thr线程，本线程工作完成
+    }
+
     //④调用AMS的startRunning函数
     m.startRunning(null, null, null, null);
-       
-   returncontext;
+
+    returncontext;
 }
 ```
 在main函数中，我们又列出了4个关键函数，分别是：
@@ -188,32 +188,32 @@ AThread的代码如下：
 [-->ActivityManagerService.java::AThread]
 ```java
 static class AThread extends Thread {//AThread从Thread类派生
-   ActivityManagerServicemService;
-   booleanmReady = false;
-   publicAThread() {
-     super("ActivityManager");//线程名就叫“ActivityManager”
-   }
-   publicvoid run() {
-     Looper.prepare();//看来，AThread线程将支持消息循环及处理功能
-     android.os.Process.setThreadPriority(//设置线程优先级
-                   android.os.Process.THREAD_PRIORITY_FOREGROUND);
-     android.os.Process.setCanSelfBackground(false);
-      //创建AMS对象
-     ActivityManagerService m = new ActivityManagerService();
-     synchronized (this) {
-           mService= m;//赋值AThread内部成员变量mService，指向AMS
-          notifyAll();  //通知main函数所在线程
-      }
-     synchronized (this) {
-        while (!mReady) {
-           try{
-                 wait();//等待main函数所在线程的notifyAll
-               }......
-           }
-       }......
-    Looper.loop();//进入消息循环
- }
- }
+    ActivityManagerServicemService;
+    booleanmReady = false;
+    publicAThread() {
+        super("ActivityManager");//线程名就叫“ActivityManager”
+    }
+    publicvoid run() {
+        Looper.prepare();//看来，AThread线程将支持消息循环及处理功能
+        android.os.Process.setThreadPriority(//设置线程优先级
+                android.os.Process.THREAD_PRIORITY_FOREGROUND);
+        android.os.Process.setCanSelfBackground(false);
+        //创建AMS对象
+        ActivityManagerService m = new ActivityManagerService();
+        synchronized (this) {
+            mService= m;//赋值AThread内部成员变量mService，指向AMS
+            notifyAll();  //通知main函数所在线程
+        }
+        synchronized (this) {
+            while (!mReady) {
+                try{
+                    wait();//等待main函数所在线程的notifyAll
+                }......
+            }
+        }......
+        Looper.loop();//进入消息循环
+    }
+}
 ```
 
 从本质上说，AThread是一个支持消息循环及处理的线程，其主要工作就是创建AMS对象，然后通知AMS的main函数。这样看来，main函数等待的就是这个AMS对象。
@@ -227,43 +227,43 @@ AMS的构造函数的代码如下：
 private ActivityManagerService() {
     FiledataDir = Environment.getDataDirectory();//指向/data/目录
     FilesystemDir = new File(dataDir, "system");//指向/data/system/目录
-   systemDir.mkdirs();//创建/data/system/目录
- 
+    systemDir.mkdirs();//创建/data/system/目录
+
     //创建BatteryStatsService（以后简称BSS）和UsageStatsService（以后简称USS）
-   //我们在分析PowerManageService时已经见过BSS了
-   mBatteryStatsService = new BatteryStatsService(new File(
-               systemDir, "batterystats.bin").toString());
-   mBatteryStatsService.getActiveStatistics().readLocked();
+    //我们在分析PowerManageService时已经见过BSS了
+    mBatteryStatsService = new BatteryStatsService(new File(
+                systemDir, "batterystats.bin").toString());
+    mBatteryStatsService.getActiveStatistics().readLocked();
     mBatteryStatsService.getActiveStatistics().writeAsyncLocked();
-   mOnBattery = DEBUG_POWER ? true
-               : mBatteryStatsService.getActiveStatistics().getIsOnBattery();
-   mBatteryStatsService.getActiveStatistics().setCallback(this);
- 
+    mOnBattery = DEBUG_POWER ? true
+        : mBatteryStatsService.getActiveStatistics().getIsOnBattery();
+    mBatteryStatsService.getActiveStatistics().setCallback(this);
+
     //创建USS
     mUsageStatsService= new UsageStatsService(new File(
-               systemDir, "usagestats").toString());
+                systemDir, "usagestats").toString());
     //获取OpenGl版本
-   GL_ES_VERSION = SystemProperties.getInt("ro.opengles.version",
-           ConfigurationInfo.GL_ES_VERSION_UNDEFINED);
-     //mConfiguration类型为Configuration，用于描述资源文件的配置属性，例如
-     //字体、语言等。后文再讨论这方面的内容
+    GL_ES_VERSION = SystemProperties.getInt("ro.opengles.version",
+            ConfigurationInfo.GL_ES_VERSION_UNDEFINED);
+    //mConfiguration类型为Configuration，用于描述资源文件的配置属性，例如
+    //字体、语言等。后文再讨论这方面的内容
     mConfiguration.setToDefaults();
     mConfiguration.locale = Locale.getDefault();
-     //mProcessStats为ProcessStats类型，用于统计CPU、内存等信息。其内部工作原理就是
+    //mProcessStats为ProcessStats类型，用于统计CPU、内存等信息。其内部工作原理就是
     //读取并解析/proc/stat文件的内容。该文件由内核生成，用于记录kernel及system
     //一些运行时的统计信息。读者可在Linux系统上通过man proc命令查询详细信息
     mProcessStats.init();
- 
-     //解析/data/system/packages-compat.xml文件，该文件用于存储那些需要考虑屏幕尺寸
+
+    //解析/data/system/packages-compat.xml文件，该文件用于存储那些需要考虑屏幕尺寸
     //的APK的一些信息。读者可参考AndroidManifest.xml中compatible-screens相关说明。
     //当APK所运行的设备不满足要求时，AMS会根据设置的参数以采用屏幕兼容的方式去运行它
     mCompatModePackages = new CompatModePackages(this, systemDir);
- 
-     Watchdog.getInstance().addMonitor(this);
-     //创建一个新线程，用于定时更新系统信息（和mProcessStats交互）
+
+    Watchdog.getInstance().addMonitor(this);
+    //创建一个新线程，用于定时更新系统信息（和mProcessStats交互）
     mProcessStatsThread = new Thread("ProcessStats") {...//先略去该段代码}
     mProcessStatsThread.start();
- }
+}
 ```
 
 AMS的构造函数比想象得要简单些，下面回顾一下它的工作：
@@ -285,12 +285,12 @@ ActivityThread是Android Framework中一个非常重要的类，它代表一个�
 [-->ActivityThread.java::systemMain]
 ```java
 public static final ActivityThread systemMain() {
-   HardwareRenderer.disable(true);//禁止硬件渲染加速
-   //创建一个ActivityThread对象，其构造函数非常简单
-  ActivityThread thread = new ActivityThread();
-  thread.attach(true);//调用它的attach函数，注意传递的参数为true
-   returnthread;
- }
+    HardwareRenderer.disable(true);//禁止硬件渲染加速
+    //创建一个ActivityThread对象，其构造函数非常简单
+    ActivityThread thread = new ActivityThread();
+    thread.attach(true);//调用它的attach函数，注意传递的参数为true
+    returnthread;
+}
 ```
 
 在分析ActivityThread的attach函数之前，先提一个问题供读者思考：前面所说的ActivityThread代表应用进程（其上运行了APK）的主线程，而SystemServer并非一个应用进程，那么为什么此处也需要ActivityThread呢？
@@ -310,34 +310,34 @@ private void attach(boolean system) {
     mSystemThread= system;//判断是否为系统进程
     if(!system) {
         ......//应用进程的处理流程
-     } else {//系统进程的处理流程，该情况只在SystemServer中处理
-       //设置DDMS时看到的systemserver进程名为system_process
-       android.ddm.DdmHandleAppName.setAppName("system_process");
-       try {
+    } else {//系统进程的处理流程，该情况只在SystemServer中处理
+        //设置DDMS时看到的systemserver进程名为system_process
+        android.ddm.DdmHandleAppName.setAppName("system_process");
+        try {
             //ActivityThread的几员大将出场，见后文的分析
             mInstrumentation = new Instrumentation();
             ContextImpl context = new ContextImpl();
             //初始化context，注意第一个参数值为getSystemContext
             context.init(getSystemContext().mPackageInfo, null, this);
             Application app = //利用Instrumentation创建一个Application对象
-                    Instrumentation.newApplication(Application.class,context);
-             //一个进程支持多个Application，mAllApplications用于保存该进程中
+                Instrumentation.newApplication(Application.class,context);
+            //一个进程支持多个Application，mAllApplications用于保存该进程中
             //的Application对象
             mAllApplications.add(app);
-             mInitialApplication = app;//设置mInitialApplication
+            mInitialApplication = app;//设置mInitialApplication
             app.onCreate();//调用Application的onCreate函数
-           }......//try/catch结束
-      }//if(!system)判断结束
- 
-     //注册Configuration变化的回调通知
-     ViewRootImpl.addConfigCallback(newComponentCallbacks2() {
-          publicvoid onConfigurationChanged(Configuration newConfig) {
+        }......//try/catch结束
+    }//if(!system)判断结束
+
+    //注册Configuration变化的回调通知
+    ViewRootImpl.addConfigCallback(newComponentCallbacks2() {
+            publicvoid onConfigurationChanged(Configuration newConfig) {
             ......//当系统配置发生变化（如语言切换等）时，需要调用该回调
-          }
-           public void onLowMemory() {}
-           public void onTrimMemory(int level) {}
-        });
- }
+            }
+            public void onLowMemory() {}
+            public void onTrimMemory(int level) {}
+            });
+}
 ```
 
 attach函数中出现了几个重要成员，其类型分别是Instrumentation类、Application类及Context类，它们的作用如下（为了保证准确，这里先引用Android的官方说明）。
@@ -358,21 +358,21 @@ Context是一个抽象类，而由AMS创建的将是它的子类ContextImpl。�
 [-->ActivityThread.java::getSystemContext]
 ```java
 public ContextImpl getSystemContext() {
-  synchronized(this) {
-   if(mSystemContext == null) {//单例模式
-       ContextImplcontext =  ContextImpl.createSystemContext(this);
-       //LoadedApk是2.3引入的一个新类，代表一个加载到系统中的APK
-       LoadedApkinfo = new LoadedApk(this, "android", context, null,
-                       CompatibilityInfo.DEFAULT_COMPATIBILITY_INFO);
-       //初始化该ContextImpl对象
-      context.init(info, null, this);
-      //初始化资源信息
-      context.getResources().updateConfiguration(
-                        getConfiguration(),getDisplayMetricsLocked(
-                       CompatibilityInfo.DEFAULT_COMPATIBILITY_INFO, false));
-       mSystemContext = context;//保存这个特殊的ContextImpl对象
-      }
-   }
+    synchronized(this) {
+        if(mSystemContext == null) {//单例模式
+            ContextImplcontext =  ContextImpl.createSystemContext(this);
+            //LoadedApk是2.3引入的一个新类，代表一个加载到系统中的APK
+            LoadedApkinfo = new LoadedApk(this, "android", context, null,
+                    CompatibilityInfo.DEFAULT_COMPATIBILITY_INFO);
+            //初始化该ContextImpl对象
+            context.init(info, null, this);
+            //初始化资源信息
+            context.getResources().updateConfiguration(
+                    getConfiguration(),getDisplayMetricsLocked(
+                        CompatibilityInfo.DEFAULT_COMPATIBILITY_INFO, false));
+            mSystemContext = context;//保存这个特殊的ContextImpl对象
+        }
+    }
     returnmSystemContext;
 }
 ```
@@ -433,19 +433,19 @@ Android运行环境是构建在进程之上的。有Android开发经验的读者
 ```java
 //注意调用该函数时所传递的4个参数全为null
 public final void startRunning(String pkg, Stringcls, String action,
-                                    String data) {
-  synchronized(this) {
-     if (mStartRunning) return;  //如果已经调用过该函数，则直接返回
- 
-    mStartRunning = true;
-     //mTopComponent最终赋值为null
-    mTopComponent = pkg != null && cls != null
-                   ? new ComponentName(pkg, cls) : null;
-    mTopAction = action != null ? action : Intent.ACTION_MAIN;
-    mTopData = data; //mTopData最终为null
-     if(!mSystemReady) return; //此时mSystemReady为false，所以直接返回
+        String data) {
+    synchronized(this) {
+        if (mStartRunning) return;  //如果已经调用过该函数，则直接返回
+
+        mStartRunning = true;
+        //mTopComponent最终赋值为null
+        mTopComponent = pkg != null && cls != null
+            ? new ComponentName(pkg, cls) : null;
+        mTopAction = action != null ? action : Intent.ACTION_MAIN;
+        mTopData = data; //mTopData最终为null
+        if(!mSystemReady) return; //此时mSystemReady为false，所以直接返回
     }
-   systemReady(null);//这个函数很重要，可惜不在本次startRunning中调用
+    systemReady(null);//这个函数很重要，可惜不在本次startRunning中调用
 }
 ```
 
@@ -482,55 +482,55 @@ AMS的setSystemProcess的代码如下：
 [-->ActivityManagerService.java::setSystemProcess]
 ```java
 public static void setSystemProcess() {
-  try {
-      ActivityManagerService m = mSelf;
-       //向ServiceManager注册几个服务
-       ServiceManager.addService("activity",m);
-       //用于打印内存信息
-      ServiceManager.addService("meminfo", new MemBinder(m));
- 
-       /*
-        Android4.0新增的，用于打印应用进程使用硬件显示加速方面的信息（Applications
-         Graphics Acceleration Info）。读者通过adb shell dumpsys gfxinfo看看具体的
-         输出
-       */
-      ServiceManager.addService("gfxinfo", new GraphicsBinder(m));
- 
+    try {
+        ActivityManagerService m = mSelf;
+        //向ServiceManager注册几个服务
+        ServiceManager.addService("activity",m);
+        //用于打印内存信息
+        ServiceManager.addService("meminfo", new MemBinder(m));
+
+        /*
+           Android4.0新增的，用于打印应用进程使用硬件显示加速方面的信息（Applications
+           Graphics Acceleration Info）。读者通过adb shell dumpsys gfxinfo看看具体的
+           输出
+         */
+        ServiceManager.addService("gfxinfo", new GraphicsBinder(m));
+
         if(MONITOR_CPU_USAGE)//该值默认为true，添加cpuinfo服务
             ServiceManager.addService("cpuinfo", new CpuBinder(m));
- 
+
         //向SM注册权限管理服务PermissionController
-       ServiceManager.addService("permission", newPermissionController(m));
- 
-      /*    重要说明：
-        向PackageManagerService查询package名为"android"的ApplicationInfo。
-        注意这句调用：虽然PKMS和AMS同属一个进程，但是二者交互仍然借助Context。
-        其实，此处完全可以直接调用PKMS的函数。为什么要费如此周折呢
-      */
-      ApplicationInfo info = //使用AMS的mContext对象
-               mSelf.mContext.getPackageManager().getApplicationInfo(
-                        "android",STOCK_PM_FLAGS);
- 
-          //①调用ActivityThread的installSystemApplicationInfo函数
-            mSystemThread.installSystemApplicationInfo(info);
-           synchronized (mSelf) {
-               //②此处涉及AMS对进程的管理，见下文分析
-               ProcessRecord app = mSelf.newProcessRecordLocked(
-                       mSystemThread.getApplicationThread(), info,
-                        info.processName);//注意，最后一个参数为字符串，值为“system”
-               app.persistent = true;
-               app.pid = MY_PID;
-               app.maxAdj = ProcessList.SYSTEM_ADJ;
-               //③保存该ProcessRecord对象
-               mSelf.mProcessNames.put(app.processName, app.info.uid, app);
-               synchronized (mSelf.mPidsSelfLocked) {
-                   mSelf.mPidsSelfLocked.put(app.pid, app);
-               }
-               //根据系统当前状态，调整进程的调度优先级和OOM_Adj，后续将详细分析该函数
-                mSelf.updateLruProcessLocked(app, true,true);
-           }
-        } ......//抛异常
-    }
+        ServiceManager.addService("permission", newPermissionController(m));
+
+        /*    重要说明：
+              向PackageManagerService查询package名为"android"的ApplicationInfo。
+              注意这句调用：虽然PKMS和AMS同属一个进程，但是二者交互仍然借助Context。
+              其实，此处完全可以直接调用PKMS的函数。为什么要费如此周折呢
+         */
+        ApplicationInfo info = //使用AMS的mContext对象
+            mSelf.mContext.getPackageManager().getApplicationInfo(
+                    "android",STOCK_PM_FLAGS);
+
+        //①调用ActivityThread的installSystemApplicationInfo函数
+        mSystemThread.installSystemApplicationInfo(info);
+        synchronized (mSelf) {
+            //②此处涉及AMS对进程的管理，见下文分析
+            ProcessRecord app = mSelf.newProcessRecordLocked(
+                    mSystemThread.getApplicationThread(), info,
+                    info.processName);//注意，最后一个参数为字符串，值为“system”
+            app.persistent = true;
+            app.pid = MY_PID;
+            app.maxAdj = ProcessList.SYSTEM_ADJ;
+            //③保存该ProcessRecord对象
+            mSelf.mProcessNames.put(app.processName, app.info.uid, app);
+            synchronized (mSelf.mPidsSelfLocked) {
+                mSelf.mPidsSelfLocked.put(app.pid, app);
+            }
+            //根据系统当前状态，调整进程的调度优先级和OOM_Adj，后续将详细分析该函数
+            mSelf.updateLruProcessLocked(app, true,true);
+        }
+    } ......//抛异常
+}
 ```
 
 在以上代码中列出了一个重要说明和两个关键点。
@@ -553,16 +553,16 @@ installSystemApplicationInfo函数的参数为一个ApplicationInfo对象，该�
 [-->ActivityThread.java::installSystemApplicationInfo]
 ```java
 public voidinstallSystemApplicationInfo(ApplicationInfo info) {
- synchronized (this) {
-   //返回的ContextImpl对象即之前在AMS的main函数一节中创建的那个对象
-   ContextImpl context = getSystemContext();
-    //又调用init初始化该Context，是不是重复调用init了？
-   context.init(new LoadedApk(this, "android", context, info,
-              CompatibilityInfo.DEFAULT_COMPATIBILITY_INFO), null, this);
-     //创建一个Profiler对象，用于性能统计
-     mProfiler = new Profiler();
-     }
- }
+    synchronized (this) {
+        //返回的ContextImpl对象即之前在AMS的main函数一节中创建的那个对象
+        ContextImpl context = getSystemContext();
+        //又调用init初始化该Context，是不是重复调用init了？
+        context.init(new LoadedApk(this, "android", context, info,
+                    CompatibilityInfo.DEFAULT_COMPATIBILITY_INFO), null, this);
+        //创建一个Profiler对象，用于性能统计
+        mProfiler = new Profiler();
+    }
+}
 ```
 
 在以上代码中看到调用context.init的地方，读者可能会有疑惑，getSystemContext函数将返回mSystemContext，而此mSystemContext在AMS的main函数中已经初始化过了，此处为何再次初始化呢？
@@ -614,11 +614,11 @@ IApplicationThread的Binder服务端在应用进程中还是在AMS中？
 [-->ActivityThread.java::scheduleStopActivity]
 ```java
 public final void scheduleStopActivity(IBindertoken, boolean showWindow,
-                                     intconfigChanges) {
-  queueOrSendMessage(//该函数内部将给一个Handler发送对应的消息
-               showWindow ? H.STOP_ACTIVITY_SHOW : H.STOP_ACTIVITY_HIDE,
-               token, 0, configChanges);
- }
+        intconfigChanges) {
+    queueOrSendMessage(//该函数内部将给一个Handler发送对应的消息
+            showWindow ? H.STOP_ACTIVITY_SHOW : H.STOP_ACTIVITY_HIDE,
+            token, 0, configChanges);
+}
 ```
 
 当AMS想要停止（stop）一个Activity时，会调用对应进程IApplicationThread Binder客户端的scheduleStopActivity函数。该函数服务端实现的就是向ActivityThread所在线程发送一个消息。在应用进程中，ActivityThread运行在主线程中，所以这个消息最终在主线程被处理。
@@ -630,17 +630,17 @@ IApplicationThread仅仅是AMS和另外一个进程交互的接口，除此之�
 [-->ActivityManagerService.java::newProcessRecordLocked]
 ```java
 final ProcessRecordnewProcessRecordLocked(IApplicationThread thread,
-                ApplicationInfo info, String customProcess) {
-   Stringproc = customProcess != null ? customProcess : info.processName;
-  BatteryStatsImpl.Uid.Proc ps = null;
-  BatteryStatsImpl stats = mBatteryStatsService.getActiveStatistics();
-  synchronized (stats) {
+        ApplicationInfo info, String customProcess) {
+    Stringproc = customProcess != null ? customProcess : info.processName;
+    BatteryStatsImpl.Uid.Proc ps = null;
+    BatteryStatsImpl stats = mBatteryStatsService.getActiveStatistics();
+    synchronized (stats) {
         //BSImpl将为该进程创建一个耗电量统计项
         ps =stats.getProcessStatsLocked(info.uid, proc);
-   }
-   //创建一个ProcessRecord对象，用于和其他进程通信的thread作为第一个参数
-   returnnew ProcessRecord(ps, thread, info, proc);
- }
+    }
+    //创建一个ProcessRecord对象，用于和其他进程通信的thread作为第一个参数
+    returnnew ProcessRecord(ps, thread, info, proc);
+}
 ```
 
 ProcessRecord的成员变量较多，先来看看再其构造函数中都初始化了哪些成员变量。
@@ -650,20 +650,20 @@ ProcessRecord的成员变量较多，先来看看再其构造函数中都初始�
 ProcessRecord(BatteryStatsImpl.Uid.Proc_batteryStats,
         IApplicationThread_thread,ApplicationInfo _info, String _processName) {
     batteryStats = _batteryStats; //用于电量统计
-     info =_info; //保存ApplicationInfo
+    info =_info; //保存ApplicationInfo
     processName = _processName; //保存进程名
-      //一个进程能运行多个Package，pkgList用于保存package名
+    //一个进程能运行多个Package，pkgList用于保存package名
     pkgList.add(_info.packageName);
-     thread= _thread;//保存IApplicationThread,通过它可以和应用进程交互
- 
-     //下面这些xxxAdj成员变量和进程调度优先级及OOM_adj有关。以后再分析它的作用
-     maxAdj= ProcessList.EMPTY_APP_ADJ;
+    thread= _thread;//保存IApplicationThread,通过它可以和应用进程交互
+
+    //下面这些xxxAdj成员变量和进程调度优先级及OOM_adj有关。以后再分析它的作用
+    maxAdj= ProcessList.EMPTY_APP_ADJ;
     hiddenAdj = ProcessList.HIDDEN_APP_MIN_ADJ;
     curRawAdj = setRawAdj = -100;
-     curAdj= setAdj = -100;
-   //用于控制该进程是否常驻内存（即使被杀掉，系统也会重启它），只有重要的进程才会有此待遇
+    curAdj= setAdj = -100;
+    //用于控制该进程是否常驻内存（即使被杀掉，系统也会重启它），只有重要的进程才会有此待遇
     persistent = false;
-     removed= false;
+    removed= false;
 }
 ```
 
@@ -671,10 +671,10 @@ ProcessRecord除保存和应用进程通信的IApplicationThread对象外，还�
 
 至此，已经创建了一个ProcessRecord对象，和其他应用进程不同的是，该对象对应的进程为SystemServer。为了彰显其特殊性，AMS为其中的一些成员变量设置了特定的值：
 ```java
-   app.persistent = true;//设置该值为true
-   app.pid =MY_PID;//设置pid为SystemServer的进程号
-   app.maxAdj= ProcessList.SYSTEM_ADJ;//设置最大OOM_Adj，系统进程默认值为-16
-   //另外，app的processName被设置成“system”
+app.persistent = true;//设置该值为true
+app.pid =MY_PID;//设置pid为SystemServer的进程号
+app.maxAdj= ProcessList.SYSTEM_ADJ;//设置最大OOM_Adj，系统进程默认值为-16
+//另外，app的processName被设置成“system”
 ```
 这时，一个针对SystemServer的ProcessRecord对象就创建完成了。此后AMS将把它并入自己的势力范围内。
 
@@ -705,30 +705,30 @@ AMS中有两个成员变量用于保存ProcessRecord，一个是mProcessNames，
 [-->ActivityManagerService.java::installSystemProviders]
 ```java
 public static final void installSystemProviders(){
- List<ProviderInfo> providers;
- synchronized (mSelf) {
-    /*
-    从mProcessNames找到进程名为“system”且uid为SYSTEM_UID的ProcessRecord，
-    返回值就是前面在installSystemApplication中创建的那个ProcessRecord，它代表
-    SystemServer进程
-    */
-   ProcessRecord app = mSelf.mProcessNames.get("system",Process.SYSTEM_UID);
- 
-    //①关键调用，见下文分析
-    providers= mSelf.generateApplicationProvidersLocked(app);
-    if(providers != null) {
-       ......//将非系统APK（即未设ApplicationInfo.FLAG_SYSTEM标志）提供的Provider
-      //从providers列表中去掉
+    List<ProviderInfo> providers;
+    synchronized (mSelf) {
+        /*
+           从mProcessNames找到进程名为“system”且uid为SYSTEM_UID的ProcessRecord，
+           返回值就是前面在installSystemApplication中创建的那个ProcessRecord，它代表
+           SystemServer进程
+         */
+        ProcessRecord app = mSelf.mProcessNames.get("system",Process.SYSTEM_UID);
+
+        //①关键调用，见下文分析
+        providers= mSelf.generateApplicationProvidersLocked(app);
+        if(providers != null) {
+            ......//将非系统APK（即未设ApplicationInfo.FLAG_SYSTEM标志）提供的Provider
+                //从providers列表中去掉
         }
-     if(providers != null) {//②为SystemServer进程安装Provider
-         mSystemThread.installSystemProviders(providers);
-     }
-    //监视Settings数据库中Secure表的变化，目前只关注long_press_timeout配置的变化
-    mSelf.mCoreSettingsObserver = new CoreSettingsObserver(mSelf);
- 
-     //UsageStatsService的工作，以后再讨论
-    mSelf.mUsageStatsService.monitorPackages();
- }
+        if(providers != null) {//②为SystemServer进程安装Provider
+            mSystemThread.installSystemProviders(providers);
+        }
+        //监视Settings数据库中Secure表的变化，目前只关注long_press_timeout配置的变化
+        mSelf.mCoreSettingsObserver = new CoreSettingsObserver(mSelf);
+
+        //UsageStatsService的工作，以后再讨论
+        mSelf.mUsageStatsService.monitorPackages();
+    }
 ```
 
 在代码中列出了两个关键调用，分别是：
@@ -746,36 +746,36 @@ public static final void installSystemProviders(){
 [-->ActivityManagerService.java::generateApplicationProvidersLocked]
 ```java
 private final List<ProviderInfo> generateApplicationProvidersLocked(
-                              ProcessRecordapp) {
-  List<ProviderInfo> providers = null;
-  try {
-         //①向PKMS查询满足要求的ProviderInfo，最重要的查询条件包括：进程名和进程uid
-         providers = AppGlobals.getPackageManager().
+        ProcessRecordapp) {
+    List<ProviderInfo> providers = null;
+    try {
+        //①向PKMS查询满足要求的ProviderInfo，最重要的查询条件包括：进程名和进程uid
+        providers = AppGlobals.getPackageManager().
             queryContentProviders(app.processName, app.info.uid,
-             STOCK_PM_FLAGS | PackageManager.GET_URI_PERMISSION_PATTERNS);
-        } ......
-   if(providers != null) {
-      finalint N = providers.size();
-      for(int i=0; i<N; i++) {
-         //②AMS对ContentProvider的管理，见下文解释
-        ProviderInfo cpi =   (ProviderInfo)providers.get(i);
-        ComponentName comp = new ComponentName(cpi.packageName, cpi.name);
-        ContentProviderRecord cpr = mProvidersByClass.get(comp);
-         if(cpr == null) {
-             cpr = new ContentProviderRecord(cpi, app.info, comp);
-              //ContentProvider在AMS中用ContentProviderRecord来表示
-              mProvidersByClass.put(comp, cpr);//保存到AMS的mProvidersByClass中
-          }
-          //将信息也保存到ProcessRecord中
-         app.pubProviders.put(cpi.name, cpr);
-          //保存PackageName到ProcessRecord中
-         app.addPackage(cpi.applicationInfo.packageName);
-         //对该APK进行dex优化
-         ensurePackageDexOpt(cpi.applicationInfo.packageName);
-         }
-     }
+                    STOCK_PM_FLAGS | PackageManager.GET_URI_PERMISSION_PATTERNS);
+    } ......
+    if(providers != null) {
+        finalint N = providers.size();
+        for(int i=0; i<N; i++) {
+            //②AMS对ContentProvider的管理，见下文解释
+            ProviderInfo cpi =   (ProviderInfo)providers.get(i);
+            ComponentName comp = new ComponentName(cpi.packageName, cpi.name);
+            ContentProviderRecord cpr = mProvidersByClass.get(comp);
+            if(cpr == null) {
+                cpr = new ContentProviderRecord(cpi, app.info, comp);
+                //ContentProvider在AMS中用ContentProviderRecord来表示
+                mProvidersByClass.put(comp, cpr);//保存到AMS的mProvidersByClass中
+            }
+            //将信息也保存到ProcessRecord中
+            app.pubProviders.put(cpi.name, cpr);
+            //保存PackageName到ProcessRecord中
+            app.addPackage(cpi.applicationInfo.packageName);
+            //对该APK进行dex优化
+            ensurePackageDexOpt(cpi.applicationInfo.packageName);
+        }
+    }
     returnproviders;
- }
+}
 ```
 
 由以上代码可知：generateApplicationProvidersLocked先从PKMS那里查询满足条件的ProviderInfo信息，而后将它们分别保存到AMS和ProcessRecord中对应的数据结构中。
@@ -787,39 +787,39 @@ private final List<ProviderInfo> generateApplicationProvidersLocked(
 [-->PackageManagerService.java::queryContentProviders]
 ```java
 public List<ProviderInfo>queryContentProviders(String processName,
-    int uid,int flags) {
-  ArrayList<ProviderInfo> finalList = null;
-  synchronized (mPackages) {
-     //还记得mProvidersByComponent的作用吗？它以ComponentName为key，保存了
-     //PKMS扫描APK得到的PackageParser.Provider信息。读者可参考图4-8
-     finalIterator<PackageParser.Provider> i =
-                      mProvidersByComponent.values().iterator();
-       while(i.hasNext()) {
-          final PackageParser.Provider p = i.next();
-           //下面的if语句将从这些Provider中搜索本例设置的processName为“system”，
-          //uid为SYSTEM_UID，flags为FLAG_SYSTEM的Provider
-          if (p.info.authority != null
-               && (processName == null
-                   ||(p.info.processName.equals(processName)
-                        &&p.info.applicationInfo.uid == uid))
-               && mSettings.isEnabledLPr(p.info, flags)
-                && (!mSafeMode || ( p.info.applicationInfo.flags
-                        &ApplicationInfo.FLAG_SYSTEM) != 0)) {
-                    if (finalList == null) {
-                        finalList = newArrayList<ProviderInfo>(3);
-                   }
-                 //由PackageParser.Provider得到ProviderInfo，并添加到finalList中
+        int uid,int flags) {
+    ArrayList<ProviderInfo> finalList = null;
+    synchronized (mPackages) {
+        //还记得mProvidersByComponent的作用吗？它以ComponentName为key，保存了
+        //PKMS扫描APK得到的PackageParser.Provider信息。读者可参考图4-8
+        finalIterator<PackageParser.Provider> i =
+            mProvidersByComponent.values().iterator();
+        while(i.hasNext()) {
+            final PackageParser.Provider p = i.next();
+            //下面的if语句将从这些Provider中搜索本例设置的processName为“system”，
+            //uid为SYSTEM_UID，flags为FLAG_SYSTEM的Provider
+            if (p.info.authority != null
+                    && (processName == null
+                        ||(p.info.processName.equals(processName)
+                            &&p.info.applicationInfo.uid == uid))
+                    && mSettings.isEnabledLPr(p.info, flags)
+                    && (!mSafeMode || ( p.info.applicationInfo.flags
+                            &ApplicationInfo.FLAG_SYSTEM) != 0)) {
+                if (finalList == null) {
+                    finalList = newArrayList<ProviderInfo>(3);
+                }
+                //由PackageParser.Provider得到ProviderInfo，并添加到finalList中
                 //关于Provider类及ProviderInfo类，可参考图4-5
-                  finalList.add(PackageParser.generateProviderInfo(p,flags));
-               }
-           }
+                finalList.add(PackageParser.generateProviderInfo(p,flags));
+            }
         }
- 
-   if(finalList != null)
-      //最终结果按provider的initOrder排序，该值用于表示初始化ContentProvider的顺序
-      Collections.sort(finalList, mProviderInitOrderSorter);
-   returnfinalList;//返回最终结果
- }
+    }
+
+    if(finalList != null)
+        //最终结果按provider的initOrder排序，该值用于表示初始化ContentProvider的顺序
+        Collections.sort(finalList, mProviderInitOrderSorter);
+    returnfinalList;//返回最终结果
+}
 ```
 
 queryContentProviders函数很简单，就是从PKMS那里查找满足条件的Provider，然后生成AMS使用的ProviderInfo信息。为何偏偏能找到SettingsProvider呢？来看它的AndroidManifest.xml文件，如图6-7所示。
@@ -861,9 +861,9 @@ AMS及ProcessRecord均使用了一个新的数据结构ContentProviderRecord来�
 [-->ActivityThread.java::installSystemProviders]
 ```java
 public final void installSystemProviders(List<ProviderInfo>providers) {
-  if(providers != null)
-    //调用installContentProviders，第一个参数真实类型是Application
-   installContentProviders(mInitialApplication, providers);
+    if(providers != null)
+        //调用installContentProviders，第一个参数真实类型是Application
+        installContentProviders(mInitialApplication, providers);
 }
 ```
 
@@ -872,38 +872,38 @@ installContentProviders这个函数是所有ContentProvider产生的必经之路
 [-->ActivityThread.java::installContentProviders]
 ```java
 private void installContentProviders(
-           Context context, List<ProviderInfo> providers) {
- 
-   finalArrayList<IActivityManager.ContentProviderHolder> results =
-                   new ArrayList<IActivityManager.ContentProviderHolder>();
- 
-  Iterator<ProviderInfo> i = providers.iterator();
-   while(i.hasNext()) {
-    ProviderInfo cpi = i.next();
-     //①调用installProvider函数，得到一个IContentProvider对象
-    IContentProvider cp = installProvider(context, null, cpi, false);
-     if (cp!= null) {
-       IActivityManager.ContentProviderHolder cph =
-                    newIActivityManager.ContentProviderHolder(cpi);
-       cph.provider = cp;
-       //将返回的cp保存到results数组中
-       results.add(cph);
-        synchronized(mProviderMap){
-         //mProviderRefCountMap，；类型为HashMap<IBinder,ProviderRefCount>，
-         //主要通过ProviderRefCount对ContentProvider进行引用计数控制，一旦引用计数
-         //降为零，表示系统中没有地方使用该ContentProvider，要考虑从系统中注销它
-         mProviderRefCountMap.put(cp.asBinder(), new ProviderRefCount(10000));
-         }
-     }
-   }
-    try {
-       //②调用AMS的publishContentProviders注册这些ContentProvider，第一个参数
-       //为ApplicationThread
-       ActivityManagerNative.getDefault().publishContentProviders(
-                      getApplicationThread(), results);
-        } ......
- 
+        Context context, List<ProviderInfo> providers) {
+
+    finalArrayList<IActivityManager.ContentProviderHolder> results =
+        new ArrayList<IActivityManager.ContentProviderHolder>();
+
+    Iterator<ProviderInfo> i = providers.iterator();
+    while(i.hasNext()) {
+        ProviderInfo cpi = i.next();
+        //①调用installProvider函数，得到一个IContentProvider对象
+        IContentProvider cp = installProvider(context, null, cpi, false);
+        if (cp!= null) {
+            IActivityManager.ContentProviderHolder cph =
+                newIActivityManager.ContentProviderHolder(cpi);
+            cph.provider = cp;
+            //将返回的cp保存到results数组中
+            results.add(cph);
+            synchronized(mProviderMap){
+                //mProviderRefCountMap，；类型为HashMap<IBinder,ProviderRefCount>，
+                //主要通过ProviderRefCount对ContentProvider进行引用计数控制，一旦引用计数
+                //降为零，表示系统中没有地方使用该ContentProvider，要考虑从系统中注销它
+                mProviderRefCountMap.put(cp.asBinder(), new ProviderRefCount(10000));
+            }
+        }
     }
+    try {
+        //②调用AMS的publishContentProviders注册这些ContentProvider，第一个参数
+        //为ApplicationThread
+        ActivityManagerNative.getDefault().publishContentProviders(
+                getApplicationThread(), results);
+    } ......
+
+}
 ```
 
 installContentProviders实际上是标准的ContentProvider安装时调用的程序。安装ContentProvider包括两方面的工作：
@@ -921,78 +921,78 @@ installContentProviders实际上是标准的ContentProvider安装时调用的程
 [-->ActivityThread.java::installProvider]
 ```java
 private IContentProvider installProvider(Contextcontext,
-           IContentProvider provider, ProviderInfoinfo, boolean noisy) {
-//注意本例所传的参数：context为mInitialApplication，provider为null,info不为null，
-// noisy为false
- 
-  ContentProvider localProvider = null;
-   if(provider == null) {
-      Context c = null;
-      ApplicationInfo ai = info.applicationInfo;
-       /*
-        下面这个if判断的作用就是为该ContentProvider找到对应的Application。
-        在AndroidManifest.xml中，ContentProvider是Application的子标签，所以
-       ContentProvider和Application有一种对应关系。在本例中，传入的context（
-        其实是mInitialApplication）代表的是framework-res.apk，而Provider代表的
-        是SettingsProvider。而SettingsProvider.apk所对应的Application还未创建，
-        所以下面的判断语句最终会进入最后的else分支
-      */
-       if(context.getPackageName().equals(ai.packageName)) {
-          c= context;
-       }else if (mInitialApplication != null &&
-                 mInitialApplication.getPackageName().equals(ai.packageName)){
-          c = mInitialApplication;
-       } else {
-         try{
-             //ai.packageName应该是SettingsProvider.apk的Package，
-             //名为“com.android.providers.settings”
-             //下面将创建一个Context，指向该APK
-              c = context.createPackageContext(ai.packageName,
-                           Context.CONTEXT_INCLUDE_CODE);
-           }
-       }//if(context.getPackageName().equals(ai.packageName))判断结束
- 
-       if (c == null)  return null;
-       try {
-         /*
-         为什么一定要找到对应的Context呢？除了ContentProvider和Application的
-         对应关系外，还有一个决定性原因：即只有对应的Context才能加载对应APK的Java字节码，
-         从而可通过反射机制生成ContentProvider实例
-        */
-         finaljava.lang.ClassLoader cl = c.getClassLoader();
-         //通过Java反射机制得到真正的ContentProvider，
-         //此处将得到一个SettingsProvider对象
-         localProvider=(ContentProvider)cl.loadClass(info.name).newInstance();
-         //从ContentProvider中取出其mTransport成员（见下文分析）
-         provider =localProvider.getIContentProvider();
-         if (provider == null) return null;
-         //初始化该ContentProvider，内部会调用其onCreate函数
-        localProvider.attachInfo(c, info);
-      }......
-   }//if(provider == null)判断结束
-  synchronized (mProviderMap) {
-      /*
-        ContentProvider必须指明一个和多个authority，在第4章曾经提到过，
-         在URL中host:port的组合表示一个authority。这个单词不太好理解，可简单
-         认为它用于指定ContentProvider的位置（类似网站的域名）
-     */
-      String names[] =PATTERN_SEMICOLON.split(info.authority);
-      for (int i=0; i<names.length; i++) {
-             ProviderClientRecord pr = newProviderClientRecord(names[i],
-                                           provider, localProvider);
+        IContentProvider provider, ProviderInfoinfo, boolean noisy) {
+    //注意本例所传的参数：context为mInitialApplication，provider为null,info不为null，
+    // noisy为false
+
+    ContentProvider localProvider = null;
+    if(provider == null) {
+        Context c = null;
+        ApplicationInfo ai = info.applicationInfo;
+        /*
+           下面这个if判断的作用就是为该ContentProvider找到对应的Application。
+           在AndroidManifest.xml中，ContentProvider是Application的子标签，所以
+           ContentProvider和Application有一种对应关系。在本例中，传入的context（
+           其实是mInitialApplication）代表的是framework-res.apk，而Provider代表的
+           是SettingsProvider。而SettingsProvider.apk所对应的Application还未创建，
+           所以下面的判断语句最终会进入最后的else分支
+         */
+        if(context.getPackageName().equals(ai.packageName)) {
+            c= context;
+        }else if (mInitialApplication != null &&
+                mInitialApplication.getPackageName().equals(ai.packageName)){
+            c = mInitialApplication;
+        } else {
+            try{
+                //ai.packageName应该是SettingsProvider.apk的Package，
+                //名为“com.android.providers.settings”
+                //下面将创建一个Context，指向该APK
+                c = context.createPackageContext(ai.packageName,
+                        Context.CONTEXT_INCLUDE_CODE);
+            }
+        }//if(context.getPackageName().equals(ai.packageName))判断结束
+
+        if (c == null)  return null;
+        try {
+            /*
+               为什么一定要找到对应的Context呢？除了ContentProvider和Application的
+               对应关系外，还有一个决定性原因：即只有对应的Context才能加载对应APK的Java字节码，
+               从而可通过反射机制生成ContentProvider实例
+             */
+            finaljava.lang.ClassLoader cl = c.getClassLoader();
+            //通过Java反射机制得到真正的ContentProvider，
+            //此处将得到一个SettingsProvider对象
+            localProvider=(ContentProvider)cl.loadClass(info.name).newInstance();
+            //从ContentProvider中取出其mTransport成员（见下文分析）
+            provider =localProvider.getIContentProvider();
+            if (provider == null) return null;
+            //初始化该ContentProvider，内部会调用其onCreate函数
+            localProvider.attachInfo(c, info);
+        }......
+    }//if(provider == null)判断结束
+    synchronized (mProviderMap) {
+        /*
+           ContentProvider必须指明一个和多个authority，在第4章曾经提到过，
+           在URL中host:port的组合表示一个authority。这个单词不太好理解，可简单
+           认为它用于指定ContentProvider的位置（类似网站的域名）
+         */
+        String names[] =PATTERN_SEMICOLON.split(info.authority);
+        for (int i=0; i<names.length; i++) {
+            ProviderClientRecord pr = newProviderClientRecord(names[i],
+                    provider, localProvider);
             try {
                 //下面这句对linkToDeath的调用颇让人费解，见下文分析
-                  provider.asBinder().linkToDeath(pr, 0);
-                  mProviderMap.put(names[i], pr);
-           }......
-      }//for循环结束
-     if(localProvider != null) {
-         // mLocalProviders用于存储由本进程创建的ContentProvider信息
-          mLocalProviders.put(provider.asBinder(),
-                   new ProviderClientRecord(null, provider, localProvider));
-              }
-     }//synchronized 结束
-  return provider;
+                provider.asBinder().linkToDeath(pr, 0);
+                mProviderMap.put(names[i], pr);
+            }......
+        }//for循环结束
+        if(localProvider != null) {
+            // mLocalProviders用于存储由本进程创建的ContentProvider信息
+            mLocalProviders.put(provider.asBinder(),
+                    new ProviderClientRecord(null, provider, localProvider));
+        }
+    }//synchronized 结束
+    return provider;
 }
 ```
 
@@ -1022,49 +1022,49 @@ publicContentProviders函数用于向AMS注册ContentProviders，其代码如下
 
 [-->ActivityManagerService.java::publishContentProviders]
 ```java
- publicfinal void publishContentProviders(IApplicationThread caller,
-                           List<ContentProviderHolder>providers) {
-  ......
-  synchronized(this){
-    //找到调用者所在的ProcessRecord对象
-   finalProcessRecord r = getRecordForAppLocked(caller);
-   ......
-   finallong origId = Binder.clearCallingIdentity();
-   final intN = providers.size();
-   for (inti=0; i<N; i++) {
-      ContentProviderHolder src = providers.get(i);
-       ......
-       //①注意：先从该ProcessRecord中找对应的ContentProviderRecord
-     ContentProviderRecord dst = r.pubProviders.get(src.info.name);
-      if(dst != null) {
-          ComponentName comp = newComponentName(dst.info.packageName,
-                                                         dst.info.name);
-          //以ComponentName为key，保存到mProvidersByClass中
-         mProvidersByClass.put(comp, dst);
-         String names[] = dst.info.authority.split(";");
-         for (int j = 0; j < names.length; j++)
-               mProvidersByName.put(names[j], dst);//以authority为key，保存
-              //mLaunchingProviders用于保存处于启动状态的Provider
-               int NL = mLaunchingProviders.size();
-               int j;
-               for (j=0; j<NL; j++) {
-                 if (mLaunchingProviders.get(j) ==dst) {
-                      mLaunchingProviders.remove(j);
-                      j--;
-                      NL--;
-                  }//
-              }//for (j=0; j<NL; j++)结束
-              synchronized (dst) {
-                  dst.provider = src.provider;
-                  dst.proc = r;
-                  dst.notifyAll();
-              }//synchronized结束
-             updateOomAdjLocked(r);//每发布一个Provider，需要调整对应进程的oom_adj
-            }//for(int j = 0; j < names.length; j++)结束
-        }//for(int i=0; i<N; i++)结束
-        Binder.restoreCallingIdentity(origId);
-    }// synchronized(this)结束
- }
+publicfinal void publishContentProviders(IApplicationThread caller,
+        List<ContentProviderHolder>providers) {
+    ......
+        synchronized(this){
+            //找到调用者所在的ProcessRecord对象
+            finalProcessRecord r = getRecordForAppLocked(caller);
+            ......
+                finallong origId = Binder.clearCallingIdentity();
+            final intN = providers.size();
+            for (inti=0; i<N; i++) {
+                ContentProviderHolder src = providers.get(i);
+                ......
+                    //①注意：先从该ProcessRecord中找对应的ContentProviderRecord
+                    ContentProviderRecord dst = r.pubProviders.get(src.info.name);
+                if(dst != null) {
+                    ComponentName comp = newComponentName(dst.info.packageName,
+                            dst.info.name);
+                    //以ComponentName为key，保存到mProvidersByClass中
+                    mProvidersByClass.put(comp, dst);
+                    String names[] = dst.info.authority.split(";");
+                    for (int j = 0; j < names.length; j++)
+                        mProvidersByName.put(names[j], dst);//以authority为key，保存
+                    //mLaunchingProviders用于保存处于启动状态的Provider
+                    int NL = mLaunchingProviders.size();
+                    int j;
+                    for (j=0; j<NL; j++) {
+                        if (mLaunchingProviders.get(j) ==dst) {
+                            mLaunchingProviders.remove(j);
+                            j--;
+                            NL--;
+                        }//
+                    }//for (j=0; j<NL; j++)结束
+                    synchronized (dst) {
+                        dst.provider = src.provider;
+                        dst.proc = r;
+                        dst.notifyAll();
+                    }//synchronized结束
+                    updateOomAdjLocked(r);//每发布一个Provider，需要调整对应进程的oom_adj
+                }//for(int j = 0; j < names.length; j++)结束
+            }//for(int i=0; i<N; i++)结束
+            Binder.restoreCallingIdentity(origId);
+        }// synchronized(this)结束
+}
 ```
 
 这里应解释一下publishContentProviders的工作流程：
@@ -1092,68 +1092,68 @@ AMS的installSystemProviders函数其实就是用于启动SettingsProvider，其
 [-->ActivityManagerService.java::systemReady]
 ```java
 public void systemReady(final RunnablegoingCallback) {
-     synchronized(this){
-       ......
-       if(!mDidUpdate) {//判断是否为升级
-           if(mWaitingUpdate)   return; //升级未完成，直接返回
-           //准备PRE_BOOT_COMPLETED广播
-            Intent intent = newIntent(Intent.ACTION_PRE_BOOT_COMPLETED);
-           List<ResolveInfo> ris = null;
-           //向PKMS查询该广播的接收者
-            ris= AppGlobals.getPackageManager().queryIntentReceivers(
-                                intent, null,0);
-            ......//从返回的结果中删除那些非系统APK的广播接收者
-            intent.addFlags(Intent.FLAG_RECEIVER_BOOT_UPGRADE);
-            //读取/data/system/called_pre_boots.dat文件，这里存储了上次启动时候已经
-             //接收并处理PRE_BOOT_COMPLETED广播的组件。鉴于该广播的特殊性，系统希望
-           //该广播仅被这些接收者处理一次
-             ArrayList<ComponentName>lastDoneReceivers =
-                                          readLastDonePreBootReceivers();
-              final ArrayList<ComponentName> doneReceivers=
-                                         newArrayList<ComponentName>();
-             ......//从PKMS返回的接收者中删除那些已经处理过该广播的对象
- 
-            for (int i=0; i<ris.size(); i++) {
-                ActivityInfo ai = ris.get(i).activityInfo;
-                 ComponentName comp = newComponentName(ai.packageName, ai.name);
-                doneReceivers.add(comp);
-                intent.setComponent(comp);
-                IIntentReceiver finisher = null;
-                if (i == ris.size()-1) {
-                    //为最后一个广播接收者注册一个回调通知，当该接收者处理完广播后，将调用该
-                   //回调
-                   finisher = new IIntentReceiver.Stub() {
-                       public voidperformReceive(Intent intent, int resultCode,
+    synchronized(this){
+        ......
+            if(!mDidUpdate) {//判断是否为升级
+                if(mWaitingUpdate)   return; //升级未完成，直接返回
+                //准备PRE_BOOT_COMPLETED广播
+                Intent intent = newIntent(Intent.ACTION_PRE_BOOT_COMPLETED);
+                List<ResolveInfo> ris = null;
+                //向PKMS查询该广播的接收者
+                ris= AppGlobals.getPackageManager().queryIntentReceivers(
+                        intent, null,0);
+                ......//从返回的结果中删除那些非系统APK的广播接收者
+                    intent.addFlags(Intent.FLAG_RECEIVER_BOOT_UPGRADE);
+                //读取/data/system/called_pre_boots.dat文件，这里存储了上次启动时候已经
+                //接收并处理PRE_BOOT_COMPLETED广播的组件。鉴于该广播的特殊性，系统希望
+                //该广播仅被这些接收者处理一次
+                ArrayList<ComponentName>lastDoneReceivers =
+                    readLastDonePreBootReceivers();
+                final ArrayList<ComponentName> doneReceivers=
+                    newArrayList<ComponentName>();
+                ......//从PKMS返回的接收者中删除那些已经处理过该广播的对象
+
+                    for (int i=0; i<ris.size(); i++) {
+                        ActivityInfo ai = ris.get(i).activityInfo;
+                        ComponentName comp = newComponentName(ai.packageName, ai.name);
+                        doneReceivers.add(comp);
+                        intent.setComponent(comp);
+                        IIntentReceiver finisher = null;
+                        if (i == ris.size()-1) {
+                            //为最后一个广播接收者注册一个回调通知，当该接收者处理完广播后，将调用该
+                            //回调
+                            finisher = new IIntentReceiver.Stub() {
+                                public voidperformReceive(Intent intent, int resultCode,
                                         Stringdata, Bundle extras, boolean ordered,
                                         booleansticky) {
-                                 mHandler.post(newRunnable() {
-                                   public void run(){
-                                   synchronized(ActivityManagerService.this) {
-                                       mDidUpdate = true;
-                                    }
-                                 //保存那些处理过该广播的接收者信息
-                                 writeLastDonePreBootReceivers(doneReceivers);
-                                  showBootMessage(mContext.getText(
-                                        R.string.android_upgrading_complete),
-                                        false);
-                                   systemReady(goingCallback);
-                                }//run结束
-                            });// new Runnable结束
-                        }//performReceive结束
-                  };//finisher创建结束
-              }// if (i == ris.size()-1)判断结束
-           //发送广播给指定的接收者
-             broadcastIntentLocked(null, null, intent,null, finisher,
-              0, null, null, null, true, false, MY_PID, Process.SYSTEM_UID);
-            if (finisher != null)   mWaitingUpdate = true;
-         }
-       if(mWaitingUpdate)    return;
-       mDidUpdate= true;
-  }
-           
-   mSystemReady = true;
-    if(!mStartRunning)  return;
-   }//synchronized(this)结束
+                                    mHandler.post(newRunnable() {
+                                            public void run(){
+                                            synchronized(ActivityManagerService.this) {
+                                            mDidUpdate = true;
+                                            }
+                                            //保存那些处理过该广播的接收者信息
+                                            writeLastDonePreBootReceivers(doneReceivers);
+                                            showBootMessage(mContext.getText(
+                                                    R.string.android_upgrading_complete),
+                                                false);
+                                            systemReady(goingCallback);
+                                            }//run结束
+                                            });// new Runnable结束
+                                }//performReceive结束
+                            };//finisher创建结束
+                        }// if (i == ris.size()-1)判断结束
+                        //发送广播给指定的接收者
+                        broadcastIntentLocked(null, null, intent,null, finisher,
+                                0, null, null, null, true, false, MY_PID, Process.SYSTEM_UID);
+                        if (finisher != null)   mWaitingUpdate = true;
+                    }
+                if(mWaitingUpdate)    return;
+                mDidUpdate= true;
+            }
+
+        mSystemReady = true;
+        if(!mStartRunning)  return;
+    }//synchronized(this)结束
 ```
 
 由以上代码可知，systemReady第一阶段的工作并不轻松，其主要职责是发送并处理与PRE_BOOT_COMPLETED广播相关的事情。目前代码中还没有接收该广播的地方，不过从代码中的注释中可猜测到，该广播接收者的工作似乎和系统升级有关。
@@ -1166,37 +1166,37 @@ public void systemReady(final RunnablegoingCallback) {
 
 [-->ActivityManagerService.java::systemReady]
 ```java
-   ArrayList<ProcessRecord>procsToKill = null;
-  synchronized(mPidsSelfLocked) {
-     for(int i=mPidsSelfLocked.size()-1; i>=0; i--) {
-         ProcessRecord proc = mPidsSelfLocked.valueAt(i);
-          //从mPidsSelfLocked中找到那些先于AMS启动的进程，哪些进程有如此能耐，
-         //在AMS还未启动完毕就启动完了呢？对，那些声明了persistent为true的进程有可能
-          if(!isAllowedWhileBooting(proc.info)){
+ArrayList<ProcessRecord>procsToKill = null;
+synchronized(mPidsSelfLocked) {
+    for(int i=mPidsSelfLocked.size()-1; i>=0; i--) {
+        ProcessRecord proc = mPidsSelfLocked.valueAt(i);
+        //从mPidsSelfLocked中找到那些先于AMS启动的进程，哪些进程有如此能耐，
+        //在AMS还未启动完毕就启动完了呢？对，那些声明了persistent为true的进程有可能
+        if(!isAllowedWhileBooting(proc.info)){
             if (procsToKill == null)
-                 procsToKill = new ArrayList<ProcessRecord>();
-             procsToKill.add(proc);
-           }
-       }//for结束
-   }// synchronized结束
-       
-   synchronized(this){
-       if(procsToKill != null) {
-          for (int i=procsToKill.size()-1; i>=0; i--) {
-             ProcessRecord proc = procsToKill.get(i);
-             //把这些进程关闭，removeProcessLocked函数比较复杂，以后再分析
-              removeProcessLocked(proc, true, false);
-           }
+                procsToKill = new ArrayList<ProcessRecord>();
+            procsToKill.add(proc);
         }
-      //至此，系统已经准备完毕
-      mProcessesReady = true;
-   }
-  synchronized(this) {
-     if(mFactoryTest == SystemServer.FACTORY_TEST_LOW_LEVEL) {
-     }//和工厂测试有关，不对此进行讨论
-   }
-   //查询Settings数据，获取一些配置参数
-   retrieveSettings();
+    }//for结束
+}// synchronized结束
+
+synchronized(this){
+    if(procsToKill != null) {
+        for (int i=procsToKill.size()-1; i>=0; i--) {
+            ProcessRecord proc = procsToKill.get(i);
+            //把这些进程关闭，removeProcessLocked函数比较复杂，以后再分析
+            removeProcessLocked(proc, true, false);
+        }
+    }
+    //至此，系统已经准备完毕
+    mProcessesReady = true;
+}
+synchronized(this) {
+    if(mFactoryTest == SystemServer.FACTORY_TEST_LOW_LEVEL) {
+    }//和工厂测试有关，不对此进行讨论
+}
+//查询Settings数据，获取一些配置参数
+retrieveSettings();
 ```
 
 systemReady第二阶段的工作包括：
@@ -1213,34 +1213,34 @@ systemReady第二阶段的工作包括：
 ```java
 //调用systemReady传入的参数，它是一个Runnable对象，下节将分析此函数
 if (goingCallback != null) goingCallback.run();
-       
- synchronized (this) {
-     if(mFactoryTest != SystemServer.FACTORY_TEST_LOW_LEVEL) {
+
+synchronized (this) {
+    if(mFactoryTest != SystemServer.FACTORY_TEST_LOW_LEVEL) {
         try{
             //从PKMS中查询那些persistent为1的ApplicationInfo
             List apps = AppGlobals.getPackageManager().
-                           getPersistentApplications(STOCK_PM_FLAGS);
+                getPersistentApplications(STOCK_PM_FLAGS);
             if (apps != null) {
                 int N = apps.size();
-                 int i;
-                 for (i=0; i<N; i++) {
-                   ApplicationInfo info = (ApplicationInfo)apps.get(i);
-                   //由于framework-res.apk已经由系统启动，所以这里需要把它去除
-                   //framework-res.apk的packageName为"android"
-                   if (info != null && !info.packageName.equals("android"))
+                int i;
+                for (i=0; i<N; i++) {
+                    ApplicationInfo info = (ApplicationInfo)apps.get(i);
+                    //由于framework-res.apk已经由系统启动，所以这里需要把它去除
+                    //framework-res.apk的packageName为"android"
+                    if (info != null && !info.packageName.equals("android"))
                         addAppLocked(info);//启动该Application所在的进程
-                      }
-                   }
-               }......
-      }
- 
-   mBooting= true; //设置mBooting变量为true，其作用后面会介绍
-   try {
+                }
+            }
+        }......
+    }
+
+    mBooting= true; //设置mBooting变量为true，其作用后面会介绍
+    try {
         if(AppGlobals.getPackageManager().hasSystemUidErrors()) {
             ......//处理那些Uid有错误的Application
-      }......
-       //启动全系统第一个Activity，即Home
-      mMainStack.resumeTopActivityLocked(null);
+        }......
+        //启动全系统第一个Activity，即Home
+        mMainStack.resumeTopActivityLocked(null);
     }// synchronized结束
 }
 ```
@@ -1260,15 +1260,15 @@ systemReady第三阶段的工作有3项：
 [-->SystemServer.java::ServerThread.run]
 ```java
 ActivityManagerService.self().systemReady(newRunnable() {
-    publicvoid run() {
-   startSystemUi(contextF);//启动SystemUi
-   //调用其他服务的systemReady函数
-    if(batteryF != null) batteryF.systemReady();
-    if(networkManagementF != null) networkManagementF.systemReady();
-    ......
-    Watchdog.getInstance().start();//启动Watchdog
-    ......//调用其他服务的systemReady函数
- }
+        publicvoid run() {
+        startSystemUi(contextF);//启动SystemUi
+        //调用其他服务的systemReady函数
+        if(batteryF != null) batteryF.systemReady();
+        if(networkManagementF != null) networkManagementF.systemReady();
+        ......
+        Watchdog.getInstance().start();//启动Watchdog
+        ......//调用其他服务的systemReady函数
+        }
  ```
 
 run函数比较简单，执行的工作如下：
@@ -1285,11 +1285,11 @@ startSystemUi的代码如下：
 
 ```java
 static final void startSystemUi(Context context) {
-     Intentintent = new Intent();
-     intent.setComponent(new ComponentName("com.android.systemui",
-                 "com.android.systemui.SystemUIService"));
-       context.startService(intent);
- }
+    Intentintent = new Intent();
+    intent.setComponent(new ComponentName("com.android.systemui",
+                "com.android.systemui.SystemUIService"));
+    context.startService(intent);
+}
 ```
 
 SystemUIService由SystemUi.apk提供，它实现了系统的状态栏。
@@ -1303,18 +1303,18 @@ SystemUIService由SystemUi.apk提供，它实现了系统的状态栏。
 [-->ActivityStack.java::resumeTopActivityLocked]
 ```java
 final booleanresumeTopActivityLocked(ActivityRecord prev) {
-   //找到下一个要启动的Activity
-  ActivityRecord next = topRunningActivityLocked(null);
-   finalboolean userLeaving = mUserLeaving;
-  mUserLeaving = false;
-   if (next== null) {
-       //如果下一个要启动的ActivityRecord为空，则启动Home
-       if(mMainStack) {//全系统就一个ActivityStack，所以mMainStack永远为true
-          //mService指向AMS
-          return mService.startHomeActivityLocked();//mService指向AMS
+    //找到下一个要启动的Activity
+    ActivityRecord next = topRunningActivityLocked(null);
+    finalboolean userLeaving = mUserLeaving;
+    mUserLeaving = false;
+    if (next== null) {
+        //如果下一个要启动的ActivityRecord为空，则启动Home
+        if(mMainStack) {//全系统就一个ActivityStack，所以mMainStack永远为true
+            //mService指向AMS
+            return mService.startHomeActivityLocked();//mService指向AMS
         }
     }
-   ......//以后再详细分析
+    ......//以后再详细分析
 }
 ```
 
@@ -1323,31 +1323,31 @@ final booleanresumeTopActivityLocked(ActivityRecord prev) {
 [-->ActivityManagerService.java::startHomeActivityLocked]
 ```java
 boolean startHomeActivityLocked() {
-   Intentintent = new Intent( mTopAction,
-               mTopData != null ? Uri.parse(mTopData) :null);
-   intent.setComponent(mTopComponent);
-   if(mFactoryTest != SystemServer.FACTORY_TEST_LOW_LEVEL)
-       intent.addCategory(Intent.CATEGORY_HOME);//添加Category为HOME类别
-    
+    Intentintent = new Intent( mTopAction,
+            mTopData != null ? Uri.parse(mTopData) :null);
+    intent.setComponent(mTopComponent);
+    if(mFactoryTest != SystemServer.FACTORY_TEST_LOW_LEVEL)
+        intent.addCategory(Intent.CATEGORY_HOME);//添加Category为HOME类别
+
     //向PKMS查询满足条件的ActivityInfo
-   ActivityInfo aInfo =
-           intent.resolveActivityInfo(mContext.getPackageManager(),
-                                  STOCK_PM_FLAGS);
+    ActivityInfo aInfo =
+        intent.resolveActivityInfo(mContext.getPackageManager(),
+                STOCK_PM_FLAGS);
     if(aInfo != null) {
-       intent.setComponent(new ComponentName(
-                          aInfo.applicationInfo.packageName,aInfo.name));
-       ProcessRecordapp = getProcessRecordLocked(aInfo.processName,
-                                             aInfo.applicationInfo.uid);
-       //在正常情况下，app应该为null，因为刚开机，Home进程肯定还没启动
-       if(app == null || app.instrumentationClass == null) {
+        intent.setComponent(new ComponentName(
+                    aInfo.applicationInfo.packageName,aInfo.name));
+        ProcessRecordapp = getProcessRecordLocked(aInfo.processName,
+                aInfo.applicationInfo.uid);
+        //在正常情况下，app应该为null，因为刚开机，Home进程肯定还没启动
+        if(app == null || app.instrumentationClass == null) {
             intent.setFlags(intent.getFlags()|
-                                 Intent.FLAG_ACTIVITY_NEW_TASK);
+                    Intent.FLAG_ACTIVITY_NEW_TASK);
             //启动Home
             mMainStack.startActivityLocked(null, intent, null, null, 0, aInfo,
-                                  null, null, 0, 0, 0, false, false,null);
-          }
-      }//if(aInfo != null)判断结束
-  return true;
+                    null, null, 0, 0, 0, false, false,null);
+        }
+    }//if(aInfo != null)判断结束
+    return true;
 }
 ```
 
@@ -1362,52 +1362,52 @@ boolean startHomeActivityLocked() {
 [-->ActivityStack.java::activityIdleInternal]
 ```java
 final ActivityRecord activityIdleInternal(IBindertoken, boolean fromTimeout,
-           Configuration config) {
-   booleanbooting = false;
-   ......
-   if(mMainStack) {
-      booting = mService.mBooting; //在systemReady的第三阶段工作中设置该值为true
-      mService.mBooting = false;
-   }
-   ......
-   if(booting)   mService.finishBooting();//调用AMS的finishBooting函数
+        Configuration config) {
+    booleanbooting = false;
+    ......
+        if(mMainStack) {
+            booting = mService.mBooting; //在systemReady的第三阶段工作中设置该值为true
+            mService.mBooting = false;
+        }
+    ......
+        if(booting)   mService.finishBooting();//调用AMS的finishBooting函数
 }
 [-->ActivityManagerService.java::finishBooting]
 final void finishBooting() {
-   IntentFilter pkgFilter = new IntentFilter();
-   pkgFilter.addAction(Intent.ACTION_QUERY_PACKAGE_RESTART);
-   pkgFilter.addDataScheme("package");
-   mContext.registerReceiver(new BroadcastReceiver() {
-      public void onReceive(Context context, Intent intent) {
-       ......//处理Package重启的广播
-      }
-    }, pkgFilter);
-       
-  synchronized (this) {
-      finalint NP = mProcessesOnHold.size();
-      if (NP> 0) {
-          ArrayList<ProcessRecord> procs =
-                   new ArrayList<ProcessRecord>(mProcessesOnHold);
-           for(int ip=0; ip<NP; ip++)//启动那些等待启动的进程
-             startProcessLocked(procs.get(ip), "on-hold", null);
-           }
-       if(mFactoryTest != SystemServer.FACTORY_TEST_LOW_LEVEL) {
-          //每15钟检查系统各应用进程使用电量的情况，如果某进程使用WakeLock时间
-          //过长，AMS将关闭该进程
-          Message nmsg =
-                      mHandler.obtainMessage(CHECK_EXCESSIVE_WAKE_LOCKS_MSG);
-          mHandler.sendMessageDelayed(nmsg, POWER_CHECK_DELAY);
-           //设置系统属性sys.boot_completed的值为1
-           SystemProperties.set("sys.boot_completed","1");
-          //发送ACTION_BOOT_COMPLETED广播
-          broadcastIntentLocked(null, null,
-                        newIntent(Intent.ACTION_BOOT_COMPLETED, null),
-                        null, null, 0, null,null,
-                       android.Manifest.permission.RECEIVE_BOOT_COMPLETED,
-                        false, false, MY_PID,Process.SYSTEM_UID);
-           }
+    IntentFilter pkgFilter = new IntentFilter();
+    pkgFilter.addAction(Intent.ACTION_QUERY_PACKAGE_RESTART);
+    pkgFilter.addDataScheme("package");
+    mContext.registerReceiver(new BroadcastReceiver() {
+            public void onReceive(Context context, Intent intent) {
+            ......//处理Package重启的广播
+            }
+            }, pkgFilter);
+
+    synchronized (this) {
+        finalint NP = mProcessesOnHold.size();
+        if (NP> 0) {
+            ArrayList<ProcessRecord> procs =
+                new ArrayList<ProcessRecord>(mProcessesOnHold);
+            for(int ip=0; ip<NP; ip++)//启动那些等待启动的进程
+                startProcessLocked(procs.get(ip), "on-hold", null);
         }
- }
+        if(mFactoryTest != SystemServer.FACTORY_TEST_LOW_LEVEL) {
+            //每15钟检查系统各应用进程使用电量的情况，如果某进程使用WakeLock时间
+            //过长，AMS将关闭该进程
+            Message nmsg =
+                mHandler.obtainMessage(CHECK_EXCESSIVE_WAKE_LOCKS_MSG);
+            mHandler.sendMessageDelayed(nmsg, POWER_CHECK_DELAY);
+            //设置系统属性sys.boot_completed的值为1
+            SystemProperties.set("sys.boot_completed","1");
+            //发送ACTION_BOOT_COMPLETED广播
+            broadcastIntentLocked(null, null,
+                    newIntent(Intent.ACTION_BOOT_COMPLETED, null),
+                    null, null, 0, null,null,
+                    android.Manifest.permission.RECEIVE_BOOT_COMPLETED,
+                    false, false, MY_PID,Process.SYSTEM_UID);
+        }
+    }
+}
 ```
 
 原来，在Home启动成功后，AMS才发送ACTION_BOOT_COMPLETED广播。
@@ -1441,10 +1441,10 @@ am和pm（见4.4.2节）一样，也是一个脚本，它用来和AMS交互，�
 [-->Am.java::main]
 ```java
 public static void main(String[] args) {
-   try {
+    try {
         (newAm()).run(args);//构造一个Am对象，并调用run函数
-   }......
- }
+    }......
+}
 ```
 
 am的用法很多，读者可通过adb shell登录手机，然后执行am，这样就能获取它的用法。
@@ -1469,14 +1469,14 @@ am的用法很多，读者可通过adb shell登录手机，然后执行am，这�
 
 [-->Am.java::run]
 ```java
- privatevoid run(String[] args) throws Exception {
+privatevoid run(String[] args) throws Exception {
 
-  mAm =ActivityManagerNative.getDefault();
-  mArgs =args;
-  String op= args[0];
-  mNextArg =1;
-  if (op.equals("start"))  runStart();//用于启动Activity
-  else if ......//处理其他参数
+    mAm =ActivityManagerNative.getDefault();
+    mArgs =args;
+    String op= args[0];
+    mNextArg =1;
+    if (op.equals("start"))  runStart();//用于启动Activity
+    else if ......//处理其他参数
 }
 ```
 
@@ -1484,42 +1484,42 @@ runStart函数用于处理Activity启动请求，其代码如下：
 
 [-->Am.java::runStart]
 ```java
- privatevoid runStart() throws Exception {
+privatevoid runStart() throws Exception {
     Intentintent = makeIntent();
- 
+
     StringmimeType = intent.getType();
     //获取mimeType，
     if(mimeType == null && intent.getData() != null
-         && "content".equals(intent.getData().getScheme())) {
+            && "content".equals(intent.getData().getScheme())) {
         mimeType = mAm.getProviderMimeType(intent.getData());
     }
- 
+
     if(mStopOption) {
-     ......//处理-S选项，即先停止对应的Activity，再启动它
+        ......//处理-S选项，即先停止对应的Activity，再启动它
     }
- 
+
     //FLAG_ACTIVITY_NEW_TASK这个标签很重要
-   intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
- 
-   ParcelFileDescriptor fd = null;
- 
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+    ParcelFileDescriptor fd = null;
+
     if(mProfileFile != null) {
-         try{......//处理-P选项，用于性能统计
+        try{......//处理-P选项，用于性能统计
             fd = ParcelFileDescriptor.open(......)
-          }......
+        }......
     }
- 
-   IActivityManager.WaitResult result = null;
+
+    IActivityManager.WaitResult result = null;
     int res;
     if(mWaitOption) {//mWaitOption控制是否等待启动结果，如果有-W选项，则该值为true
-               //调用AMS的startActivityAndWait函数
+        //调用AMS的startActivityAndWait函数
         result = mAm.startActivityAndWait(null,intent, mimeType,
-                        null, 0, null, null, 0,false, mDebugOption,
-                        mProfileFile, fd,mProfileAutoStop);
-         res= result.result;
-     } ......
-     ......//打印结果
- }
+                null, 0, null, null, 0,false, mDebugOption,
+                mProfileFile, fd,mProfileAutoStop);
+        res= result.result;
+    } ......
+    ......//打印结果
+}
 ```
 
 am最终将调用AMS的startActivityAndWait函数来处理这次启动请求。下面将深入到AMS内部去继续这次旅程。
@@ -1532,28 +1532,28 @@ startActivityAndWait函数有很多参数，先来认识一下它们。
 
 [-->ActiivtyManagerService.java::startActivityAndWait原型]
 ```java
- publicfinal WaitResult startActivityAndWait(
-   /*
-    在绝大多数情况下，一个Acitivity的启动是由一个应用进程发起的，IApplicationThread是
-    应用进程和AMS交互的通道，也可算是调用进程的标示，在本例中，AM并非一个应用进程，所以
-    传递的caller为null
-   */
-  IApplicationThread caller,
-   //Intent及resolvedType，在本例中，resolvedType为null
-   Intentintent, String resolvedType,
-   //下面两个参数和授权有关，读者可参考第3章对CopyboardService分析中介绍的授权知识
-   Uri[] grantedUriPermissions,//在本例中为null
-   intgrantedMode,//在本例中为0
-   IBinder resultTo,//在本例中为null，用于接收startActivityForResult的结果
-   StringresultWho,//在本例中为null
-   //在本例中为0，该值的具体意义由调用者解释。如果该值大于等于0，则AMS内部保存该值，
-   //并通过onActivityResult返回给调用者
-   int requestCode,
-   boolean onlyIfNeeded,//本例为false
-   boolean debug,//是否调试目标进程
-   //下面3个参数和性能统计有关
-   StringprofileFile,
-   ParcelFileDescriptor profileFd, booleanautoStopProfiler)
+publicfinal WaitResult startActivityAndWait(
+        /*
+           在绝大多数情况下，一个Acitivity的启动是由一个应用进程发起的，IApplicationThread是
+           应用进程和AMS交互的通道，也可算是调用进程的标示，在本例中，AM并非一个应用进程，所以
+           传递的caller为null
+         */
+        IApplicationThread caller,
+        //Intent及resolvedType，在本例中，resolvedType为null
+        Intentintent, String resolvedType,
+        //下面两个参数和授权有关，读者可参考第3章对CopyboardService分析中介绍的授权知识
+        Uri[] grantedUriPermissions,//在本例中为null
+        intgrantedMode,//在本例中为0
+        IBinder resultTo,//在本例中为null，用于接收startActivityForResult的结果
+        StringresultWho,//在本例中为null
+        //在本例中为0，该值的具体意义由调用者解释。如果该值大于等于0，则AMS内部保存该值，
+        //并通过onActivityResult返回给调用者
+        int requestCode,
+        boolean onlyIfNeeded,//本例为false
+        boolean debug,//是否调试目标进程
+        //下面3个参数和性能统计有关
+        StringprofileFile,
+        ParcelFileDescriptor profileFd, booleanautoStopProfiler)
 ```
 
 关于以上代码中一些参数的具体作用，以后碰到时会再作分析。建议读者先阅读SDK文档中关于Activity类定义的几个函数，如startActivity、startActivityForResult及onActivityResult等。
@@ -1562,21 +1562,21 @@ startActivityAndWait的代码如下：
 
 [-->ActivityManagerService.java::startActivityAndWait]
 ```java
- publicfinal WaitResult startActivityAndWait(IApplicationThread caller,
-      Intent intent, String resolvedType, Uri[]grantedUriPermissions,
-      int grantedMode, IBinder resultTo,StringresultWho, int requestCode,
-      booleanonlyIfNeeded, boolean debug,String profileFile,
-      ParcelFileDescriptor profileFd, booleanautoStopProfiler) {
-     //创建WaitResult对象用于存储处理结果
+publicfinal WaitResult startActivityAndWait(IApplicationThread caller,
+        Intent intent, String resolvedType, Uri[]grantedUriPermissions,
+        int grantedMode, IBinder resultTo,StringresultWho, int requestCode,
+        booleanonlyIfNeeded, boolean debug,String profileFile,
+        ParcelFileDescriptor profileFd, booleanautoStopProfiler) {
+    //创建WaitResult对象用于存储处理结果
     WaitResult res = new WaitResult();
     //mMainStack为ActivityStack类型，调用它的startActivityMayWait函数
-   mMainStack.startActivityMayWait(caller, -1, intent, resolvedType,
-               grantedUriPermissions, grantedMode, resultTo, resultWho,
-               requestCode, onlyIfNeeded, debug, profileFile, profileFd,
-              autoStopProfiler, res, null);//最后一个参数为Configuration，
+    mMainStack.startActivityMayWait(caller, -1, intent, resolvedType,
+            grantedUriPermissions, grantedMode, resultTo, resultWho,
+            requestCode, onlyIfNeeded, debug, profileFile, profileFd,
+            autoStopProfiler, res, null);//最后一个参数为Configuration，
     //在本例中为null
     returnres;
- }
+}
 ```
 
 mMainStack为AMS的成员变量，类型为ActivityStack，该类是Activity调度的核心角色。正式分析它之前，有必要先介绍一下相关的基础知识。
@@ -1658,36 +1658,36 @@ Android设计了一个ActivityStack类来负责上述工作，它的组成如图
 [-->ActivityStack.java::topRunningActivityLocked]
 ```java
 /* topRunningActivityLocked:
-找到栈中第一个与notTop不同的，并且不处于finishing状态的ActivityRecord。当notTop为
-null时，该函数即返回栈中第一个需要显示的ActivityRecord。提醒读者，栈的出入口只能是栈顶。
-虽然mHistory是一个数组，但是查找均从数组末端开始，所以其行为也粗略符合Stack的定义
-*/
+   找到栈中第一个与notTop不同的，并且不处于finishing状态的ActivityRecord。当notTop为
+   null时，该函数即返回栈中第一个需要显示的ActivityRecord。提醒读者，栈的出入口只能是栈顶。
+   虽然mHistory是一个数组，但是查找均从数组末端开始，所以其行为也粗略符合Stack的定义
+ */
 final ActivityRecordtopRunningActivityLocked(ActivityRecord notTop) {
     int i =mHistory.size()-1;
     while (i>= 0) {
         ActivityRecord r = mHistory.get(i);
-         if (!r.finishing && r != notTop)  return r;
-         i--;
-     }
-     returnnull;
-  }
+        if (!r.finishing && r != notTop)  return r;
+        i--;
+    }
+    returnnull;
+}
 类似的函数还有：
 
 [-->ActivityStack.java::topRunningNonDelayedActivityLocked]
 /* topRunningNonDelayedActivityLocked
-与topRunningActivityLocked类似，但ActivityRecord要求增加一项，即delayeResume为
-false
-*/
+   与topRunningActivityLocked类似，但ActivityRecord要求增加一项，即delayeResume为
+   false
+ */
 final ActivityRecordtopRunningNonDelayedActivityLocked(ActivityRecord notTop) {
-     int i =mHistory.size()-1;
-     while(i >= 0) {
+    int i =mHistory.size()-1;
+    while(i >= 0) {
         ActivityRecord r = mHistory.get(i);
         //delayedResume变量控制是否暂缓resume Activity
-         if (!r.finishing && !r.delayedResume&& r != notTop)   return r;
+        if (!r.finishing && !r.delayedResume&& r != notTop)   return r;
         i--;
-     }
+    }
     returnnull;
-  }
+}
 ```
 
 ActivityStack还提供findActivityLocked函数以根据Intent及ActivityInfo来查找匹配的ActivityRecord，同样，查找也是从mHistory尾端开始，相关代码如下：
@@ -1695,17 +1695,17 @@ ActivityStack还提供findActivityLocked函数以根据Intent及ActivityInfo来�
 [-->ActivityStack.java::findActivityLocked]
 ```java
 private ActivityRecord findActivityLocked(Intentintent, ActivityInfo info) {
-  ComponentName cls = intent.getComponent();
-   if(info.targetActivity != null)
+    ComponentName cls = intent.getComponent();
+    if(info.targetActivity != null)
         cls= new ComponentName(info.packageName, info.targetActivity);
-   final intN = mHistory.size();
-   for (inti=(N-1); i>=0; i--) {
-      ActivityRecord r = mHistory.get(i);
-     if (!r.finishing)
-         if (r.intent.getComponent().equals(cls))return r;
-   }
-  return null;
- }
+    final intN = mHistory.size();
+    for (inti=(N-1); i>=0; i--) {
+        ActivityRecord r = mHistory.get(i);
+        if (!r.finishing)
+            if (r.intent.getComponent().equals(cls))return r;
+    }
+    return null;
+}
 ```
 
 另一个findTaskLocked函数的返回值是ActivityRecord，其代码如下：
@@ -1713,35 +1713,35 @@ private ActivityRecord findActivityLocked(Intentintent, ActivityInfo info) {
 [ActivityStack.java::findTaskLocked]
 ```java
 private ActivityRecord findTaskLocked(Intentintent, ActivityInfo info) {
-  ComponentName cls = intent.getComponent();
-   if(info.targetActivity != null)
+    ComponentName cls = intent.getComponent();
+    if(info.targetActivity != null)
         cls= new ComponentName(info.packageName, info.targetActivity);
- 
-  TaskRecord cp = null;
- 
-   final intN = mHistory.size();
-   for (inti=(N-1); i>=0; i--) {
-       ActivityRecord r = mHistory.get(i);
-       //r.task!=cp，表示不搜索属于同一个Task的ActivityRecord
+
+    TaskRecord cp = null;
+
+    final intN = mHistory.size();
+    for (inti=(N-1); i>=0; i--) {
+        ActivityRecord r = mHistory.get(i);
+        //r.task!=cp，表示不搜索属于同一个Task的ActivityRecord
         if(!r.finishing && r.task != cp
-                   && r.launchMode != ActivityInfo.LAUNCH_SINGLE_INSTANCE) {
-              cp = r.task;
-              //如果Task的affinity相同，则返回这条ActivityRecord
-              if(r.task.affinity != null) {
-               if(r.task.affinity.equals(info.taskAffinity))  return r;
-               }else if (r.task.intent != null
-                        &&r.task.intent.getComponent().equals(cls)) {
-                 //如果Task Intent的ComponentName相同
-                     return r;
-                }else if (r.task.affinityIntent != null
-                        &&r.task.affinityIntent.getComponent().equals(cls)) {
-                   //Task affinityIntent考虑
-                       return r;
-               }//if (r.task.affinity != null)判断结束
-         }//if(!r.finishing && r.task != cp......)判断结束
-     }//for循环结束
+                && r.launchMode != ActivityInfo.LAUNCH_SINGLE_INSTANCE) {
+            cp = r.task;
+            //如果Task的affinity相同，则返回这条ActivityRecord
+            if(r.task.affinity != null) {
+                if(r.task.affinity.equals(info.taskAffinity))  return r;
+            }else if (r.task.intent != null
+                    &&r.task.intent.getComponent().equals(cls)) {
+                //如果Task Intent的ComponentName相同
+                return r;
+            }else if (r.task.affinityIntent != null
+                    &&r.task.affinityIntent.getComponent().equals(cls)) {
+                //Task affinityIntent考虑
+                return r;
+            }//if (r.task.affinity != null)判断结束
+        }//if(!r.finishing && r.task != cp......)判断结束
+    }//for循环结束
     returnnull;
- }
+}
 ```
 
 其实，findTaskLocked是根据mHistory中ActivityRecord所属的Task的情况来进行相应的查找工作。
@@ -1797,44 +1797,44 @@ final int startActivityMayWait(IApplicationThreadcaller, int callingUid,
         booleandebug, String profileFile, ParcelFileDescriptor profileFd,
         booleanautoStopProfiler, WaitResult outResult, Configuration config) {
     ......
-    //在本例中，已经指明了Component，这样可省去为Intent匹配搜索之苦
-    booleancomponentSpecified = intent.getComponent() != null;
- 
+        //在本例中，已经指明了Component，这样可省去为Intent匹配搜索之苦
+        booleancomponentSpecified = intent.getComponent() != null;
+
     //创建一个新的Intent，防止客户传入的Intent被修改
     intent =new Intent(intent);
- 
+
     //查询满足条件的ActivityInfo，在resolveActivity内部和PKMS交互，读者不妨自己
-   //尝试分析该函数
+    //尝试分析该函数
     ActivityInfoaInfo = resolveActivity(intent, resolvedType, debug,
-                     profileFile, profileFd,autoStopProfiler);
- 
+            profileFile, profileFd,autoStopProfiler);
+
     synchronized(mService) {
-      int callingPid;
-      if (callingUid >= 0) {
-          callingPid= -1;
-      } else if (caller == null) {//本例中，caller为null
-           callingPid= Binder.getCallingPid();//取出调用进程的Pid
-           //取出调用进程的Uid。在本例中，调用进程是am，它由shell启动
-           callingUid= Binder.getCallingUid();
-       } else {
-           callingPid= callingUid = -1;
-       }// if (callingUid >= 0)判断结束
- 
-     //在本例中config为null
-     mConfigWillChange= config != null
-                  && mService.mConfiguration.diff(config) != 0;
-    finallong origId = Binder.clearCallingIdentity();
-    if (mMainStack && aInfo != null&&  (aInfo.applicationInfo.flags&
-                  ApplicationInfo.FLAG_CANT_SAVE_STATE) != 0){
-        /*
-        AndroidManifest.xml中的Application标签可以声明一个cantSaveState
-        属性，设置了该属性的Application将不享受系统提供的状态保存/恢复功能。
-        当一个Application退到后台时，系统会为它保存状态，当调度其到前台运行时，        将恢复它之前的状态，以保证用户体验的连续性。声明了该属性的Application被称为
-        “heavy weight process”。可惜系统目前不支持该属性，因为PackageParser
-        将不解析该属性。详情请见PackageParser.java parseApplication函数
-       */
-    }
-   ......//待续
+        int callingPid;
+        if (callingUid >= 0) {
+            callingPid= -1;
+        } else if (caller == null) {//本例中，caller为null
+            callingPid= Binder.getCallingPid();//取出调用进程的Pid
+            //取出调用进程的Uid。在本例中，调用进程是am，它由shell启动
+            callingUid= Binder.getCallingUid();
+        } else {
+            callingPid= callingUid = -1;
+        }// if (callingUid >= 0)判断结束
+
+        //在本例中config为null
+        mConfigWillChange= config != null
+            && mService.mConfiguration.diff(config) != 0;
+        finallong origId = Binder.clearCallingIdentity();
+        if (mMainStack && aInfo != null&&  (aInfo.applicationInfo.flags&
+                    ApplicationInfo.FLAG_CANT_SAVE_STATE) != 0){
+            /*
+               AndroidManifest.xml中的Application标签可以声明一个cantSaveState
+               属性，设置了该属性的Application将不享受系统提供的状态保存/恢复功能。
+               当一个Application退到后台时，系统会为它保存状态，当调度其到前台运行时，        将恢复它之前的状态，以保证用户体验的连续性。声明了该属性的Application被称为
+               “heavy weight process”。可惜系统目前不支持该属性，因为PackageParser
+               将不解析该属性。详情请见PackageParser.java parseApplication函数
+             */
+        }
+        ......//待续
 ```
 
 startActivityMayWait第一阶段的工作内容相对较简单：
@@ -1851,20 +1851,20 @@ startActivityMayWait第一阶段的工作内容相对较简单：
 
 [-->ActivityStack.java::startActivityMayWait]
 ```java
-    //调用此函数启动Activity，将返回值保存到res
-   int res = startActivityLocked(caller, intent,resolvedType,
-            grantedUriPermissions, grantedMode, aInfo,
-            resultTo, resultWho, requestCode, callingPid, callingUid,
-            onlyIfNeeded, componentSpecified, null);
-     //如果configuration发生变化，则调用AMS的updateConfigurationLocked
-    //进行处理。关于这部分内容，读者学完本章后可自行分析
-    if(mConfigWillChange && mMainStack) {
+//调用此函数启动Activity，将返回值保存到res
+int res = startActivityLocked(caller, intent,resolvedType,
+        grantedUriPermissions, grantedMode, aInfo,
+        resultTo, resultWho, requestCode, callingPid, callingUid,
+        onlyIfNeeded, componentSpecified, null);
+        //如果configuration发生变化，则调用AMS的updateConfigurationLocked
+        //进行处理。关于这部分内容，读者学完本章后可自行分析
+        if(mConfigWillChange && mMainStack) {
             mService.enforceCallingPermission(
-                  android.Manifest.permission.CHANGE_CONFIGURATION,
-                  "updateConfiguration()");
+                    android.Manifest.permission.CHANGE_CONFIGURATION,
+                    "updateConfiguration()");
             mConfigWillChange= false;
             mService.updateConfigurationLocked(config,null, false);
-   }
+        }
 ```
 
 此处，启动Activity的核心函数是startActivityLocked，该函数异常复杂，将用一节专门分析。下面先继续分析startActivityMayWait第三阶段的工作。
@@ -1873,23 +1873,23 @@ startActivityMayWait第一阶段的工作内容相对较简单：
 
 [-->ActivityStack.java::startActivityMayWait]
 ```java
-    if(outResult != null) {
-      outResult.result = res;//设置启动结果
-       if(res == IActivityManager.START_SUCCESS) {
-          //将该结果加到mWaitingActivityLaunched中保存
-           mWaitingActivityLaunched.add(outResult);
-           do {
-                try {
-                         mService.wait();//等待启动结果
-                       }      
-                } while (!outResult.timeout && outResult.who == null);
-          }else if (res == IActivityManager.START_TASK_TO_FRONT) {
-              ......//处理START_TASK_TO_FRONT结果，读者可自行分析
-          }
-       }//if(outResult!= null)结束
-           return res;
-     }
- }
+if(outResult != null) {
+    outResult.result = res;//设置启动结果
+    if(res == IActivityManager.START_SUCCESS) {
+        //将该结果加到mWaitingActivityLaunched中保存
+        mWaitingActivityLaunched.add(outResult);
+        do {
+            try {
+                mService.wait();//等待启动结果
+            }      
+        } while (!outResult.timeout && outResult.who == null);
+    }else if (res == IActivityManager.START_TASK_TO_FRONT) {
+        ......//处理START_TASK_TO_FRONT结果，读者可自行分析
+    }
+}//if(outResult!= null)结束
+return res;
+}
+}
 ```
 
 第三阶段的工作就是根据返回值做一些处理，那么res返回成功（即res== IActivityManager.START_SUCCESS的时候）后为何还需要等待呢？
@@ -1903,129 +1903,129 @@ startActivityLocked是startActivityMayWait第二阶段的工作重点，该函�
 [-->ActivityStack.java::startActivityLocked]
 ```java
 final int startActivityLocked(IApplicationThreadcaller,
-           Intent intent, String resolvedType,
-           Uri[] grantedUriPermissions,
-           int grantedMode, ActivityInfo aInfo, IBinder resultTo,
-           String resultWho, int requestCode,
-           int callingPid, int callingUid, boolean onlyIfNeeded,
-             boolean componentSpecified, ActivityRecord[]outActivity) {
- 
-   int err = START_SUCCESS;
-  ProcessRecord callerApp = null;
-  //如果caller不为空，则需要从AMS中找到它的ProcessRecord。本例的caller为null
-   if(caller != null) {
-      callerApp = mService.getRecordForAppLocked(caller);
-       //其实就是想得到调用进程的pid和uid
-       if(callerApp != null) {
-           callingPid = callerApp.pid;//一定要保证调用进程的pid和uid正确
-           callingUid = callerApp.info.uid;
-          }else {//如调用进程没有在AMS中注册，则认为其是非法的
-               err = START_PERMISSION_DENIED;
-         }
-     }// if (caller != null)判断结束
- 
-   //下面两个变量意义很重要。sourceRecord用于描述启动目标Activity的那个Activity，
- //resultRecord用于描述接收启动结果的Activity，即该Activity的onActivityResult
-  //将被调用以通知启动结果，读者可先阅读SDK中startActivityForResult函数的说明
-   ActivityRecordsourceRecord = null;
-  ActivityRecord resultRecord = null;
-   if(resultTo != null) {
-      //本例resultTo为null，
-   }
-   //获取Intent设置的启动标志，它们是和Launch Mode相类似的“小把戏”，
-  //所以，读者务必理解“关于Launch Mode的介绍”一节的知识点
-   intlaunchFlags = intent.getFlags();
-   if((launchFlags&Intent.FLAG_ACTIVITY_FORWARD_RESULT) != 0
-       && sourceRecord != null) {
-       ......
-       /*
-         前面介绍的Launch Mode和Activity的启动有关，实际上还有一部分标志用于控制
-         Activity启动结果的通知。有关FLAG_ACTIVITY_FORWARD_RESULT的作用，读者可
-         参考SDK中的说明。使用这个标签有个前提，即A必须先存在，正如if中sourceRecord
-         不为null的判断所示。另外，读者自己可尝试编写例子，以测试FLAG_ACTIVITY_FORWARD_
-         RESULT标志的作用
-      */
-    }
-   //检查err值及Intent的情况
-    if (err== START_SUCCESS && intent.getComponent() == null)
-           err = START_INTENT_NOT_RESOLVED;
-    ......
-    //如果err不为0，则调用sendActivityResultLocked返回错误
-    if (err!= START_SUCCESS) {
-        if(resultRecord != null) {// resultRecord接收启动结果
-          sendActivityResultLocked(-1,esultRecord, resultWho, requestCode,
-            Activity.RESULT_CANCELED, null);
+        Intent intent, String resolvedType,
+        Uri[] grantedUriPermissions,
+        int grantedMode, ActivityInfo aInfo, IBinder resultTo,
+        String resultWho, int requestCode,
+        int callingPid, int callingUid, boolean onlyIfNeeded,
+        boolean componentSpecified, ActivityRecord[]outActivity) {
+
+    int err = START_SUCCESS;
+    ProcessRecord callerApp = null;
+    //如果caller不为空，则需要从AMS中找到它的ProcessRecord。本例的caller为null
+    if(caller != null) {
+        callerApp = mService.getRecordForAppLocked(caller);
+        //其实就是想得到调用进程的pid和uid
+        if(callerApp != null) {
+            callingPid = callerApp.pid;//一定要保证调用进程的pid和uid正确
+            callingUid = callerApp.info.uid;
+        }else {//如调用进程没有在AMS中注册，则认为其是非法的
+            err = START_PERMISSION_DENIED;
         }
-       .......
-        returnerr;
+    }// if (caller != null)判断结束
+
+    //下面两个变量意义很重要。sourceRecord用于描述启动目标Activity的那个Activity，
+    //resultRecord用于描述接收启动结果的Activity，即该Activity的onActivityResult
+    //将被调用以通知启动结果，读者可先阅读SDK中startActivityForResult函数的说明
+    ActivityRecordsourceRecord = null;
+    ActivityRecord resultRecord = null;
+    if(resultTo != null) {
+        //本例resultTo为null，
     }
+    //获取Intent设置的启动标志，它们是和Launch Mode相类似的“小把戏”，
+    //所以，读者务必理解“关于Launch Mode的介绍”一节的知识点
+    intlaunchFlags = intent.getFlags();
+    if((launchFlags&Intent.FLAG_ACTIVITY_FORWARD_RESULT) != 0
+            && sourceRecord != null) {
+        ......
+            /*
+               前面介绍的Launch Mode和Activity的启动有关，实际上还有一部分标志用于控制
+               Activity启动结果的通知。有关FLAG_ACTIVITY_FORWARD_RESULT的作用，读者可
+               参考SDK中的说明。使用这个标签有个前提，即A必须先存在，正如if中sourceRecord
+               不为null的判断所示。另外，读者自己可尝试编写例子，以测试FLAG_ACTIVITY_FORWARD_
+               RESULT标志的作用
+             */
+    }
+    //检查err值及Intent的情况
+    if (err== START_SUCCESS && intent.getComponent() == null)
+        err = START_INTENT_NOT_RESOLVED;
+    ......
+        //如果err不为0，则调用sendActivityResultLocked返回错误
+        if (err!= START_SUCCESS) {
+            if(resultRecord != null) {// resultRecord接收启动结果
+                sendActivityResultLocked(-1,esultRecord, resultWho, requestCode,
+                        Activity.RESULT_CANCELED, null);
+            }
+            .......
+                returnerr;
+        }
     //检查权限
     finalint perm = mService.checkComponentPermission(aInfo.permission,
             callingPid,callingUid,aInfo.applicationInfo.uid, aInfo.exported);
     ......//权限检查失败的处理，不必理会
-   if (mMainStack) {
-       //可为AMS设置一个IActivityController类型的监听者，AMS有任何动静都会回调该
-       //监听者。不过谁又有如此本领去监听AMS呢？在进行Monkey测试的时候，Monkey会
-       //设置该回调对象。这样，Monkey就能根据AMS放映的情况进行相应处理了
-        if(mService.mController != null) {
-             boolean abort = false;
-            try {
-                   Intent watchIntent = intent.cloneFilter();
-                   //交给回调对象处理，由它判断是否能继续后面的行程
-                   abort = !mService.mController.activityStarting(watchIntent,
-                           aInfo.applicationInfo.packageName);
-               }......
-            //回调对象决定不启动该Activity。在进行Monkey测试时，可设置黑名单，位于
-            //黑名单中的Activity将不能启动
-             if (abort) {
-                .......//通知resultRecord
-                return START_SUCCESS;
-             }
-           }
-      }// if(mMainStack)判断结束
- 
-  //创建一个ActivityRecord对象
-   ActivityRecordr = new ActivityRecord(mService, this, callerApp, callingUid,
-               intent, resolvedType, aInfo, mService.mConfiguration,
-               resultRecord, resultWho, requestCode, componentSpecified);
-   if(outActivity != null)
+        if (mMainStack) {
+            //可为AMS设置一个IActivityController类型的监听者，AMS有任何动静都会回调该
+            //监听者。不过谁又有如此本领去监听AMS呢？在进行Monkey测试的时候，Monkey会
+            //设置该回调对象。这样，Monkey就能根据AMS放映的情况进行相应处理了
+            if(mService.mController != null) {
+                boolean abort = false;
+                try {
+                    Intent watchIntent = intent.cloneFilter();
+                    //交给回调对象处理，由它判断是否能继续后面的行程
+                    abort = !mService.mController.activityStarting(watchIntent,
+                            aInfo.applicationInfo.packageName);
+                }......
+                //回调对象决定不启动该Activity。在进行Monkey测试时，可设置黑名单，位于
+                //黑名单中的Activity将不能启动
+                if (abort) {
+                    .......//通知resultRecord
+                        return START_SUCCESS;
+                }
+            }
+        }// if(mMainStack)判断结束
+
+    //创建一个ActivityRecord对象
+    ActivityRecordr = new ActivityRecord(mService, this, callerApp, callingUid,
+            intent, resolvedType, aInfo, mService.mConfiguration,
+            resultRecord, resultWho, requestCode, componentSpecified);
+    if(outActivity != null)
         outActivity[0] = r;//保存到输入参数outActivity数组中
- 
-   if(mMainStack) {
-       //mResumedActivity代表当前界面显示的Activity
-       if(mResumedActivity == null
-         || mResumedActivity.info.applicationInfo.uid!= callingUid) {
-           //检查调用进程是否有权限切换Application，相关知识见下文的解释
-           if(!mService.checkAppSwitchAllowedLocked(callingPid, callingUid,
-               "Activity start")) {
-              PendingActivityLaunch pal = new PendingActivityLaunch();
-             //如果调用进程没有权限切换Activity，则只能把这次Activity启动请求保存起来，
-             //后续有机会时再启动它
-              pal.r = r;
-              pal.sourceRecord = sourceRecord;
-              ......
-              //所有Pending的请求均保存到AMS mPendingActivityLaunches变量中
-              mService.mPendingActivityLaunches.add(pal);
-              mDismissKeyguardOnNextActivity = false;
-              return START_SWITCHES_CANCELED;
-           }
-      }//if(mResumedActivity == null...)判断结束
- 
-     if (mService.mDidAppSwitch) {//用于控制app switch，见下文解释
-      mService.mAppSwitchesAllowedTime = 0;
-     } else{
-        mService.mDidAppSwitch = true;
-     }
- 
-    //启动处于Pending状态的Activity
-    mService.doPendingActivityLaunchesLocked(false);
-   }// if(mMainStack)判断结束
- 
-   //调用startActivityUncheckedLocked函数
-   err =startActivityUncheckedLocked(r, sourceRecord,
+
+    if(mMainStack) {
+        //mResumedActivity代表当前界面显示的Activity
+        if(mResumedActivity == null
+                || mResumedActivity.info.applicationInfo.uid!= callingUid) {
+            //检查调用进程是否有权限切换Application，相关知识见下文的解释
+            if(!mService.checkAppSwitchAllowedLocked(callingPid, callingUid,
+                        "Activity start")) {
+                PendingActivityLaunch pal = new PendingActivityLaunch();
+                //如果调用进程没有权限切换Activity，则只能把这次Activity启动请求保存起来，
+                //后续有机会时再启动它
+                pal.r = r;
+                pal.sourceRecord = sourceRecord;
+                ......
+                    //所有Pending的请求均保存到AMS mPendingActivityLaunches变量中
+                    mService.mPendingActivityLaunches.add(pal);
+                mDismissKeyguardOnNextActivity = false;
+                return START_SWITCHES_CANCELED;
+            }
+        }//if(mResumedActivity == null...)判断结束
+
+        if (mService.mDidAppSwitch) {//用于控制app switch，见下文解释
+            mService.mAppSwitchesAllowedTime = 0;
+        } else{
+            mService.mDidAppSwitch = true;
+        }
+
+        //启动处于Pending状态的Activity
+        mService.doPendingActivityLaunchesLocked(false);
+    }// if(mMainStack)判断结束
+
+    //调用startActivityUncheckedLocked函数
+    err =startActivityUncheckedLocked(r, sourceRecord,
             grantedUriPermissions, grantedMode, onlyIfNeeded, true);
-   ......
-   return err;
+    ......
+        return err;
 }
 ```
 
@@ -2049,16 +2049,16 @@ AMS提供了两个函数，用于暂时（注意，是暂时）禁止App切换�
 ```java
 public void stopAppSwitches() {
     ......//检查调用进程是否有STOP_APP_SWITCHES权限
-  synchronized(this) {
-      //设置一个超时时间，过了该时间，AMS可以重新切换App（switch app）了
-     mAppSwitchesAllowedTime = SystemClock.uptimeMillis()
-                   + APP_SWITCH_DELAY_TIME;
-     mDidAppSwitch = false;//设置mDidAppSwitch为false
-     mHandler.removeMessages(DO_PENDING_ACTIVITY_LAUNCHES_MSG);
-     Message msg =//防止应用进程调用了stop却没调用resume，5秒后处理该消息
-           mHandler.obtainMessage(DO_PENDING_ACTIVITY_LAUNCHES_MSG);
-     mHandler.sendMessageDelayed(msg, APP_SWITCH_DELAY_TIME);
-   }
+        synchronized(this) {
+            //设置一个超时时间，过了该时间，AMS可以重新切换App（switch app）了
+            mAppSwitchesAllowedTime = SystemClock.uptimeMillis()
+                + APP_SWITCH_DELAY_TIME;
+            mDidAppSwitch = false;//设置mDidAppSwitch为false
+            mHandler.removeMessages(DO_PENDING_ACTIVITY_LAUNCHES_MSG);
+            Message msg =//防止应用进程调用了stop却没调用resume，5秒后处理该消息
+                mHandler.obtainMessage(DO_PENDING_ACTIVITY_LAUNCHES_MSG);
+            mHandler.sendMessageDelayed(msg, APP_SWITCH_DELAY_TIME);
+        }
 }
 ```
 
@@ -2072,11 +2072,11 @@ public void stopAppSwitches() {
 
 [-->ActivityManagerService::resumeAppSwitches]
 ```java
- public voidresumeAppSwitches() {
+public voidresumeAppSwitches() {
     ......//检查调用进程是否有STOP_APP_SWITCHES权限
-    synchronized(this) {
-       mAppSwitchesAllowedTime = 0;
-     }
+        synchronized(this) {
+            mAppSwitchesAllowedTime = 0;
+        }
     //注意，系统并不在此函数内启动那些被阻止的Activity
 }
 ```
@@ -2098,46 +2098,46 @@ startActivityUncheckedLocked函数很长，但是目的比较简单，即为新�
 [-->ActivityStack.java::startActivityUncheckedLocked]
 ```java
 final intstartActivityUncheckedLocked(ActivityRecord r,
-   ActivityRecord sourceRecord, Uri[] grantedUriPermissions,
-    intgrantedMode, boolean onlyIfNeeded, boolean doResume) {
-   //在本例中，sourceRecord为null，onlyIfNeeded为false，doResume为true
-   finalIntent intent = r.intent;
-   final intcallingUid = r.launchedFromUid;
-       
-   intlaunchFlags = intent.getFlags();
-   //判断是否需要调用因本次Activity启动而被系统移到后台的当前Activity的
-  //onUserLeaveHint函数。可阅读SDK文档中关于Activity onUserLeaveHint函数的说明
-  mUserLeaving = (launchFlags&Intent.FLAG_ACTIVITY_NO_USER_ACTION) ==0;
- 
-   //设置ActivityRecord的delayedResume为true，本例中的doResume为true
-   if (!doResume)   r.delayedResume = true;
- 
+        ActivityRecord sourceRecord, Uri[] grantedUriPermissions,
+        intgrantedMode, boolean onlyIfNeeded, boolean doResume) {
+    //在本例中，sourceRecord为null，onlyIfNeeded为false，doResume为true
+    finalIntent intent = r.intent;
+    final intcallingUid = r.launchedFromUid;
+
+    intlaunchFlags = intent.getFlags();
+    //判断是否需要调用因本次Activity启动而被系统移到后台的当前Activity的
+    //onUserLeaveHint函数。可阅读SDK文档中关于Activity onUserLeaveHint函数的说明
+    mUserLeaving = (launchFlags&Intent.FLAG_ACTIVITY_NO_USER_ACTION) ==0;
+
+    //设置ActivityRecord的delayedResume为true，本例中的doResume为true
+    if (!doResume)   r.delayedResume = true;
+
     //在本例中，notTop为null
     ActivityRecord notTop = (launchFlags&Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP)
-               != 0 ? r : null;
+        != 0 ? r : null;
     if(onlyIfNeeded) {....//在本例中，该变量为false，故略去相关代码
     }
- 
-   //根据sourceRecord的情况进行对应处理，能理解下面这段if/else的判断语句吗
-   if(sourceRecord == null) {
-      //如果请求的发起者为空，则当然需要新建一个Task
-      if((launchFlags&Intent.FLAG_ACTIVITY_NEW_TASK) == 0)
-         launchFlags |= Intent.FLAG_ACTIVITY_NEW_TASK;
-   }else if (sourceRecord.launchMode ==ActivityInfo.LAUNCH_SINGLE_INSTANCE){
-      //如果sourceRecord单独占一个Instance，则新的Activity必然处于另一个Task中
-     launchFlags |= Intent.FLAG_ACTIVITY_NEW_TASK;
-   } else if(r.launchMode == ActivityInfo.LAUNCH_SINGLE_INSTANCE
-               || r.launchMode == ActivityInfo.LAUNCH_SINGLE_TASK) {
-      //如果启动模式设置了singleTask或singleInstance，则也要创建新Task
-      launchFlags |= Intent.FLAG_ACTIVITY_NEW_TASK;
-   }//if(sourceRecord== null)判断结束
- 
-   //如果新Activity和接收结果的Activity不在一个Task中，则不能启动新的Activity
-   if(r.resultTo!= null && (launchFlags&Intent.FLAG_ACTIVITY_NEW_TASK) != 0) {
-      sendActivityResultLocked(-1,r.resultTo, r.resultWho, r.requestCode,
-                                     Activity.RESULT_CANCELED, null);
-      r.resultTo = null;
-   }
+
+    //根据sourceRecord的情况进行对应处理，能理解下面这段if/else的判断语句吗
+    if(sourceRecord == null) {
+        //如果请求的发起者为空，则当然需要新建一个Task
+        if((launchFlags&Intent.FLAG_ACTIVITY_NEW_TASK) == 0)
+            launchFlags |= Intent.FLAG_ACTIVITY_NEW_TASK;
+    }else if (sourceRecord.launchMode ==ActivityInfo.LAUNCH_SINGLE_INSTANCE){
+        //如果sourceRecord单独占一个Instance，则新的Activity必然处于另一个Task中
+        launchFlags |= Intent.FLAG_ACTIVITY_NEW_TASK;
+    } else if(r.launchMode == ActivityInfo.LAUNCH_SINGLE_INSTANCE
+            || r.launchMode == ActivityInfo.LAUNCH_SINGLE_TASK) {
+        //如果启动模式设置了singleTask或singleInstance，则也要创建新Task
+        launchFlags |= Intent.FLAG_ACTIVITY_NEW_TASK;
+    }//if(sourceRecord== null)判断结束
+
+    //如果新Activity和接收结果的Activity不在一个Task中，则不能启动新的Activity
+    if(r.resultTo!= null && (launchFlags&Intent.FLAG_ACTIVITY_NEW_TASK) != 0) {
+        sendActivityResultLocked(-1,r.resultTo, r.resultWho, r.requestCode,
+                Activity.RESULT_CANCELED, null);
+        r.resultTo = null;
+    }
 ```
 
 startActivityUncheckedLocked第一阶段的工作还算简单，主要确定是否需要为新的Activity创建一个Task，即是否设置FLAG_ACTIVITY_NEW_TASK标志。
@@ -2148,24 +2148,24 @@ startActivityUncheckedLocked第一阶段的工作还算简单，主要确定是�
 
 [-->ActivityStack.java::startActivityUncheckedLocked]
 ```java
-   booleanaddingToTask = false;
-  TaskRecord reuseTask = null;
-   if(((launchFlags&Intent.FLAG_ACTIVITY_NEW_TASK) != 0 &&
-         (launchFlags&Intent.FLAG_ACTIVITY_MULTIPLE_TASK)== 0)
-               || r.launchMode == ActivityInfo.LAUNCH_SINGLE_TASK
-               || r.launchMode == ActivityInfo.LAUNCH_SINGLE_INSTANCE) {
-          if(r.resultTo == null) {
-              //搜索mHistory，得到一个ActivityRecord
-                ActivityRecord taskTop = r.launchMode !=
-                                   ActivityInfo.LAUNCH_SINGLE_INSTANCE
-                        ?findTaskLocked(intent, r.info)
-                        : findActivityLocked(intent,r.info);
-               if (taskTop != null ){
-                   ......//一堆复杂的逻辑处理，无非就是找到一个合适的Task，然后对应做一些
-                  //处理。此处不讨论这段代码，读者可根据工作中的具体情况进行研究
-               }
-         }//if(r.resultTo == null)判断结束
- }
+booleanaddingToTask = false;
+TaskRecord reuseTask = null;
+if(((launchFlags&Intent.FLAG_ACTIVITY_NEW_TASK) != 0 &&
+            (launchFlags&Intent.FLAG_ACTIVITY_MULTIPLE_TASK)== 0)
+        || r.launchMode == ActivityInfo.LAUNCH_SINGLE_TASK
+        || r.launchMode == ActivityInfo.LAUNCH_SINGLE_INSTANCE) {
+    if(r.resultTo == null) {
+        //搜索mHistory，得到一个ActivityRecord
+        ActivityRecord taskTop = r.launchMode !=
+            ActivityInfo.LAUNCH_SINGLE_INSTANCE
+            ?findTaskLocked(intent, r.info)
+            : findActivityLocked(intent,r.info);
+        if (taskTop != null ){
+            ......//一堆复杂的逻辑处理，无非就是找到一个合适的Task，然后对应做一些
+                //处理。此处不讨论这段代码，读者可根据工作中的具体情况进行研究
+        }
+    }//if(r.resultTo == null)判断结束
+}
 ```
 
 在本例中，目标Activity首次登场，所以前面的逻辑处理都没有起作用，建议读者根据具体情况分析该段代码。
@@ -2176,52 +2176,52 @@ startActivityUncheckedLocked第一阶段的工作还算简单，主要确定是�
 
 [-->ActivityStack.java::startActivityUncheckLocked]
 ```java
-   if(r.packageName != null) {
-        //判断目标Activity是否已经在栈顶，如果是，需要判断是创建一个新的Activity
-        //还是调用onNewIntent（singleTop模式的处理）
-       ActivityRecord top = topRunningNonDelayedActivityLocked(notTop);
-        if (top != null && r.resultTo == null){
-            ......//不讨论此段代码
-        }//if(top != null...)结束
-    } else {
-         ......//通知错误
-         returnSTART_CLASS_NOT_FOUND;
-   }
-  //在本例中，肯定需要创建一个Task
-   booleannewTask = false;
-   booleankeepCurTransition = false;
-   if(r.resultTo == null && !addingToTask
-               && (launchFlags&Intent.FLAG_ACTIVITY_NEW_TASK) != 0) {
-       if(reuseTask == null) {
-          mService.mCurTask++;//AMS中保存了当前Task的数量
-          if (mService.mCurTask <= 0) mService.mCurTask = 1;
-          //为该AactivityRecord设置一个新的TaskRecord
-          r.setTask(new TaskRecord(mService.mCurTask, r.info, intent),
-                                          null,true);
-       }else   r.setTask(reuseTask, reuseTask,true);
- 
-      newTask = true;
-      //下面这个函数为Android 4.0新增的，用于处理FLAG_ACTIVITY_TASK_ON_HOME的情况，
-      //请阅读SDK文档对Intent的相关说明
-      moveHomeToFrontFromLaunchLocked(launchFlags);
-   }elseif......//其他处理情况
- 
-  //授权控制。在SDK中启动Activity的函数没有授权设置方面的参数。在实际工作中，笔者曾碰
-  //到过一个有趣的情况：在开发的一款定制系统中，用浏览器下载了受DRM保护的图片，
-  //此时要启动Gallery3D来查看该图片，但是由于为DRM目录设置了读写权限，而Gallery3D
-  //并未声明相关权限，结果抛出异常，导致不能浏览该图片。由于startActivity等函数不能设置
-  //授权，最终只能修改Gallery3D并为其添加use-permissions项了
-  if(grantedUriPermissions != null && callingUid > 0) {
-         for(int i=0; i<grantedUriPermissions.length; i++) {
-            mService.grantUriPermissionLocked(callingUid, r.packageName,
-              grantedUriPermissions[i],grantedMode,
-             r.getUriPermissionsLocked());
-   }
-  mService.grantUriPermissionFromIntentLocked(callingUid, r.packageName,
-               intent, r.getUriPermissionsLocked());
-   //调用startActivityLocked，此时ActivityRecord和TaskRecord均创建完毕
-  startActivityLocked(r, newTask, doResume, keepCurTransition);
-   return START_SUCCESS;
+if(r.packageName != null) {
+    //判断目标Activity是否已经在栈顶，如果是，需要判断是创建一个新的Activity
+    //还是调用onNewIntent（singleTop模式的处理）
+    ActivityRecord top = topRunningNonDelayedActivityLocked(notTop);
+    if (top != null && r.resultTo == null){
+        ......//不讨论此段代码
+    }//if(top != null...)结束
+} else {
+    ......//通知错误
+        returnSTART_CLASS_NOT_FOUND;
+}
+//在本例中，肯定需要创建一个Task
+booleannewTask = false;
+booleankeepCurTransition = false;
+if(r.resultTo == null && !addingToTask
+        && (launchFlags&Intent.FLAG_ACTIVITY_NEW_TASK) != 0) {
+    if(reuseTask == null) {
+        mService.mCurTask++;//AMS中保存了当前Task的数量
+        if (mService.mCurTask <= 0) mService.mCurTask = 1;
+        //为该AactivityRecord设置一个新的TaskRecord
+        r.setTask(new TaskRecord(mService.mCurTask, r.info, intent),
+                null,true);
+    }else   r.setTask(reuseTask, reuseTask,true);
+
+    newTask = true;
+    //下面这个函数为Android 4.0新增的，用于处理FLAG_ACTIVITY_TASK_ON_HOME的情况，
+    //请阅读SDK文档对Intent的相关说明
+    moveHomeToFrontFromLaunchLocked(launchFlags);
+}elseif......//其他处理情况
+
+//授权控制。在SDK中启动Activity的函数没有授权设置方面的参数。在实际工作中，笔者曾碰
+//到过一个有趣的情况：在开发的一款定制系统中，用浏览器下载了受DRM保护的图片，
+//此时要启动Gallery3D来查看该图片，但是由于为DRM目录设置了读写权限，而Gallery3D
+//并未声明相关权限，结果抛出异常，导致不能浏览该图片。由于startActivity等函数不能设置
+//授权，最终只能修改Gallery3D并为其添加use-permissions项了
+if(grantedUriPermissions != null && callingUid > 0) {
+    for(int i=0; i<grantedUriPermissions.length; i++) {
+        mService.grantUriPermissionLocked(callingUid, r.packageName,
+                grantedUriPermissions[i],grantedMode,
+                r.getUriPermissionsLocked());
+    }
+    mService.grantUriPermissionFromIntentLocked(callingUid, r.packageName,
+            intent, r.getUriPermissionsLocked());
+    //调用startActivityLocked，此时ActivityRecord和TaskRecord均创建完毕
+    startActivityLocked(r, newTask, doResume, keepCurTransition);
+    return START_SUCCESS;
 }//startActivityUncheckLocked函数结束
 ```
 
@@ -2234,24 +2234,24 @@ startActivityUncheckLocked的第三阶段工作也比较复杂，不过针对本
 [-->ActivityStack.java::startActivityLocked]
 ```java
 private final voidstartActivityLocked(ActivityRecord r, boolean newTask,
-           boolean doResume, boolean keepCurTransition) {
-   final intNH = mHistory.size();
-   intaddPos = -1;
-   if(!newTask){//如果不是新Task，则从mHistory中找到对应的ActivityRecord的位置
-   ......
-   }
-   if(addPos < 0)  addPos = NH;
-   //否则加到mHistory数组的最后
-   mHistory.add(addPos,r);
-   //设置ActivityRecord的inHistory变量为true，表示已经加到mHistory数组中了
-  r.putInHistory();
-  r.frontOfTask = newTask;
-   if (NH> 0) {
-    //判断是否显示Activity切换动画之类的事情，需要与WindowManagerService交互
-  }
-   //最终调用resumeTopActivityLocked
-   if (doResume) resumeTopActivityLocked(null);//重点分析这个函数
- }
+        boolean doResume, boolean keepCurTransition) {
+    final intNH = mHistory.size();
+    intaddPos = -1;
+    if(!newTask){//如果不是新Task，则从mHistory中找到对应的ActivityRecord的位置
+        ......
+    }
+    if(addPos < 0)  addPos = NH;
+    //否则加到mHistory数组的最后
+    mHistory.add(addPos,r);
+    //设置ActivityRecord的inHistory变量为true，表示已经加到mHistory数组中了
+    r.putInHistory();
+    r.frontOfTask = newTask;
+    if (NH> 0) {
+        //判断是否显示Activity切换动画之类的事情，需要与WindowManagerService交互
+    }
+    //最终调用resumeTopActivityLocked
+    if (doResume) resumeTopActivityLocked(null);//重点分析这个函数
+}
 ```
 
 在以上列出的startActivityLocked函数中，略去了一部分逻辑处理，这部分内容和Activity之间的切换动画有关（通过这些动画，使切换过程看起来更加平滑和美观，需和WMS交互）。
@@ -2268,58 +2268,58 @@ private final voidstartActivityLocked(ActivityRecord r, boolean newTask,
 
 [-->ActivityStack.java::resumeTopActivityLocked]
 ```java
- finalboolean resumeTopActivityLocked(ActivityRecord prev) {
-   //从mHistory中找到第一个需要启动的ActivityRecord
-  ActivityRecord next = topRunningActivityLocked(null);
-   finalboolean userLeaving = mUserLeaving;
-  mUserLeaving = false;
-   if (next== null) {
-      //如果mHistory中没有要启动的Activity，则启动Home
-      if(mMainStack)    returnmService.startHomeActivityLocked();
-   }
-   //在本例中，next将是目标Activity
-   next.delayedResume= false;
-   ......//和WMS交互，略去
-   //将该ActivityRecord从下面几个队列中移除
-   mStoppingActivities.remove(next);
-  mGoingToSleepActivities.remove(next);
-  next.sleeping = false;
-  mWaitingVisibleActivities.remove(next);
-   //如果当前正在中断一个Activity，需先等待那个Activity pause完毕，然后系统会重新
-   //调用resumeTopActivityLocked函数以找到下一个要启动的Activity
-   if(mPausingActivity != null)  return false;
-   /************************请读者注意***************************/
-   //①mResumedActivity指向上一次启动的Activity，也就是当前界面显示的这个Activity
-  //在本例中，当前Activity就是Home界面
-   if(mResumedActivity != null) {
-      //先中断 Home。这种情况放到最后进行分析
-      startPausingLocked(userLeaving,false);
-      return true;
-   }
-   //②如果mResumedActivity为空，则一定是系统第一个启动的Activity，读者应能猜测到它就
-   //是Home
-   ......//如果prev不为空，则需要通知WMS进行与Activity切换相关的工作
-   try {
-           //通知PKMS修改该Package stop状态，详细信息参考第4章“readLPw的‘佐料’”
-           //一节的说明
-           AppGlobals.getPackageManager().setPackageStoppedState(
-                   next.packageName, false);
-    }......
-   if(prev!= null){
-   ......//还是和WMS有关，通知它停止绘画
-   }
-  if(next.app != null && next.app.thread != null) {
-   //如果该ActivityRecord已有对应的进程存在，则只需要重启Activity。就本例而言，
-   //此进程还不存在，所以要先创建一个应用进程
-  }  else {
-           //第一次启动
-           if (!next.hasBeenLaunched) {
-               next.hasBeenLaunched = true;
-           } else {
-               ......//通知WMS显示启动界面
-           }
-       //调用另外一个startSpecificActivityLocked函数
-      startSpecificActivityLocked(next, true, true);
+finalboolean resumeTopActivityLocked(ActivityRecord prev) {
+    //从mHistory中找到第一个需要启动的ActivityRecord
+    ActivityRecord next = topRunningActivityLocked(null);
+    finalboolean userLeaving = mUserLeaving;
+    mUserLeaving = false;
+    if (next== null) {
+        //如果mHistory中没有要启动的Activity，则启动Home
+        if(mMainStack)    returnmService.startHomeActivityLocked();
+    }
+    //在本例中，next将是目标Activity
+    next.delayedResume= false;
+    ......//和WMS交互，略去
+        //将该ActivityRecord从下面几个队列中移除
+        mStoppingActivities.remove(next);
+    mGoingToSleepActivities.remove(next);
+    next.sleeping = false;
+    mWaitingVisibleActivities.remove(next);
+    //如果当前正在中断一个Activity，需先等待那个Activity pause完毕，然后系统会重新
+    //调用resumeTopActivityLocked函数以找到下一个要启动的Activity
+    if(mPausingActivity != null)  return false;
+    /************************请读者注意***************************/
+    //①mResumedActivity指向上一次启动的Activity，也就是当前界面显示的这个Activity
+    //在本例中，当前Activity就是Home界面
+    if(mResumedActivity != null) {
+        //先中断 Home。这种情况放到最后进行分析
+        startPausingLocked(userLeaving,false);
+        return true;
+    }
+    //②如果mResumedActivity为空，则一定是系统第一个启动的Activity，读者应能猜测到它就
+    //是Home
+    ......//如果prev不为空，则需要通知WMS进行与Activity切换相关的工作
+        try {
+            //通知PKMS修改该Package stop状态，详细信息参考第4章“readLPw的‘佐料’”
+            //一节的说明
+            AppGlobals.getPackageManager().setPackageStoppedState(
+                    next.packageName, false);
+        }......
+    if(prev!= null){
+        ......//还是和WMS有关，通知它停止绘画
+    }
+    if(next.app != null && next.app.thread != null) {
+        //如果该ActivityRecord已有对应的进程存在，则只需要重启Activity。就本例而言，
+        //此进程还不存在，所以要先创建一个应用进程
+    }  else {
+        //第一次启动
+        if (!next.hasBeenLaunched) {
+            next.hasBeenLaunched = true;
+        } else {
+            ......//通知WMS显示启动界面
+        }
+        //调用另外一个startSpecificActivityLocked函数
+        startSpecificActivityLocked(next, true, true);
     }
     returntrue;
 }
@@ -2340,31 +2340,31 @@ resumeTopActivityLocked函数中有两个非常重要的关键点：
 [-->ActivityStack.java::startSpecificActivityLocked]
 ```java
 private final voidstartSpecificActivityLocked(ActivityRecord r,
-           boolean andResume, boolean checkConfig) {
- 
-   //从AMS中查询是否已经存在满足要求的进程（根据processName和uid来查找）
-  //在本例中，查询结果应该为null
-  ProcessRecord app = mService.getProcessRecordLocked(r.processName,
-               r.info.applicationInfo.uid);
-   //设置启动时间等信息
-   if(r.launchTime == 0) {
+        boolean andResume, boolean checkConfig) {
+
+    //从AMS中查询是否已经存在满足要求的进程（根据processName和uid来查找）
+    //在本例中，查询结果应该为null
+    ProcessRecord app = mService.getProcessRecordLocked(r.processName,
+            r.info.applicationInfo.uid);
+    //设置启动时间等信息
+    if(r.launchTime == 0) {
         r.launchTime = SystemClock.uptimeMillis();
-       if(mInitialStartTime == 0)  mInitialStartTime = r.launchTime;
-   } else if(mInitialStartTime == 0) {
-           mInitialStartTime = SystemClock.uptimeMillis();
-   }
-   //如果该进程存在并已经向AMS注册（例如之前在该进程中启动了其他Activity）
-   if (app!= null && app.thread != null) {
-       try {
-           app.addPackage(r.info.packageName);
-           //通知该进程中的启动目标Activity
-           realStartActivityLocked(r, app, andResume, checkConfig);
-           return;
-         }......
+        if(mInitialStartTime == 0)  mInitialStartTime = r.launchTime;
+    } else if(mInitialStartTime == 0) {
+        mInitialStartTime = SystemClock.uptimeMillis();
+    }
+    //如果该进程存在并已经向AMS注册（例如之前在该进程中启动了其他Activity）
+    if (app!= null && app.thread != null) {
+        try {
+            app.addPackage(r.info.packageName);
+            //通知该进程中的启动目标Activity
+            realStartActivityLocked(r, app, andResume, checkConfig);
+            return;
+        }......
     }
     //如果该进程不存在，则需要调用AMS的startProcessLocked创建一个应用进程
     mService.startProcessLocked(r.processName, r.info.applicationInfo,
-              true, 0,"activity",r.intent.getComponent(), false);
+            true, 0,"activity",r.intent.getComponent(), false);
 }
 ```
 来看AMS的startProcessLocked函数，它将创建一个新的应用进程。
@@ -2374,40 +2374,40 @@ private final voidstartSpecificActivityLocked(ActivityRecord r,
 [-->ActivityManagerService.java::startProcessLocked]
 ```java
 final ProcessRecord startProcessLocked(StringprocessName,
-           ApplicationInfo info, boolean knownToBeDead, int intentFlags,
-           String hostingType, ComponentName hostingName,
-            boolean allowWhileBooting) {
-   //根据processName和uid寻找是否已经存在ProcessRecord
-   ProcessRecordapp = getProcessRecordLocked(processName, info.uid);
-   if (app!= null && app.pid > 0) {
-       ......//处理相关情况
-   }
- 
+        ApplicationInfo info, boolean knownToBeDead, int intentFlags,
+        String hostingType, ComponentName hostingName,
+        boolean allowWhileBooting) {
+    //根据processName和uid寻找是否已经存在ProcessRecord
+    ProcessRecordapp = getProcessRecordLocked(processName, info.uid);
+    if (app!= null && app.pid > 0) {
+        ......//处理相关情况
+    }
+
     StringhostingNameStr = hostingName != null
-               ? hostingName.flattenToShortString() : null;
-       
-   //①处理FLAG_FROM_BACKGROUND标志，见下文解释
-   if((intentFlags&Intent.FLAG_FROM_BACKGROUND) != 0) {
-       if(mBadProcesses.get(info.processName, info.uid) != null)
+        ? hostingName.flattenToShortString() : null;
+
+    //①处理FLAG_FROM_BACKGROUND标志，见下文解释
+    if((intentFlags&Intent.FLAG_FROM_BACKGROUND) != 0) {
+        if(mBadProcesses.get(info.processName, info.uid) != null)
             return null;
-     } else {
+    } else {
         mProcessCrashTimes.remove(info.processName,info.uid);
         if(mBadProcesses.get(info.processName, info.uid) != null) {
             mBadProcesses.remove(info.processName, info.uid);
             if (app != null)    app.bad =false;
-         }
-   }
-       
+        }
+    }
+
     if (app== null) {
         //创建一个ProcessRecord，并保存到mProcessNames中。注意，此时还没有创建实际进程
         app= newProcessRecordLocked(null, info, processName);
-       mProcessNames.put(processName, info.uid, app);
+        mProcessNames.put(processName, info.uid, app);
     }else   app.addPackage(info.packageName);
-       ......
-    //②调用另外一个startProcessLocked函数
-   startProcessLocked(app, hostingType, hostingNameStr);
-     return(app.pid != 0) ? app : null;
- }
+    ......
+        //②调用另外一个startProcessLocked函数
+        startProcessLocked(app, hostingType, hostingNameStr);
+    return(app.pid != 0) ? app : null;
+}
 ```
 
 在以上代码中列出两个关键点，其中第一点和FLAG_FROM_BACKGROUND有关，相关知识点如下：
@@ -2423,72 +2423,72 @@ final ProcessRecord startProcessLocked(StringprocessName,
 [-->ActivityManagerService.java::startProcessLocked]
 ```java
 private final voidstartProcessLocked(ProcessRecord app,
-                            String hostingType, StringhostingNameStr) {
-   if(app.pid > 0 && app.pid != MY_PID) {
-       synchronized (mPidsSelfLocked) {
-        mPidsSelfLocked.remove(app.pid);
-        mHandler.removeMessages(PROC_START_TIMEOUT_MSG, app);
-       }
-      app.pid = 0;
-  }
-   //mProcessesOnHold用于保存那些在系统还没有准备好就提前请求启动的ProcessRecord
-   mProcessesOnHold.remove(app);
-   updateCpuStats();
- 
-  System.arraycopy(mProcDeaths, 0, mProcDeaths, 1, mProcDeaths.length-1);
-   mProcDeaths[0] = 0;
-  
+        String hostingType, StringhostingNameStr) {
+    if(app.pid > 0 && app.pid != MY_PID) {
+        synchronized (mPidsSelfLocked) {
+            mPidsSelfLocked.remove(app.pid);
+            mHandler.removeMessages(PROC_START_TIMEOUT_MSG, app);
+        }
+        app.pid = 0;
+    }
+    //mProcessesOnHold用于保存那些在系统还没有准备好就提前请求启动的ProcessRecord
+    mProcessesOnHold.remove(app);
+    updateCpuStats();
+
+    System.arraycopy(mProcDeaths, 0, mProcDeaths, 1, mProcDeaths.length-1);
+    mProcDeaths[0] = 0;
+
     try {
-         intuid = app.info.uid;
+        intuid = app.info.uid;
         int[] gids = null;
-           try {//从PKMS中查询该进程所属的gid
-               gids = mContext.getPackageManager().getPackageGids(
-                        app.info.packageName);
-           }......
-       ......//工厂测试
- 
-      intdebugFlags = 0;
-      if((app.info.flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-                debugFlags |=Zygote.DEBUG_ENABLE_DEBUGGER;
-              debugFlags |= Zygote.DEBUG_ENABLE_CHECKJNI;
-         }......//设置其他一些debugFlags
- 
-     //发送消息给Zygote，它将派生一个子进程，该子进程执行ActivityThread的main函数
-    //注意，我们传递给Zygote的参数并没有包含任何与Activity相关的信息。现在仅仅启动
-    //一个应用进程
-    Process.ProcessStartResult startResult =
-                   Process.start("android.app.ActivityThread",
-                   app.processName, uid, uid, gids, debugFlags,
-                   app.info.targetSdkVersion, null);
-     //电量统计项
-    BatteryStatsImpl bs = app.batteryStats.getBatteryStats();
-    synchronized (bs) {
-          if(bs.isOnBattery()) app.batteryStats.incStartsLocked();
-     }
-      //如果该进程为persisitent，则需要通知Watchdog，实际上processStarted内部只
-      //关心刚才创建的进程是不是com.android.phone
-     if(app.persistent) {
-         Watchdog.getInstance().processStarted(app.processName,
-                                    startResult.pid);
-     }
- 
-    app.pid= startResult.pid;
-   app.usingWrapper = startResult.usingWrapper;
-   app.removed = false;
-   synchronized (mPidsSelfLocked) {
-          //以pid为key，将代表该进程的ProcessRecord对象加入到mPidsSelfLocked中保管
-         this.mPidsSelfLocked.put(startResult.pid, app);
-          //发送一个超时消息，如果这个新创建的应用进程10秒内没有和AMS交互，则可断定
-         //该应用进程启动失败
-         Message msg = mHandler.obtainMessage(PROC_START_TIMEOUT_MSG);
-         msg.obj = app;
-          //正常的超时时间为10秒。不过如果该应用进程通过valgrind加载，则延长到300秒
-        //valgrind是Linux平台上一款检查内存泄露的程序，被加载的应用将在它的环境中工作，
-         //这项工作需耗费较长时间。读者可查询valgrind的用法
-          mHandler.sendMessageDelayed(msg,startResult.usingWrapper
-                        ?PROC_START_TIMEOUT_WITH_WRAPPER : PROC_START_TIMEOUT);
-    }......
- }
+        try {//从PKMS中查询该进程所属的gid
+            gids = mContext.getPackageManager().getPackageGids(
+                    app.info.packageName);
+        }......
+        ......//工厂测试
+
+            intdebugFlags = 0;
+        if((app.info.flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            debugFlags |=Zygote.DEBUG_ENABLE_DEBUGGER;
+            debugFlags |= Zygote.DEBUG_ENABLE_CHECKJNI;
+        }......//设置其他一些debugFlags
+
+        //发送消息给Zygote，它将派生一个子进程，该子进程执行ActivityThread的main函数
+        //注意，我们传递给Zygote的参数并没有包含任何与Activity相关的信息。现在仅仅启动
+        //一个应用进程
+        Process.ProcessStartResult startResult =
+            Process.start("android.app.ActivityThread",
+                    app.processName, uid, uid, gids, debugFlags,
+                    app.info.targetSdkVersion, null);
+        //电量统计项
+        BatteryStatsImpl bs = app.batteryStats.getBatteryStats();
+        synchronized (bs) {
+            if(bs.isOnBattery()) app.batteryStats.incStartsLocked();
+        }
+        //如果该进程为persisitent，则需要通知Watchdog，实际上processStarted内部只
+        //关心刚才创建的进程是不是com.android.phone
+        if(app.persistent) {
+            Watchdog.getInstance().processStarted(app.processName,
+                    startResult.pid);
+        }
+
+        app.pid= startResult.pid;
+        app.usingWrapper = startResult.usingWrapper;
+        app.removed = false;
+        synchronized (mPidsSelfLocked) {
+            //以pid为key，将代表该进程的ProcessRecord对象加入到mPidsSelfLocked中保管
+            this.mPidsSelfLocked.put(startResult.pid, app);
+            //发送一个超时消息，如果这个新创建的应用进程10秒内没有和AMS交互，则可断定
+            //该应用进程启动失败
+            Message msg = mHandler.obtainMessage(PROC_START_TIMEOUT_MSG);
+            msg.obj = app;
+            //正常的超时时间为10秒。不过如果该应用进程通过valgrind加载，则延长到300秒
+            //valgrind是Linux平台上一款检查内存泄露的程序，被加载的应用将在它的环境中工作，
+            //这项工作需耗费较长时间。读者可查询valgrind的用法
+            mHandler.sendMessageDelayed(msg,startResult.usingWrapper
+                    ?PROC_START_TIMEOUT_WITH_WRAPPER : PROC_START_TIMEOUT);
+        }......
+    }
  ```
 
 startProcessLocked通过发送消息给Zygote以派生一个应用进程[④]，读者仔细研究所发消息的内容，大概会发现此处并未设置和Activity相关的信息，也就是说，该进程启动后，将完全不知道自己要干什么，怎么办？下面就此进行分析。
@@ -2511,21 +2511,21 @@ startProcessLocked通过发送消息给Zygote以派生一个应用进程[④]，
 [-->ActivityThread.java::main]
 ```java
 public static void main(String[] args) {
-   SamplingProfilerIntegration.start();
-   //和调试及strictMode有关
-  CloseGuard.setEnabled(false);
-   //设置进程名为"<pre-initialized>"
-  Process.setArgV0("<pre-initialized>");
-   //准备主线程消息循环
-  Looper.prepareMainLooper();
-   if(sMainThreadHandler == null)
-      sMainThreadHandler = new Handler();
-   //创建一个ActivityThread对象
-  ActivityThread thread = new ActivityThread();
-   //①调用attach函数，注意其参数值为false
-  thread.attach(false);
-  Looper.loop(); //进入主线程消息循环
-   throw newRuntimeException("Main thread loop unexpectedly exited");
+    SamplingProfilerIntegration.start();
+    //和调试及strictMode有关
+    CloseGuard.setEnabled(false);
+    //设置进程名为"<pre-initialized>"
+    Process.setArgV0("<pre-initialized>");
+    //准备主线程消息循环
+    Looper.prepareMainLooper();
+    if(sMainThreadHandler == null)
+        sMainThreadHandler = new Handler();
+    //创建一个ActivityThread对象
+    ActivityThread thread = new ActivityThread();
+    //①调用attach函数，注意其参数值为false
+    thread.attach(false);
+    Looper.loop(); //进入主线程消息循环
+    throw newRuntimeException("Main thread loop unexpectedly exited");
 }
 ```
 
@@ -2536,29 +2536,29 @@ public static void main(String[] args) {
 [-->ActivityThread.java::attach]
 ```java
 private void attach(boolean system) {
-  sThreadLocal.set(this);
-  mSystemThread = system;
-   if(!system) {
-      ViewRootImpl.addFirstDrawHandler(new Runnable() {
-          public void run() {
-             ensureJitEnabled();
-           }
-         });
-       //设置在DDMS中看到的本进程的名字为"<pre-initialized>"
-      android.ddm.DdmHandleAppName.setAppName("<pre-initialized>");
-       //设置RuntimeInit的mApplicationObject参数，后续会介绍RuntimeInit类
-      RuntimeInit.setApplicationObject(mAppThread.asBinder());
-       //获取和AMS交互的Binder客户端
-      IActivityManager mgr = ActivityManagerNative.getDefault();
-       try {
+    sThreadLocal.set(this);
+    mSystemThread = system;
+    if(!system) {
+        ViewRootImpl.addFirstDrawHandler(new Runnable() {
+                public void run() {
+                ensureJitEnabled();
+                }
+                });
+        //设置在DDMS中看到的本进程的名字为"<pre-initialized>"
+        android.ddm.DdmHandleAppName.setAppName("<pre-initialized>");
+        //设置RuntimeInit的mApplicationObject参数，后续会介绍RuntimeInit类
+        RuntimeInit.setApplicationObject(mAppThread.asBinder());
+        //获取和AMS交互的Binder客户端
+        IActivityManager mgr = ActivityManagerNative.getDefault();
+        try {
             //①调用AMS的attachApplication，mAppThread为ApplicationThread类型，
             //它是应用进程和AMS交互的接口
-             mgr.attachApplication(mAppThread);
-         }......
-   } else......// system process的处理
- 
-   ViewRootImpl.addConfigCallback(newComponentCallbacks2()
-   {.......//添加回调函数});
+            mgr.attachApplication(mAppThread);
+        }......
+    } else......// system process的处理
+
+        ViewRootImpl.addConfigCallback(newComponentCallbacks2()
+                {.......//添加回调函数});
 }
 ```
 
@@ -2569,61 +2569,61 @@ private void attach(boolean system) {
 [-->ActivityManagerService.java::attachApplicationLocked]
 ```java
 private final booleanattachApplicationLocked(IApplicationThread thread,
-           int pid) {//此pid代表调用进程的pid
-   ProcessRecord app;
+        int pid) {//此pid代表调用进程的pid
+    ProcessRecord app;
     if (pid != MY_PID && pid >= 0) {
         synchronized (mPidsSelfLocked) {
-           app = mPidsSelfLocked.get(pid);//根据pid查找对应的ProcessRecord对象
+            app = mPidsSelfLocked.get(pid);//根据pid查找对应的ProcessRecord对象
         }
     }else    app = null;
- 
+
     /*
-    如果该应用进程由AMS启动，则它一定在AMS中有对应的ProcessRecord，读者可回顾前面创建
-    应用进程的代码：AMS先创建了一个ProcessRecord对象，然后才发命令给Zygote。
-    如果此处app为null，表示AMS没有该进程的记录，故需要“杀死”它
-   */
+       如果该应用进程由AMS启动，则它一定在AMS中有对应的ProcessRecord，读者可回顾前面创建
+       应用进程的代码：AMS先创建了一个ProcessRecord对象，然后才发命令给Zygote。
+       如果此处app为null，表示AMS没有该进程的记录，故需要“杀死”它
+     */
     if (app== null) {
-       if(pid > 0 && pid != MY_PID) //如果pid大于零，且不是SystemServer进程，则
-           //Quietly（即不打印任何输出）”杀死”process
-           Process.killProcessQuiet(pid);
-       else{
-           //调用ApplicationThread的scheduleExit函数。应用进程完成处理工作后
-           //将退出运行
-           //为何不像上面一样直接杀死它呢？可查阅linux pid相关的知识并自行解答
-          thread.scheduleExit();
+        if(pid > 0 && pid != MY_PID) //如果pid大于零，且不是SystemServer进程，则
+            //Quietly（即不打印任何输出）”杀死”process
+            Process.killProcessQuiet(pid);
+        else{
+            //调用ApplicationThread的scheduleExit函数。应用进程完成处理工作后
+            //将退出运行
+            //为何不像上面一样直接杀死它呢？可查阅linux pid相关的知识并自行解答
+            thread.scheduleExit();
         }
-      returnfalse;
-   }
-   /*
-     判断app的thread是否为空，如果不为空，则表示该ProcessRecord对象还未和一个
-     应用进程绑定。注意，app是根据pid查找到的，如果旧进程没有被杀死，系统则不会重用
-     该pid。为什么此处会出现ProcessRecord thread不为空的情况呢？见下面代码的注释说明
-   */
-   if(app.thread != null)  handleAppDiedLocked(app, true, true);
-   StringprocessName = app.processName;
-   try {
-          /*
-          创建一个应用进程讣告接收对象。当应用进程退出时，该对象的binderDied将被调
-          用。这样，AMS就能做相应处理。binderDied函数将在另外一个线程中执行，其内部也会
-          调用handleAppDiedLocked。假如用户在binderDied被调用之前又启动一个进程，
-          那么就会出现以上代码中app.thread不为null的情况。这是多线程环境中常出现的
-          情况，不熟悉多线程编程的读者要仔细体会。
-          */
-         AppDeathRecipient adr = new AppDeathRecipient(pp, pid, thread);
-         thread.asBinder().linkToDeath(adr, 0);
-         app.deathRecipient = adr;
+        returnfalse;
+    }
+    /*
+       判断app的thread是否为空，如果不为空，则表示该ProcessRecord对象还未和一个
+       应用进程绑定。注意，app是根据pid查找到的，如果旧进程没有被杀死，系统则不会重用
+       该pid。为什么此处会出现ProcessRecord thread不为空的情况呢？见下面代码的注释说明
+     */
+    if(app.thread != null)  handleAppDiedLocked(app, true, true);
+    StringprocessName = app.processName;
+    try {
+        /*
+           创建一个应用进程讣告接收对象。当应用进程退出时，该对象的binderDied将被调
+           用。这样，AMS就能做相应处理。binderDied函数将在另外一个线程中执行，其内部也会
+           调用handleAppDiedLocked。假如用户在binderDied被调用之前又启动一个进程，
+           那么就会出现以上代码中app.thread不为null的情况。这是多线程环境中常出现的
+           情况，不熟悉多线程编程的读者要仔细体会。
+         */
+        AppDeathRecipient adr = new AppDeathRecipient(pp, pid, thread);
+        thread.asBinder().linkToDeath(adr, 0);
+        app.deathRecipient = adr;
     }......
-   //设置该进程的调度优先级和oom_adj等成员
-   app.thread= thread;
-  app.curAdj = app.setAdj = -100;
-  app.curSchedGroup = Process.THREAD_GROUP_DEFAULT;
-  app.setSchedGroup = Process.THREAD_GROUP_BG_NONINTERACTIVE;
-  app.forcingToForeground = null;
-  app.foregroundServices = false;
-  app.hasShownUi = false;
-  app.debugging = false;
-   //启动成功，从消息队列中撤销PROC_START_TIMEOUT_MSG消息
-  mHandler.removeMessages(PROC_START_TIMEOUT_MSG, app);
+    //设置该进程的调度优先级和oom_adj等成员
+    app.thread= thread;
+    app.curAdj = app.setAdj = -100;
+    app.curSchedGroup = Process.THREAD_GROUP_DEFAULT;
+    app.setSchedGroup = Process.THREAD_GROUP_BG_NONINTERACTIVE;
+    app.forcingToForeground = null;
+    app.foregroundServices = false;
+    app.hasShownUi = false;
+    app.debugging = false;
+    //启动成功，从消息队列中撤销PROC_START_TIMEOUT_MSG消息
+    mHandler.removeMessages(PROC_START_TIMEOUT_MSG, app);
 ```
 
 attachApplicationLocked第一阶段的工作比较简单：
@@ -2638,56 +2638,56 @@ attachApplicationLocked第一阶段的工作比较简单：
 
 [-->ActivityManagerService.java::attachApplicationLocked]
 ```java
-   ......
-   //SystemServer早就启动完毕，所以normalMode为true
-   booleannormalMode = mProcessesReady || isAllowedWhileBooting(app.info);
- 
-   /*
-    我们在6.2.3的标题1中分析过generateApplicationProvidersLocked函数，
-    在该函数内部将查询（根据进程名，uid确定）PKMS以获取需运行在该进程中的ContentProvider
-   */
-   Listproviders = normalMode ? generateApplicationProvidersLocked(app) : null;
-   try {
-         int testMode = IApplicationThread.DEBUG_OFF;
-          if(mDebugApp != null && mDebugApp.equals(processName)) {
-               ......//处理debug选项
-          }
-          ......//处理Profile
- 
-          boolean isRestrictedBackupMode = false;
-          ......//
-          //dex化对应的apk包
-          ensurePackageDexOpt(app.instrumentationInfo!= null ?
+......
+//SystemServer早就启动完毕，所以normalMode为true
+booleannormalMode = mProcessesReady || isAllowedWhileBooting(app.info);
+
+/*
+   我们在6.2.3的标题1中分析过generateApplicationProvidersLocked函数，
+   在该函数内部将查询（根据进程名，uid确定）PKMS以获取需运行在该进程中的ContentProvider
+ */
+Listproviders = normalMode ? generateApplicationProvidersLocked(app) : null;
+try {
+    int testMode = IApplicationThread.DEBUG_OFF;
+    if(mDebugApp != null && mDebugApp.equals(processName)) {
+        ......//处理debug选项
+    }
+    ......//处理Profile
+
+        boolean isRestrictedBackupMode = false;
+    ......//
+        //dex化对应的apk包
+        ensurePackageDexOpt(app.instrumentationInfo!= null ?
                 app.instrumentationInfo.packageName : app.info.packageName);
-         //如果设置了Instrumentation类，该类所在的Package也需要dex化
-         if(app.instrumentationClass != null)
-              ensurePackageDexOpt(app.instrumentationClass.getPackageName());
-         
-          ApplicationInfo appInfo =app.instrumentationInfo != null
-                             ? app.instrumentationInfo :app.info;
-         //查询该Application使用的CompatibiliyInfo
-         app.compat =compatibilityInfoForPackageLocked(appInfo);
-         if (profileFd != null) //用于记录性能文件
-               profileFd = profileFd.dup();
- 
-           //①通过ApplicationThread和应用进程交互，调用其bindApplication函数
-            thread.bindApplication(processName,appInfo, providers,
-                   app.instrumentationClass, profileFile, profileFd,
-                    profileAutoStop,app.instrumentationArguments,
-                    app.instrumentationWatcher,testMode,
-                   isRestrictedBackupMode || !normalMode, app.persistent,
-                   mConfiguration, app.compat, getCommonServicesLocked(),
-                   mCoreSettingsObserver.getCoreSettingsLocked());
- 
-           //updateLruProcessLocked函数以后再作分析
-           updateLruProcessLocked(app,false, true);
-           //记录两个时间
-           app.lastRequestedGc= app.lastLowMemory = SystemClock.uptimeMillis();
-   }......//try结束
- 
+    //如果设置了Instrumentation类，该类所在的Package也需要dex化
+    if(app.instrumentationClass != null)
+        ensurePackageDexOpt(app.instrumentationClass.getPackageName());
+
+    ApplicationInfo appInfo =app.instrumentationInfo != null
+        ? app.instrumentationInfo :app.info;
+    //查询该Application使用的CompatibiliyInfo
+    app.compat =compatibilityInfoForPackageLocked(appInfo);
+    if (profileFd != null) //用于记录性能文件
+        profileFd = profileFd.dup();
+
+    //①通过ApplicationThread和应用进程交互，调用其bindApplication函数
+    thread.bindApplication(processName,appInfo, providers,
+            app.instrumentationClass, profileFile, profileFd,
+            profileAutoStop,app.instrumentationArguments,
+            app.instrumentationWatcher,testMode,
+            isRestrictedBackupMode || !normalMode, app.persistent,
+            mConfiguration, app.compat, getCommonServicesLocked(),
+            mCoreSettingsObserver.getCoreSettingsLocked());
+
+    //updateLruProcessLocked函数以后再作分析
+    updateLruProcessLocked(app,false, true);
+    //记录两个时间
+    app.lastRequestedGc= app.lastLowMemory = SystemClock.uptimeMillis();
+}......//try结束
+
 ..//从mProcessesOnHold和mPersistentStartingProcesses中删除相关信息
-   mPersistentStartingProcesses.remove(app);
-  mProcessesOnHold.remove(app);
+mPersistentStartingProcesses.remove(app);
+mProcessesOnHold.remove(app);
 ```
 
 由以上代码可知，第二阶段的工作主要是为调用ApplicationThread的bindApplication做准备，将在后面的章节中分析该函数的具体内容。此处先来看它的原型。
@@ -2699,85 +2699,85 @@ attachApplicationLocked第一阶段的工作比较简单：
    所以，创建应用进程这一步只是创建了一个能运行Android运行环境的容器，而我们的工作实际上
    还远未结束。
    bindApplication的功能就是创建并初始化位于该进程中的Android运行环境
-*/
+ */
 public final void bindApplication(
-       StringprocessName,//进程名，一般是package名
-      ApplicationInfo appInfo,//该进程对应的ApplicationInfo
-       List<ProviderInfo> providers,//在该APackage中声明的Provider信息
-       ComponentName instrumentationName,//和instrumentation有关
-       //下面3个参数和性能统计有关
-       StringprofileFile,
-      ParcelFileDescriptor profileFd, boolean autoStopProfiler,
-      //这两个和Instrumentation有关，在本例中，这几个参数暂时都没有作用
-      Bundle instrumentationArgs,
-       IInstrumentationWatcherinstrumentationWatcher,
-       intdebugMode,//调试模式
-       boolean isRestrictedBackupMode,
-       boolean persistent,//该进程是否是persist
-       Configuration config,//当前的配置信息，如屏幕大小和语言等
-       CompatibilityInfocompatInfo,//兼容信息
-       //AMS将常用的Service信息传递给应用进程，目前传递的Service信息只有PKMS、
-       //WMS及AlarmManagerService。读者可参看AMS getCommonServicesLocked函数
-       Map<String,IBinder> services,
-       BundlecoreSettings)//核心配置参数，目前仅有“long_press”值
+        StringprocessName,//进程名，一般是package名
+        ApplicationInfo appInfo,//该进程对应的ApplicationInfo
+        List<ProviderInfo> providers,//在该APackage中声明的Provider信息
+        ComponentName instrumentationName,//和instrumentation有关
+        //下面3个参数和性能统计有关
+        StringprofileFile,
+        ParcelFileDescriptor profileFd, boolean autoStopProfiler,
+        //这两个和Instrumentation有关，在本例中，这几个参数暂时都没有作用
+        Bundle instrumentationArgs,
+        IInstrumentationWatcherinstrumentationWatcher,
+        intdebugMode,//调试模式
+        boolean isRestrictedBackupMode,
+        boolean persistent,//该进程是否是persist
+        Configuration config,//当前的配置信息，如屏幕大小和语言等
+        CompatibilityInfocompatInfo,//兼容信息
+        //AMS将常用的Service信息传递给应用进程，目前传递的Service信息只有PKMS、
+        //WMS及AlarmManagerService。读者可参看AMS getCommonServicesLocked函数
+        Map<String,IBinder> services,
+        BundlecoreSettings)//核心配置参数，目前仅有“long_press”值
 ```
 对bindApplication的原型分析就到此为止，再来看attachApplicationLocked最后一阶段的工作。
 ##### （3） attachApplicationLocked分析之三
 [-->ActivityManagerService.java::attachApplicationLocked]
 ```java
-   booleanbadApp = false;
-   booleandidSomething = false;
-   /*
+booleanbadApp = false;
+booleandidSomething = false;
+/*
    至此，应用进程已经准备好了Android运行环境，下面这句调用代码将返回ActivityStack中
    第一个需要运行的ActivityRecord。由于多线程的原因，难道能保证得到的hr就是我们的目标
    Activity吗？
-   */
-  ActivityRecord hr = mMainStack.topRunningActivityLocked(null);
-  if (hr !=null && normalMode) {
-       //需要根据processName和uid等确定该Activity是否运行与目标进程有关
-       if(hr.app == null && app.info.uid == hr.info.applicationInfo.uid
+ */
+ActivityRecord hr = mMainStack.topRunningActivityLocked(null);
+if (hr !=null && normalMode) {
+    //需要根据processName和uid等确定该Activity是否运行与目标进程有关
+    if(hr.app == null && app.info.uid == hr.info.applicationInfo.uid
             && processName.equals(hr.processName)) {
-            try {
-               //调用AS的realStartActivityLocked启动该Activity，最后两个参数为true
-                if (mMainStack.realStartActivityLocked(hr, app, true, true)) {
-                      didSomething = true;
-                 }
-            } catch (Exception e) {
-                  badApp = true; //设置badApp为true
+        try {
+            //调用AS的realStartActivityLocked启动该Activity，最后两个参数为true
+            if (mMainStack.realStartActivityLocked(hr, app, true, true)) {
+                didSomething = true;
             }
-      } else{
-         //如果hr和目标进程无关，则调用ensureActivitiesVisibleLocked函数处理它
+        } catch (Exception e) {
+            badApp = true; //设置badApp为true
+        }
+    } else{
+        //如果hr和目标进程无关，则调用ensureActivitiesVisibleLocked函数处理它
         mMainStack.ensureActivitiesVisibleLocked(hr, null, processName, 0);
-       }
- }// if (hr!= null && normalMode)判断结束
-   //mPendingServices存储那些因目标进程还未启动而处于等待状态的ServiceRecord
-   if(!badApp && mPendingServices.size() > 0) {
-       ServiceRecord sr = null;
-        try{
-           for (int i=0; i<mPendingServices.size(); i++) {
-                sr = mPendingServices.get(i);
-                //和Activity不一样的是，如果Service不属于目标进程，则暂不处理
-                if (app.info.uid != sr.appInfo.uid
-                     ||!processName.equals(sr.processName)) continue;//继续循环
- 
-                   //该Service将运行在目标进程中，所以从mPendingService中移除它
-                   mPendingServices.remove(i);
-                   i--;
-                   //处理此service的启动，以后再作分析
-                   realStartServiceLocked(sr, app);
-                   didSomething = true;//设置该值为true
-               }
-           }
-      }......
-   ......//启动等待的BroadcastReceiver
-   ......//启动等待的BackupAgent，相关代码类似Service的启动
-  if(badApp) {
-   //如果以上几个组件启动有错误，则设置badApp为true。此处将调用handleAppDiedLocked
-   //进行处理。该函数我们以后再作分析
-   handleAppDiedLocked(app, false, true);
+    }
+}// if (hr!= null && normalMode)判断结束
+//mPendingServices存储那些因目标进程还未启动而处于等待状态的ServiceRecord
+if(!badApp && mPendingServices.size() > 0) {
+    ServiceRecord sr = null;
+    try{
+        for (int i=0; i<mPendingServices.size(); i++) {
+            sr = mPendingServices.get(i);
+            //和Activity不一样的是，如果Service不属于目标进程，则暂不处理
+            if (app.info.uid != sr.appInfo.uid
+                    ||!processName.equals(sr.processName)) continue;//继续循环
+
+            //该Service将运行在目标进程中，所以从mPendingService中移除它
+            mPendingServices.remove(i);
+            i--;
+            //处理此service的启动，以后再作分析
+            realStartServiceLocked(sr, app);
+            didSomething = true;//设置该值为true
+        }
+    }
+}......
+......//启动等待的BroadcastReceiver
+......//启动等待的BackupAgent，相关代码类似Service的启动
+if(badApp) {
+    //如果以上几个组件启动有错误，则设置badApp为true。此处将调用handleAppDiedLocked
+    //进行处理。该函数我们以后再作分析
+    handleAppDiedLocked(app, false, true);
     returnfalse;
-  }
-   /*
+}
+/*
    调整进程的oom_adj值。didSomething表示在以上流程中是否启动了Acivity或其他组件。
    如果启动了任一组件，则didSomething为true。读者以后会知道，这里的启动只是向
    应用进程发出对应的指令，客户端进程是否成功处理还是未知数。基于这种考虑，所以此处不宜
@@ -2786,10 +2786,10 @@ public final void bindApplication(
    出现不足时，该进程是最先被系统杀死的。反之，如果一个进程运行的组件越多，那么它就越不易被
    系统杀死以回收内存。updateOomAdjLocked就是根据该进程中组件的情况对应调节进程的
    oom_adj值的。
-  */
-   if(!didSomething)  updateOomAdjLocked();
-   returntrue;
- }
+ */
+if(!didSomething)  updateOomAdjLocked();
+returntrue;
+}
 ```
 attachApplicationLocked第三阶段的工作就是通知应用进程启动Activity和Service等组件，其中用于启动Activity的函数是ActivityStack realStartActivityLocked。
 此处先来分析应用进程的bindApplication，该函数将为应用进程绑定一个Application。
@@ -2799,126 +2799,126 @@ bindApplication在ApplicationThread中的实现，其代码如下：
 [-->ActivityThread.java::bindApplication]
 ```java
 public final void bindApplication(......) {
- 
-   if(services != null)//保存AMS传递过来的系统Service信息
-       ServiceManager.initServiceCache(services);
+
+    if(services != null)//保存AMS传递过来的系统Service信息
+        ServiceManager.initServiceCache(services);
     //向主线程消息队列添加SET_CORE_SETTINGS消息
-   setCoreSettings(coreSettings);
-     //创建一个AppBindData对象，其实就是用来存储一些参数
+    setCoreSettings(coreSettings);
+    //创建一个AppBindData对象，其实就是用来存储一些参数
     AppBindData data = new AppBindData();
     data.processName = processName;
     data.appInfo = appInfo;
     data.providers = providers;
     data.instrumentationName = instrumentationName;
     ......//将AMS传过来的参数保存到AppBindData中
-     //向主线程发送H.BIND_APPLICATION消息
-    queueOrSendMessage(H.BIND_APPLICATION, data);
- }
+        //向主线程发送H.BIND_APPLICATION消息
+        queueOrSendMessage(H.BIND_APPLICATION, data);
+}
 ```
 由以上代码可知，ApplicationThread接收到来自AMS的指令后，均会将指令中的参数封装到一个数据结构中，然后通过发送消息的方式转交给主线程去处理。BIND_APPLICATION最终将由handleBindApplication函数处理。该函数并不复杂，但是其中有些点是值得关注的，这些点主要是初始化应用进程的一些参数。handleBindApplication函数的代码如下：
 [-->ActivityThread.java::handleBindApplication]
 ```java
 private void handleBindApplication(AppBindDatadata) {
-   mBoundApplication = data;
-   mConfiguration = new Configuration(data.config);
-   mCompatConfiguration = new Configuration(data.config);
+    mBoundApplication = data;
+    mConfiguration = new Configuration(data.config);
+    mCompatConfiguration = new Configuration(data.config);
     //初始化性能统计对象
-   mProfiler = new Profiler();
-   mProfiler.profileFile = data.initProfileFile;
-   mProfiler.profileFd = data.initProfileFd;
-   mProfiler.autoStopProfiler = data.initAutoStopProfiler;
- 
+    mProfiler = new Profiler();
+    mProfiler.profileFile = data.initProfileFile;
+    mProfiler.profileFd = data.initProfileFd;
+    mProfiler.autoStopProfiler = data.initAutoStopProfiler;
+
     //设置进程名。从此，之前那个默默无名的进程终于有了自己的名字
-   Process.setArgV0(data.processName);
-   android.ddm.DdmHandleAppName.setAppName(data.processName);
- 
+    Process.setArgV0(data.processName);
+    android.ddm.DdmHandleAppName.setAppName(data.processName);
+
     if(data.persistent) {
-       //对于persistent的进程，在低内存设备上，不允许其使用硬件加速显示
-       Display display =
-                 WindowManagerImpl.getDefault().getDefaultDisplay();
-       //当内存大于512MB，或者屏幕尺寸大于1024*600，可以使用硬件加速
-       if(!ActivityManager.isHighEndGfx(display))
-           HardwareRenderer.disable(false);
-     }
+        //对于persistent的进程，在低内存设备上，不允许其使用硬件加速显示
+        Display display =
+            WindowManagerImpl.getDefault().getDefaultDisplay();
+        //当内存大于512MB，或者屏幕尺寸大于1024*600，可以使用硬件加速
+        if(!ActivityManager.isHighEndGfx(display))
+            HardwareRenderer.disable(false);
+    }
     //启动性能统计
-     if(mProfiler.profileFd != null)   mProfiler.startProfiling();
-   //如果目标SDK版本小于12，则设置AsyncTask使用pool executor，否则使用
-   //serializedexecutor。这些executor涉及Java Concurrent类，对此不熟悉的读者
-   //请自行学习和研究。
-   if(data.appInfo.targetSdkVersion <= 12)
-           AsyncTask.setDefaultExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
- 
+    if(mProfiler.profileFd != null)   mProfiler.startProfiling();
+    //如果目标SDK版本小于12，则设置AsyncTask使用pool executor，否则使用
+    //serializedexecutor。这些executor涉及Java Concurrent类，对此不熟悉的读者
+    //请自行学习和研究。
+    if(data.appInfo.targetSdkVersion <= 12)
+        AsyncTask.setDefaultExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+
     //设置timezone
-   TimeZone.setDefault(null);
+    TimeZone.setDefault(null);
     //设置语言
     Locale.setDefault(data.config.locale);
-     //设置资源及兼容模式
+    //设置资源及兼容模式
     applyConfigurationToResourcesLocked(data.config, data.compatInfo);
     applyCompatConfiguration();
- 
-      //根据传递过来的ApplicationInfo创建一个对应的LoadApk对象
-     data.info = getPackageInfoNoCheck(data.appInfo, data.compatInfo);
-     //对于系统APK，如果当前系统为userdebug/eng版，则需要记录log信息到dropbox的日志记录
-     if((data.appInfo.flags &
-            (ApplicationInfo.FLAG_SYSTEM |
-             ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0) {
-           StrictMode.conditionallyEnableDebugLogging();
+
+    //根据传递过来的ApplicationInfo创建一个对应的LoadApk对象
+    data.info = getPackageInfoNoCheck(data.appInfo, data.compatInfo);
+    //对于系统APK，如果当前系统为userdebug/eng版，则需要记录log信息到dropbox的日志记录
+    if((data.appInfo.flags &
+                (ApplicationInfo.FLAG_SYSTEM |
+                 ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0) {
+        StrictMode.conditionallyEnableDebugLogging();
     }
     /*
-    如目标SDK版本大于9，则不允许在主线程使用网络操作（如Socketconnect等），否则抛出
-    NetworkOnMainThreadException，这么做的目的是防止应用程序在主线程中因网络操作执行
-    时间过长而造成用户体验下降。说实话，没有必要进行这种限制，在主线程中是否网络操作
-    是应用的事情。再说，Socket也可作为进程间通信的手段，在这种情况下，网络操作耗时很短。
-    作为系统，不应该设置这种限制。另外，Goolge可以提供一些开发指南或规范来指导开发者，
-    而不应如此蛮横地强加限制。
-    */
+       如目标SDK版本大于9，则不允许在主线程使用网络操作（如Socketconnect等），否则抛出
+       NetworkOnMainThreadException，这么做的目的是防止应用程序在主线程中因网络操作执行
+       时间过长而造成用户体验下降。说实话，没有必要进行这种限制，在主线程中是否网络操作
+       是应用的事情。再说，Socket也可作为进程间通信的手段，在这种情况下，网络操作耗时很短。
+       作为系统，不应该设置这种限制。另外，Goolge可以提供一些开发指南或规范来指导开发者，
+       而不应如此蛮横地强加限制。
+     */
     if (data.appInfo.targetSdkVersion> 9)
         StrictMode.enableDeathOnNetwork();
- 
+
     //如果没有设置屏幕密度，则为Bitmap设置默认的屏幕密度
-   if((data.appInfo.flags
-               &ApplicationInfo.FLAG_SUPPORTS_SCREEN_DENSITIES) == 0)
-    Bitmap.setDefaultDensity(DisplayMetrics.DENSITY_DEFAULT);
-   if(data.debugMode != IApplicationThread.DEBUG_OFF){
-    ......//调试模式相关处理
-   }
-   IBinder b= ServiceManager.getService(Context.CONNECTIVITY_SERVICE);
-  IConnectivityManager service =
-                        IConnectivityManager.Stub.asInterface(b);
-  try {
-       //设置Http代理信息
-       ProxyPropertiesproxyProperties = service.getProxy();
-      Proxy.setHttpProxySystemProperty(proxyProperties);
-   } catch(RemoteException e) {}
- 
-   if(data.instrumentationName != null){
+    if((data.appInfo.flags
+                &ApplicationInfo.FLAG_SUPPORTS_SCREEN_DENSITIES) == 0)
+        Bitmap.setDefaultDensity(DisplayMetrics.DENSITY_DEFAULT);
+    if(data.debugMode != IApplicationThread.DEBUG_OFF){
+        ......//调试模式相关处理
+    }
+    IBinder b= ServiceManager.getService(Context.CONNECTIVITY_SERVICE);
+    IConnectivityManager service =
+        IConnectivityManager.Stub.asInterface(b);
+    try {
+        //设置Http代理信息
+        ProxyPropertiesproxyProperties = service.getProxy();
+        Proxy.setHttpProxySystemProperty(proxyProperties);
+    } catch(RemoteException e) {}
+
+    if(data.instrumentationName != null){
         //在正常情况下，此条件不满足
-   } else {
-      //创建Instrumentation对象，在正常情况都再这个条件下执行
-     mInstrumentation = new Instrumentation();
-   }
-   //如果Package中声明了FLAG_LARGE_HEAP，则可跳过虚拟机的内存限制，放心使用内存
-   if((data.appInfo.flags&ApplicationInfo.FLAG_LARGE_HEAP) != 0)
+    } else {
+        //创建Instrumentation对象，在正常情况都再这个条件下执行
+        mInstrumentation = new Instrumentation();
+    }
+    //如果Package中声明了FLAG_LARGE_HEAP，则可跳过虚拟机的内存限制，放心使用内存
+    if((data.appInfo.flags&ApplicationInfo.FLAG_LARGE_HEAP) != 0)
         dalvik.system.VMRuntime.getRuntime().clearGrowthLimit();
- 
-   //创建一个Application，data.info为LoadedApk类型，在其内部会通过Java反射机制
-   //创建一个在该APK AndroidManifest.xml中声明的Application对象
-   Applicationapp = data.info.makeApplication(
-                                     data.restrictedBackupMode, null);
- //mInitialApplication保存该进程中第一个创建的Application
-  mInitialApplication = app;
- 
-   //安装本Package中携带的ContentProvider
-   if(!data.restrictedBackupMode){
-      List<ProviderInfo> providers = data.providers;
+
+    //创建一个Application，data.info为LoadedApk类型，在其内部会通过Java反射机制
+    //创建一个在该APK AndroidManifest.xml中声明的Application对象
+    Applicationapp = data.info.makeApplication(
+            data.restrictedBackupMode, null);
+    //mInitialApplication保存该进程中第一个创建的Application
+    mInitialApplication = app;
+
+    //安装本Package中携带的ContentProvider
+    if(!data.restrictedBackupMode){
+        List<ProviderInfo> providers = data.providers;
         if(providers != null) {
-               //installContentProviders我们已经分析过了
-               installContentProviders(app, providers);
-               mH.sendEmptyMessageDelayed(H.ENABLE_JIT, 10*1000);
-           }
-  }
-   //调用Application的onCreate函数，做一些初始工作
-  mInstrumentation.callApplicationOnCreate(app);
+            //installContentProviders我们已经分析过了
+            installContentProviders(app, providers);
+            mH.sendEmptyMessageDelayed(H.ENABLE_JIT, 10*1000);
+        }
+    }
+    //调用Application的onCreate函数，做一些初始工作
+    mInstrumentation.callApplicationOnCreate(app);
 }
 ```
 由以上代码可知，bindApplication函数将设置一些初始化参数，其中最重要的有：
@@ -2936,132 +2936,132 @@ private void handleBindApplication(AppBindDatadata) {
 ```java
 //注意，在本例中该函数的最后两个参数的值都为true
 final booleanrealStartActivityLocked(ActivityRecord r, ProcessRecord app,
-       boolean andResume, boolean checkConfig)   throws RemoteException {
- 
-   r.startFreezingScreenLocked(app, 0);
+        boolean andResume, boolean checkConfig)   throws RemoteException {
+
+    r.startFreezingScreenLocked(app, 0);
     mService.mWindowManager.setAppVisibility(r,true);
- 
+
     if(checkConfig) {
-       ......//处理Config发生变化的情况
-      mService.updateConfigurationLocked(config, r, false);
+        ......//处理Config发生变化的情况
+            mService.updateConfigurationLocked(config, r, false);
     }
- 
+
     r.app =app;
-   app.waitingToKill = null;
+    app.waitingToKill = null;
     //将ActivityRecord加到ProcessRecord的activities中保存
     int idx= app.activities.indexOf(r);
     if (idx< 0)   app.activities.add(r);
     //更新进程的调度优先级等，以后再分析该函数
     mService.updateLruProcessLocked(app, true, true);
- 
-     try {
+
+    try {
         List<ResultInfo> results = null;
         List<Intent> newIntents = null;
-         if(andResume) {
-               results = r.results;
-               newIntents = r.newIntents;
-           }
-          if(r.isHomeActivity)  mService.mHomeProcess = app;
+        if(andResume) {
+            results = r.results;
+            newIntents = r.newIntents;
+        }
+        if(r.isHomeActivity)  mService.mHomeProcess = app;
         //看看是否有dex对应Package的需要
-         mService.ensurePackageDexOpt(
-                   r.intent.getComponent().getPackageName());
+        mService.ensurePackageDexOpt(
+                r.intent.getComponent().getPackageName());
         r.sleeping = false;
         r.forceNewConfig = false;
-       ......
-          //①通知应用进程启动Activity
-           app.thread. scheduleLaunchActivity (new Intent(r.intent), r,
-                   System.identityHashCode(r), r.info, mService.mConfiguration,
-                   r.compat, r.icicle, results, newIntents, !andResume,
-                   mService.isNextTransitionForward(), profileFile, profileFd,
+        ......
+            //①通知应用进程启动Activity
+            app.thread. scheduleLaunchActivity (new Intent(r.intent), r,
+                    System.identityHashCode(r), r.info, mService.mConfiguration,
+                    r.compat, r.icicle, results, newIntents, !andResume,
+                    mService.isNextTransitionForward(), profileFile, profileFd,
                     profileAutoStop);
-           
-           if ((app.info.flags&ApplicationInfo.FLAG_CANT_SAVE_STATE) != 0) {
-               ......//处理heavy-weight的情况
-               }
-           }
-     } ......//try结束
- 
-    r.launchFailed = false;
-     ......
-     if(andResume) {
-         r.state = ActivityState.RESUMED;
-         r.stopped = false;
-        mResumedActivity = r;//设置mResumedActivity为目标Activity
-        r.task.touchActiveTime();
-         //添加该任务到近期任务列表中
-         if(mMainStack)  mService.addRecentTaskLocked(r.task);
-         //②关键函数，见下文分析
-        completeResumeLocked(r);
-         //如果在这些过程中，用户按了Power键，怎么办？
-        checkReadyForSleepLocked();
-        r.icicle = null;
-        r.haveState = false;
-    }......
-    //启动系统设置向导Activity，当系统更新或初次使用时需要进行配置
-    if(mMainStack)  mService.startSetupActivityLocked();
-    returntrue;
- }
+
+        if ((app.info.flags&ApplicationInfo.FLAG_CANT_SAVE_STATE) != 0) {
+            ......//处理heavy-weight的情况
+        }
+    }
+} ......//try结束
+
+r.launchFailed = false;
+......
+if(andResume) {
+    r.state = ActivityState.RESUMED;
+    r.stopped = false;
+    mResumedActivity = r;//设置mResumedActivity为目标Activity
+    r.task.touchActiveTime();
+    //添加该任务到近期任务列表中
+    if(mMainStack)  mService.addRecentTaskLocked(r.task);
+    //②关键函数，见下文分析
+    completeResumeLocked(r);
+    //如果在这些过程中，用户按了Power键，怎么办？
+    checkReadyForSleepLocked();
+    r.icicle = null;
+    r.haveState = false;
+}......
+//启动系统设置向导Activity，当系统更新或初次使用时需要进行配置
+if(mMainStack)  mService.startSetupActivityLocked();
+returntrue;
+}
 ```
 在以上代码中有两个关键函数，分别是：scheduleLaunchActivity和completeResumeLocked。其中，scheduleLaunchActivity用于和应用进程交互，通知它启动目标Activity。而completeResumeLocked将继续AMS的处理流程。先来看第一个关键函数。
 ##### （1） scheduleLaunchActivity函数分析
 [-->ActivityThread.java::scheduleLaunchActivity]
 ```java
 public final void scheduleLaunchActivity(Intentintent, IBinder token, int ident,
-     ActivityInfo info, Configuration curConfig,CompatibilityInfo compatInfo,
-     Bundlestate, List<ResultInfo> pendingResults,
-    List<Intent> pendingNewIntents, boolean notResumed, booleanisForward,
-     StringprofileName, ParcelFileDescriptor profileFd,
-     booleanautoStopProfiler) {
-  ActivityClientRecord r = new ActivityClientRecord();
-   ......//保存AMS发送过来的参数信息
-   //向主线程发送消息，该消息的处理在handleLaunchActivity中进行
-  queueOrSendMessage(H.LAUNCH_ACTIVITY, r);
- }
+        ActivityInfo info, Configuration curConfig,CompatibilityInfo compatInfo,
+        Bundlestate, List<ResultInfo> pendingResults,
+        List<Intent> pendingNewIntents, boolean notResumed, booleanisForward,
+        StringprofileName, ParcelFileDescriptor profileFd,
+        booleanautoStopProfiler) {
+    ActivityClientRecord r = new ActivityClientRecord();
+    ......//保存AMS发送过来的参数信息
+        //向主线程发送消息，该消息的处理在handleLaunchActivity中进行
+        queueOrSendMessage(H.LAUNCH_ACTIVITY, r);
+}
 ```
 [-->ActivityThread.java::handleMessage]
 ```java
 public void handleMessage(Message msg) {
-  switch(msg.what) {
-       case LAUNCH_ACTIVITY: {
-        ActivityClientRecord r = (ActivityClientRecord)msg.obj;
-        //根据ApplicationInfo得到对应的PackageInfo
-        r.packageInfo = getPackageInfoNoCheck(
-                           r.activityInfo.applicationInfo, r.compatInfo);
-         //调用handleLaunchActivity处理
-        handleLaunchActivity(r, null);
-       }break;
-......
-}
+    switch(msg.what) {
+        case LAUNCH_ACTIVITY: {
+                                  ActivityClientRecord r = (ActivityClientRecord)msg.obj;
+                                  //根据ApplicationInfo得到对应的PackageInfo
+                                  r.packageInfo = getPackageInfoNoCheck(
+                                          r.activityInfo.applicationInfo, r.compatInfo);
+                                  //调用handleLaunchActivity处理
+                                  handleLaunchActivity(r, null);
+                              }break;
+                              ......
+    }
 ```
 [-->ActivityThread.java::handleLaunchActivity]
 ```java
 private voidhandleLaunchActivity(ActivityClientRecord r,
-                             Intent customIntent){
-   unscheduleGcIdler();
- 
-   if (r.profileFd != null) {......//略去}
- 
-  handleConfigurationChanged(null, null);
-   /*
-   ①创建Activity，通过Java反射机制创建目标Activity，将在内部完成Activity生命周期
-   的前两步，即调用其onCreate和onStart函数。至此，我们的目标com.dfp.test.TestActivity
-   创建完毕
-   */
-   Activitya = performLaunchActivity(r, customIntent);
-   if (a !=null) {
-     r.createdConfig = new Configuration(mConfiguration);
-      BundleoldState = r.state;
-      //②调用handleResumeActivity，其内部有个关键点，见下文分析
-     handleResumeActivity(r.token, false, r.isForward);
-      if(!r.activity.mFinished && r.startsNotResumed) {
-         .......//
-.       r.paused = true;
-       }else {
+        Intent customIntent){
+    unscheduleGcIdler();
+
+    if (r.profileFd != null) {......//略去}
+
+    handleConfigurationChanged(null, null);
+    /*
+       ①创建Activity，通过Java反射机制创建目标Activity，将在内部完成Activity生命周期
+       的前两步，即调用其onCreate和onStart函数。至此，我们的目标com.dfp.test.TestActivity
+       创建完毕
+     */
+    Activitya = performLaunchActivity(r, customIntent);
+    if (a !=null) {
+        r.createdConfig = new Configuration(mConfiguration);
+        BundleoldState = r.state;
+        //②调用handleResumeActivity，其内部有个关键点，见下文分析
+        handleResumeActivity(r.token, false, r.isForward);
+        if(!r.activity.mFinished && r.startsNotResumed) {
+            .......//
+                .       r.paused = true;
+        }else {
             //如果启动错误，通知AMS
-           ActivityManagerNative.getDefault()
-                    .finishActivity(r.token,Activity.RESULT_CANCELED, null);
-      }
-  }
+            ActivityManagerNative.getDefault()
+                .finishActivity(r.token,Activity.RESULT_CANCELED, null);
+        }
+    }
 ```
 handleLaunchActivity的工作包括：
 -  首先调用performLaunchActivity，该在函数内部通过Java反射机制创建目标Activity，然后调用它的onCreate及onStart函数。
@@ -3069,71 +3069,71 @@ handleLaunchActivity的工作包括：
 [-->ActivityThread.java::handleResumeActivity]
 ```java
 final void handleResumeActivity(IBinder token,boolean clearHide,
-                                     booleanisForward) {
- unscheduleGcIdler();
-  //内部调用目标Activity的onResume函数
- ActivityClientRecord r = performResumeActivity(token, clearHide);
- 
-  if (r !=null) {
-   finalActivity a = r.activity;
- 
-   final int forwardBit = isForward ?
-          WindowManager.LayoutParams.SOFT_INPUT_IS_FORWARD_NAVIGATION : 0;
-   ......
-   if(!r.onlyLocalRequest) {
-       //将上面完成onResume的Activity保存到mNewActivities中
-      r.nextIdle = mNewActivities;
-      mNewActivities = r;
-      //①向消息队列中添加一个Idler对象
-     Looper.myQueue().addIdleHandler(new Idler());
-   }
-   r.onlyLocalRequest = false;
-   ......
- }
-根据第2章对MessageQueue的分析，当消息队列中没有其他要处理的消息时，将处理以上代码中通过addIdleHandler添加的Idler对象，也就是说，Idler对象的优先级最低，这是不是说它的工作不重要呢？非也。至少在handleResumeActivity函数中添加的这个Idler并不不简单，其代码如下：
-[-->ActivityThread.java::Idler]
+        booleanisForward) {
+    unscheduleGcIdler();
+    //内部调用目标Activity的onResume函数
+    ActivityClientRecord r = performResumeActivity(token, clearHide);
+
+    if (r !=null) {
+        finalActivity a = r.activity;
+
+        final int forwardBit = isForward ?
+            WindowManager.LayoutParams.SOFT_INPUT_IS_FORWARD_NAVIGATION : 0;
+        ......
+            if(!r.onlyLocalRequest) {
+                //将上面完成onResume的Activity保存到mNewActivities中
+                r.nextIdle = mNewActivities;
+                mNewActivities = r;
+                //①向消息队列中添加一个Idler对象
+                Looper.myQueue().addIdleHandler(new Idler());
+            }
+        r.onlyLocalRequest = false;
+        ......
+    }
+    根据第2章对MessageQueue的分析，当消息队列中没有其他要处理的消息时，将处理以上代码中通过addIdleHandler添加的Idler对象，也就是说，Idler对象的优先级最低，这是不是说它的工作不重要呢？非也。至少在handleResumeActivity函数中添加的这个Idler并不不简单，其代码如下：
+        [-->ActivityThread.java::Idler]
 ```java
 private class Idler implements MessageQueue.IdleHandler{
     publicfinal boolean queueIdle() {
-   ActivityClientRecord a = mNewActivities;
-    booleanstopProfiling = false;
-    ......
-   if (a !=null) {
-    mNewActivities = null;
-    IActivityManager am = ActivityManagerNative.getDefault();
-    ActivityClientRecord prev;
-    do {
-       if(a.activity != null && !a.activity.mFinished) {
-          //调用AMS的activityIdle
-          am.activityIdle(a.token, a.createdConfig, stopProfiling);
-          a.createdConfig = null;
-      }
-     prev =a;
-     a =a.nextIdle;
-    prev.nextIdle = null;
-    } while(a != null); //do循环结束
-  }//if(a!=null)判断结束
-   ......
-   ensureJitEnabled();
-    returnfalse;
-   }// queueIdle函数结束
- }
+        ActivityClientRecord a = mNewActivities;
+        booleanstopProfiling = false;
+        ......
+            if (a !=null) {
+                mNewActivities = null;
+                IActivityManager am = ActivityManagerNative.getDefault();
+                ActivityClientRecord prev;
+                do {
+                    if(a.activity != null && !a.activity.mFinished) {
+                        //调用AMS的activityIdle
+                        am.activityIdle(a.token, a.createdConfig, stopProfiling);
+                        a.createdConfig = null;
+                    }
+                    prev =a;
+                    a =a.nextIdle;
+                    prev.nextIdle = null;
+                } while(a != null); //do循环结束
+            }//if(a!=null)判断结束
+        ......
+            ensureJitEnabled();
+        returnfalse;
+    }// queueIdle函数结束
+}
 ```
 由以上代码可知，Idler将为那些已经完成onResume的Activity调用AMS的activityIdle函数。该函数是Activity成功创建并启动的流程中与AMS交互的最后一步。虽然对应用进程来说，Idler处理的优先级最低，但AMS似乎不这么认为，因为它还设置了超时等待，以处理应用进程没有及时调用activityIdle的情况。这个超时等待即由realStartActivityLocked中最后一个关键点completeResumeLocked函数设置。
 ##### （2） completeResumeLocked函数分析
 [-->ActivityStack.java::completeResumeLocked]
 ```java
 private final voidcompleteResumeLocked(ActivityRecord next) {
-   next.idle = false;
-   next.results = null;
-   next.newIntents = null;
-   //发送一个超时处理消息，默认为10秒。IDLE_TIMEOUT_MSG就是针对acitivityIdle函数的
+    next.idle = false;
+    next.results = null;
+    next.newIntents = null;
+    //发送一个超时处理消息，默认为10秒。IDLE_TIMEOUT_MSG就是针对acitivityIdle函数的
     Messagemsg = mHandler.obtainMessage(IDLE_TIMEOUT_MSG);
     msg.obj= next;
-   mHandler.sendMessageDelayed(msg, IDLE_TIMEOUT);
-     //通知AMS
-     if(mMainStack)   mService.reportResumedActivityLocked(next);
-     ......//略去其他逻辑的代码
+    mHandler.sendMessageDelayed(msg, IDLE_TIMEOUT);
+    //通知AMS
+    if(mMainStack)   mService.reportResumedActivityLocked(next);
+    ......//略去其他逻辑的代码
 }
 ```
 由以上代码可知，AMS给了应用进程10秒的时间，希望它在10秒内调用activityIdle函数。这个时间不算长，和前面AMS等待应用进程启动的超时时间一样。所以，笔者有些困惑，为什么要把这么重要的操作放到idler中去做。
@@ -3142,81 +3142,81 @@ private final voidcompleteResumeLocked(ActivityRecord next) {
 [-->ActivityStack.java::activityIdleInternal]
 ```java
 final ActivityRecord activityIdleInternal(IBindertoken, boolean fromTimeout,
-                                      Configuration config) {
-   /*
-   如果应用进程在超时时间内调用了activityIdleInternal函数，则fromTimeout为false
-   否则，一旦超时，在IDLE_TIMEOUT_MSG的消息处理中也会调用该函数，并设置fromTimeout
-   为true
-   */
-   ActivityRecord res = null;
- 
-  ArrayList<ActivityRecord> stops = null;
-  ArrayList<ActivityRecord> finishes = null;
-  ArrayList<ActivityRecord> thumbnails = null;
-   int NS =0;
-   int NF =0;
-   int NT =0;
-  IApplicationThread sendThumbnail = null;
-   booleanbooting = false;
-   booleanenableScreen = false;
- 
-  synchronized (mService) {
-     //从消息队列中撤销IDLE_TIMEOUT_MSG
-     if(token != null)   mHandler.removeMessages(IDLE_TIMEOUT_MSG, token);
-      int index= indexOfTokenLocked(token);
-      if(index >= 0) {
-        ActivityRecord r = mHistory.get(index);
-         res =r;
-        //注意，只有fromTimeout为true，才会走执行下面的条件语句
-        if(fromTimeout) reportActivityLaunchedLocked(fromTimeout, r, -1, -1);
-        if(config != null)  r.configuration =config;
+        Configuration config) {
+    /*
+       如果应用进程在超时时间内调用了activityIdleInternal函数，则fromTimeout为false
+       否则，一旦超时，在IDLE_TIMEOUT_MSG的消息处理中也会调用该函数，并设置fromTimeout
+       为true
+     */
+    ActivityRecord res = null;
+
+    ArrayList<ActivityRecord> stops = null;
+    ArrayList<ActivityRecord> finishes = null;
+    ArrayList<ActivityRecord> thumbnails = null;
+    int NS =0;
+    int NF =0;
+    int NT =0;
+    IApplicationThread sendThumbnail = null;
+    booleanbooting = false;
+    booleanenableScreen = false;
+
+    synchronized (mService) {
+        //从消息队列中撤销IDLE_TIMEOUT_MSG
+        if(token != null)   mHandler.removeMessages(IDLE_TIMEOUT_MSG, token);
+        int index= indexOfTokenLocked(token);
+        if(index >= 0) {
+            ActivityRecord r = mHistory.get(index);
+            res =r;
+            //注意，只有fromTimeout为true，才会走执行下面的条件语句
+            if(fromTimeout) reportActivityLaunchedLocked(fromTimeout, r, -1, -1);
+            if(config != null)  r.configuration =config;
+            /*
+               mLaunchingActivity是一个WakeLock，它能防止在操作Activity过程中掉电，同时
+               这个WakeLock又不能长时间使用，否则有可能耗费过多电量。所以，系统设置了一个超时
+               处理消息LAUNCH_TIMEOUT_MSG，超时时间为10秒。一旦目标Activity启动成功，
+               就需要需要释放 WakeLock
+             */
+            if(mResumedActivity == r && mLaunchingActivity.isHeld()) {
+                mHandler.removeMessages(LAUNCH_TIMEOUT_MSG);
+                mLaunchingActivity.release();
+            }
+            r.idle = true;
+            mService.scheduleAppGcsLocked();
+            ......
+                ensureActivitiesVisibleLocked(null, 0);
+            if(mMainStack) {
+                if(!mService.mBooted) {
+                    mService.mBooted = true;
+                    enableScreen = true;
+                }
+            }//if (mMainStack)判断结束
+        } else if(fromTimeout) {//注意，只有fromTimeout为true，才会走下面的case
+            reportActivityLaunchedLocked(fromTimeout, null, -1, -1);
+        }
         /*
-        mLaunchingActivity是一个WakeLock，它能防止在操作Activity过程中掉电，同时
-        这个WakeLock又不能长时间使用，否则有可能耗费过多电量。所以，系统设置了一个超时
-        处理消息LAUNCH_TIMEOUT_MSG，超时时间为10秒。一旦目标Activity启动成功，
-        就需要需要释放 WakeLock
-        */
-        if(mResumedActivity == r && mLaunchingActivity.isHeld()) {
-            mHandler.removeMessages(LAUNCH_TIMEOUT_MSG);
-            mLaunchingActivity.release();
-         }
-       r.idle = true;
-       mService.scheduleAppGcsLocked();
-       ......
-       ensureActivitiesVisibleLocked(null, 0);
-     if(mMainStack) {
-         if(!mService.mBooted) {
-            mService.mBooted = true;
-             enableScreen = true;
-          }
-       }//if (mMainStack)判断结束
-   } else if(fromTimeout) {//注意，只有fromTimeout为true，才会走下面的case
-       reportActivityLaunchedLocked(fromTimeout, null, -1, -1);
-  }
-  /*
-   ①processStoppingActivitiesLocked函数返回那些因本次Activity启动而
-   被暂停（paused）的Activity
-  */
-  stops =processStoppingActivitiesLocked(true);
- ......
-   for (i=0;i<NS; i++) {
-      ActivityRecord r = (ActivityRecord)stops.get(i);
-       synchronized (mService) {
-      //如果这些Acitivity 处于finishing状态，则通知它们执行Destroy操作，最终它们
-     //的onDestroy函数会被调用
-       if(r.finishing) finishCurrentActivityLocked(r, FINISH_IMMEDIATELY);
-       else  //否则将通知它们执行stop操作，最终Activity的onStop被调用
-         stopActivityLocked(r);
-       }//synchronized结束
-  }//for循环结束
- 
-   ......//处理等待结束的Activities
- 
-   //发送ACTION_BOOT_COMPLETED广播
-   if(booting)  mService.finishBooting();
-   ......
-   returnres;
- }
+           ①processStoppingActivitiesLocked函数返回那些因本次Activity启动而
+           被暂停（paused）的Activity
+         */
+        stops =processStoppingActivitiesLocked(true);
+        ......
+            for (i=0;i<NS; i++) {
+                ActivityRecord r = (ActivityRecord)stops.get(i);
+                synchronized (mService) {
+                    //如果这些Acitivity 处于finishing状态，则通知它们执行Destroy操作，最终它们
+                    //的onDestroy函数会被调用
+                    if(r.finishing) finishCurrentActivityLocked(r, FINISH_IMMEDIATELY);
+                    else  //否则将通知它们执行stop操作，最终Activity的onStop被调用
+                        stopActivityLocked(r);
+                }//synchronized结束
+            }//for循环结束
+
+        ......//处理等待结束的Activities
+
+            //发送ACTION_BOOT_COMPLETED广播
+            if(booting)  mService.finishBooting();
+        ......
+            returnres;
+    }
 ```
 在activityIdleInternal中有一个非常重要的关键点，即处理那些因为本次Activity启动而被暂停的Activity。有两种情况需考虑：
 -  如果被暂停的Activity处于finishing状态（例如Activity在其onStop中调用了finish函数），则调用finishCurrentActivityLocked。
@@ -3233,120 +3233,120 @@ final ActivityRecord activityIdleInternal(IBindertoken, boolean fromTimeout,
 [-->ActivityStack.java::startPausingLocked]
 ```java
 private final void startPausingLocked(booleanuserLeaving, boolean uiSleeping) {
-   //mResumedActivity保存当前正显示的Activity，
-  ActivityRecord prev = mResumedActivity;
-  mResumedActivity = null;
- 
-   //设置mPausingActivity为当前Activity
-  mPausingActivity = prev;
-  mLastPausedActivity = prev;
- 
-  prev.state = ActivityState.PAUSING;//设置状态为PAUSING
-  prev.task.touchActiveTime();
-   ......
-   if(prev.app != null && prev.app.thread != null) {
-     try {
-        //①调用当前Activity所在进程的schedulePauseActivity函数
-        prev.app.thread.schedulePauseActivity(prev,prev.finishing,
-                                userLeaving,prev.configChangeFlags);
-       if(mMainStack) mService.updateUsageStats(prev, false);
-     } ......//catch分支
-    }......//else分支
- 
-   if(!mService.mSleeping && !mService.mShuttingDown) {
+    //mResumedActivity保存当前正显示的Activity，
+    ActivityRecord prev = mResumedActivity;
+    mResumedActivity = null;
+
+    //设置mPausingActivity为当前Activity
+    mPausingActivity = prev;
+    mLastPausedActivity = prev;
+
+    prev.state = ActivityState.PAUSING;//设置状态为PAUSING
+    prev.task.touchActiveTime();
+    ......
+        if(prev.app != null && prev.app.thread != null) {
+            try {
+                //①调用当前Activity所在进程的schedulePauseActivity函数
+                prev.app.thread.schedulePauseActivity(prev,prev.finishing,
+                        userLeaving,prev.configChangeFlags);
+                if(mMainStack) mService.updateUsageStats(prev, false);
+            } ......//catch分支
+        }......//else分支
+
+    if(!mService.mSleeping && !mService.mShuttingDown) {
         //获取WakeLock，以防止在Activity切换过程中掉电
-       mLaunchingActivity.acquire();
+        mLaunchingActivity.acquire();
         if(!mHandler.hasMessages(LAUNCH_TIMEOUT_MSG)) {
             Message msg = mHandler.obtainMessage(LAUNCH_TIMEOUT_MSG);
             mHandler.sendMessageDelayed(msg, LAUNCH_TIMEOUT);
         }
-   }
- 
+    }
+
     if(mPausingActivity != null) {
-      //暂停输入事件派发
-      if(!uiSleeping) prev.pauseKeyDispatchingLocked();
-     //设置PAUSE超时，时间为500毫秒，这个时间相对较短
-     Message msg = mHandler.obtainMessage(PAUSE_TIMEOUT_MSG);
-     msg.obj = prev;
-     mHandler.sendMessageDelayed(msg, PAUSE_TIMEOUT);
+        //暂停输入事件派发
+        if(!uiSleeping) prev.pauseKeyDispatchingLocked();
+        //设置PAUSE超时，时间为500毫秒，这个时间相对较短
+        Message msg = mHandler.obtainMessage(PAUSE_TIMEOUT_MSG);
+        msg.obj = prev;
+        mHandler.sendMessageDelayed(msg, PAUSE_TIMEOUT);
     }......//else分支
- }
+}
 ```
 startPausingLocked将调用应用进程的schedulePauseActivity函数，并设置500毫秒的超时时间，所以应用进程需尽快完成相关处理。和scheduleLaunchActivity一样，schedulePauseActivity将向ActivityThread主线程发送PAUSE_ACTIVITY消息，最终该消息由handlePauseActivity来处理。
 ##### （2） handlePauseActivity分析
 [-->ActivityThread.java::handlePauseActivity]
 ```java
 private void handlePauseActivity(IBinder token,boolean finished,
-                               boolean userLeaving, int configChanges){
-  //当Activity处于finishing状态时，finished参数为true，不过在本例中该值为false
-  ActivityClientRecord r = mActivities.get(token);
-   if (r !=null) {
-      //调用Activity的onUserLeaving函数，
-      if(userLeaving) performUserLeavingActivity(r);
-      r.activity.mConfigChangeFlags |=configChanges;
-      //调用Activity的onPause函数
-     performPauseActivity(token, finished, r.isPreHoneycomb());
-      ......
-      try {
-             //调用AMS的activityPaused函数
-             ActivityManagerNative.getDefault().activityPaused(token);
-         }......
+        boolean userLeaving, int configChanges){
+    //当Activity处于finishing状态时，finished参数为true，不过在本例中该值为false
+    ActivityClientRecord r = mActivities.get(token);
+    if (r !=null) {
+        //调用Activity的onUserLeaving函数，
+        if(userLeaving) performUserLeavingActivity(r);
+        r.activity.mConfigChangeFlags |=configChanges;
+        //调用Activity的onPause函数
+        performPauseActivity(token, finished, r.isPreHoneycomb());
+        ......
+            try {
+                //调用AMS的activityPaused函数
+                ActivityManagerNative.getDefault().activityPaused(token);
+            }......
     }
- }
+}
 ```
 [-->ActivityManagerService.java::activityPaused]
 ```java
 public final void activityPaused(IBinder token) {
-   ......
-   mMainStack.activityPaused(token, false);
+    ......
+        mMainStack.activityPaused(token, false);
 }
 ```
 [-->ActivityStack.java::activityPaused]
 ```java
 final void activityPaused(IBinder token, booleantimeout) {
- ActivityRecord r = null;
- 
-  synchronized (mService) {
-   int index= indexOfTokenLocked(token);
-   if (index>= 0) {
-        r =mHistory.get(index);
-         //从消息队列中撤销PAUSE_TIMEOUT_MSG消息
-        mHandler.removeMessages(PAUSE_TIMEOUT_MSG, r);
-         if(mPausingActivity == r) {
-            r.state = ActivityState.PAUSED;//设置ActivityRecord的状态
-            completePauseLocked();//完成本次Pause操作
-        }......
-   }
- }
+    ActivityRecord r = null;
+
+    synchronized (mService) {
+        int index= indexOfTokenLocked(token);
+        if (index>= 0) {
+            r =mHistory.get(index);
+            //从消息队列中撤销PAUSE_TIMEOUT_MSG消息
+            mHandler.removeMessages(PAUSE_TIMEOUT_MSG, r);
+            if(mPausingActivity == r) {
+                r.state = ActivityState.PAUSED;//设置ActivityRecord的状态
+                completePauseLocked();//完成本次Pause操作
+            }......
+        }
+    }
 ```
 ##### （3） completePauseLocked分析
 [-->ActivityStack.java::completePauseLocked]
 ```java
 private final void completePauseLocked() {
-  ActivityRecord prev = mPausingActivity;
-   if (prev!= null) {
-     if(prev.finishing) {
-          prev = finishCurrentActivityLocked(prev, FINISH_AFTER_VISIBLE);
-      } elseif (prev.app != null) {
-        if(prev.configDestroy) {
-             destroyActivityLocked(prev, true, false);
-         } else {
-          //①将刚才被暂停的Activity保存到mStoppingActivities中
-          mStoppingActivities.add(prev);
-          if(mStoppingActivities.size() > 3) {
-            //如果被暂停的Activity超过3个，则发送IDLE_NOW_MSG消息，该消息最终
-           //由我们前面介绍的activeIdleInternal处理
-             scheduleIdleLocked();
+    ActivityRecord prev = mPausingActivity;
+    if (prev!= null) {
+        if(prev.finishing) {
+            prev = finishCurrentActivityLocked(prev, FINISH_AFTER_VISIBLE);
+        } elseif (prev.app != null) {
+            if(prev.configDestroy) {
+                destroyActivityLocked(prev, true, false);
+            } else {
+                //①将刚才被暂停的Activity保存到mStoppingActivities中
+                mStoppingActivities.add(prev);
+                if(mStoppingActivities.size() > 3) {
+                    //如果被暂停的Activity超过3个，则发送IDLE_NOW_MSG消息，该消息最终
+                    //由我们前面介绍的activeIdleInternal处理
+                    scheduleIdleLocked();
+                }
             }
-         }
-      //设置mPausingActivity为null，这是图6-14②、③分支的分割点
-       mPausingActivity = null;
+            //设置mPausingActivity为null，这是图6-14②、③分支的分割点
+            mPausingActivity = null;
+        }
+        //②resumeTopActivityLocked将启动目标Activity
+        if(!mService.isSleeping()) resumeTopActivityLocked(prev);
+
+        ......
     }
-     //②resumeTopActivityLocked将启动目标Activity
-    if(!mService.isSleeping()) resumeTopActivityLocked(prev);
- 
-   ......
-}
 ```
 就本例而言，以上代码还算简单，最后还是通过resumeTopActivityLocked来启动目标Activity。当然，由于之前已经设置了mPausingActivity为null，所以最终会走到图6-14中③的分支。
 ##### （4） stopActivityLocked分析
@@ -3354,38 +3354,38 @@ private final void completePauseLocked() {
 答案就在activityIdelInternal中，它将为mStoppingActivities中的成员调用stopActivityLocked函数。
 [-->ActivityStack.java::stopActivityLocked]
 ```java
- privatefinal void stopActivityLocked(ActivityRecord r) {
-   if((r.intent.getFlags()&Intent.FLAG_ACTIVITY_NO_HISTORY) != 0
-           || (r.info.flags&ActivityInfo.FLAG_NO_HISTORY) != 0) {
-       if(!r.finishing) {
-           requestFinishActivityLocked(r, Activity.RESULT_CANCELED, null,
-                       "no-history");
-         }
-     } elseif (r.app != null && r.app.thread != null) {
-         try {
-         r.stopped = false;
-          //设置STOPPING状态，并调用对应的scheduleStopActivity函数
-          r.state = ActivityState.STOPPING;
-          r.app.thread.scheduleStopActivity(r, r.visible,
-                     r.configChangeFlags);
-    }......
-  }
+privatefinal void stopActivityLocked(ActivityRecord r) {
+    if((r.intent.getFlags()&Intent.FLAG_ACTIVITY_NO_HISTORY) != 0
+            || (r.info.flags&ActivityInfo.FLAG_NO_HISTORY) != 0) {
+        if(!r.finishing) {
+            requestFinishActivityLocked(r, Activity.RESULT_CANCELED, null,
+                    "no-history");
+        }
+    } elseif (r.app != null && r.app.thread != null) {
+        try {
+            r.stopped = false;
+            //设置STOPPING状态，并调用对应的scheduleStopActivity函数
+            r.state = ActivityState.STOPPING;
+            r.app.thread.scheduleStopActivity(r, r.visible,
+                    r.configChangeFlags);
+        }......
+    }
 ```
 对应进程的scheduleStopActivity函数将根据visible的情况，向主线程消息循环发送H. STOP_ACTIVITY_HIDE或H. STOP_ACTIVITY_SHOW消息。不论哪种情况，最终都由handleStopActivity来处理。
 [-->ActivityThread.java::handleStopActivity]
 ```java
 private void handleStopActivity(IBinder token,boolean show, int configChanges) {
- ActivityClientRecord r = mActivities.get(token);
- r.activity.mConfigChangeFlags |= configChanges;
- 
-  StopInfoinfo = new StopInfo();
-  //调用Activity的onStop函数
- performStopActivityInner(r, info, show, true);
- ......
-  try { //调用AMS的activityStopped函数
-        ActivityManagerNative.getDefault().activityStopped(
-               r.token, r.state, info.thumbnail, info.description);
-   }
+    ActivityClientRecord r = mActivities.get(token);
+    r.activity.mConfigChangeFlags |= configChanges;
+
+    StopInfoinfo = new StopInfo();
+    //调用Activity的onStop函数
+    performStopActivityInner(r, info, show, true);
+    ......
+        try { //调用AMS的activityStopped函数
+            ActivityManagerNative.getDefault().activityStopped(
+                    r.token, r.state, info.thumbnail, info.description);
+        }
 }
 ```
 AMS没有为stop设置超时消息处理。严格来说，还是有超时限制的，只是这个超时处理与activityIdleInternal结合起来了。
@@ -3423,58 +3423,58 @@ registerReceiver函数用于注册一个动态广播接收者，该函数在Cont
 [-->ContextImpl.java::registerReceiver]
 ```java
 /*
-  在SDK中输出该函数，这也是最常用的函数。当广播到来时，BroadcastReceiver对象的onReceive
-  函数将在主线程中被调用
-*/
+   在SDK中输出该函数，这也是最常用的函数。当广播到来时，BroadcastReceiver对象的onReceive
+   函数将在主线程中被调用
+ */
 public Intent registerReceiver(BroadcastReceiverreceiver, IntentFilter filter) {
     returnregisterReceiver(receiver, filter, null, null);
- }
+}
 /*
    功能和前面类似，但增加了两个参数，分别是broadcastPermission和scheduler，作用有
    两个：
    其一：对广播者的权限增加了控制，只有拥有相应权限的广播者发出的广播才能被此接收者接收
    其二：BroadcastReceiver对象的onReceiver函数可调度到scheduler所在的线程中执行
-*/
- publicIntent registerReceiver(BroadcastReceiver receiver,
-       IntentFilterfilter, String broadcastPermission, Handler scheduler) {
-/*
- 注意，下面所调用函数的最后一个参数为getOuterContext的返回值。前面曾说过，ContextImpl为Context家族中真正干活的对象，而它对外的代理人可以是Application和Activity等，
-getOuterContext就返回这个对外代理人。一般在Activity中调用registerReceiver函数，故此处getOuterContext返回的对外代理人的类型就是Activity。
-*/
-     returnregisterReceiverInternal(receiver, filter, broadcastPermission,
-               scheduler, getOuterContext());
+ */
+publicIntent registerReceiver(BroadcastReceiver receiver,
+        IntentFilterfilter, String broadcastPermission, Handler scheduler) {
+    /*
+       注意，下面所调用函数的最后一个参数为getOuterContext的返回值。前面曾说过，ContextImpl为Context家族中真正干活的对象，而它对外的代理人可以是Application和Activity等，
+       getOuterContext就返回这个对外代理人。一般在Activity中调用registerReceiver函数，故此处getOuterContext返回的对外代理人的类型就是Activity。
+     */
+    returnregisterReceiverInternal(receiver, filter, broadcastPermission,
+            scheduler, getOuterContext());
 }
 ```
 殊途同归，最终的功能由registerReceiverInternal来完成，其代码如下：
 [-->ContextImpl.java::registerReceiverInternal]
 ```java
- privateIntent registerReceiverInternal(BroadcastReceiver receiver,
-      IntentFilter filter, String broadcastPermission, Handler scheduler,
-      Context context) {
-   IIntentReceiver rd = null;
-   if(receiver != null) {
+privateIntent registerReceiverInternal(BroadcastReceiver receiver,
+        IntentFilter filter, String broadcastPermission, Handler scheduler,
+        Context context) {
+    IIntentReceiver rd = null;
+    if(receiver != null) {
         //①准备一个IIntentReceiver对象
         if(mPackageInfo != null && context != null) {
-          //如果没有设置scheduler，则默认使用主线程的Handler
-          if (scheduler == null)   scheduler= mMainThread.getHandler();
-          //通过getReceiverDispatcher函数得到一个IIntentReceiver类型的对象
-          rd = mPackageInfo.getReceiverDispatcher(
-             receiver, context, scheduler, mMainThread.getInstrumentation(),
-             true);
+            //如果没有设置scheduler，则默认使用主线程的Handler
+            if (scheduler == null)   scheduler= mMainThread.getHandler();
+            //通过getReceiverDispatcher函数得到一个IIntentReceiver类型的对象
+            rd = mPackageInfo.getReceiverDispatcher(
+                    receiver, context, scheduler, mMainThread.getInstrumentation(),
+                    true);
         } else {
-          if (scheduler == null)  scheduler= mMainThread.getHandler();
-          //直接创建LoadedApk.ReceiverDispatcher对象
-          rd = new LoadedApk.ReceiverDispatcher(receiver, context, scheduler,
-                   null, true).getIIntentReceiver();
-         }//if (mPackageInfo != null && context != null)结束
-     }// if(receiver != null)结束
-  try {
+            if (scheduler == null)  scheduler= mMainThread.getHandler();
+            //直接创建LoadedApk.ReceiverDispatcher对象
+            rd = new LoadedApk.ReceiverDispatcher(receiver, context, scheduler,
+                    null, true).getIIntentReceiver();
+        }//if (mPackageInfo != null && context != null)结束
+    }// if(receiver != null)结束
+    try {
         //②调用AMS的registerReceiver函数
-       return ActivityManagerNative.getDefault().registerReceiver(
-                     mMainThread.getApplicationThread(),mBasePackageName,
-                     rd, filter,broadcastPermission);
-        } ......
- }
+        return ActivityManagerNative.getDefault().registerReceiver(
+                mMainThread.getApplicationThread(),mBasePackageName,
+                rd, filter,broadcastPermission);
+    } ......
+}
 ```
 以上代码列出了两个关键点：其一是准备一个IIntentReceiver对象；其二是调用AMS的registerReceiver函数。
 先来看IIntentReceiver，它是一个Interface，图6-17列出了和它相关的成员图谱。
@@ -3490,65 +3490,65 @@ registerReceiver的返回值是一个Intent，它指向一个匹配过滤条件�
 [-->ActivityManagerService.java::registerReceiver]
 ```java
 public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
-           IIntentReceiver receiver, IntentFilter filter, String permission) {
-  synchronized(this) {
-      ProcessRecord callerApp = null;
-      if(caller != null) {
-         callerApp = getRecordForAppLocked(caller);
-         ....... //如果callerApp为null，则抛出异常，即系统不允许未登记照册的进程注册
-         //动态广播接收者
- 
-          //检查调用进程是否有callerPackage的信息，如果没有，也抛异常
-          if(callerApp.info.uid != Process.SYSTEM_UID &&
-             !callerApp.pkgList.contains(callerPackage)){
-                
-                throw new SecurityException(......);
-             }
-       }......//if(caller != null)判断结束
- 
-     List allSticky = null;
-      //下面这段代码的功能是从系统中所有Sticky Intent中查询匹配IntentFilter的Intent，
-     //匹配的Intent保存在allSticky中
-     Iterator actions = filter.actionsIterator();
-      if(actions != null) {
-        while (actions.hasNext()) {
-              String action = (String)actions.next();
-              allSticky = getStickiesLocked(action, filter, allSticky);
-           }
-       } ......
-     //如果存在sticky的Intent，则选取第一个Intent作为本函数的返回值
-     Intentsticky = allSticky != null ? (Intent)allSticky.get(0) : null;
-     //如果没有设置接收者，则直接返回sticky 的intent
-     if(receiver == null)  return sticky;
- 
-    //新的数据类型ReceiverList及mRegisteredReceivers成员变量，见下文的解释
-  //receiver.asBinder将返回IIntentReceiver的Bp端
-    ReceiverList rl
-               = (ReceiverList)mRegisteredReceivers.get(receiver.asBinder());
- 
-     //如果是首次调用，则此处rl的值将为null
-     if (rl== null) {
-       rl =new ReceiverList(this, callerApp, Binder.getCallingPid(),
-                     Binder.getCallingUid(),receiver);
-       if (rl.app != null) {
-           rl.app.receivers.add(rl);
-       }else {
-         try {
-                 //监听广播接收者所在进程的死亡消息
-                 receiver.asBinder().linkToDeath(rl, 0);
-             }......
-          rl.linkedToDeath = true;
-        }// if(rl.app != null)判断结束
- 
-           //将rl保存到mRegisterReceivers中
-          mRegisteredReceivers.put(receiver.asBinder(), rl);
-     }
-    //新建一个BroadcastFilter对象
-    BroadcastFilter bf = new BroadcastFilter(filter, rl, callerPackage,
-                                                        permission);
-    rl.add(bf);//将其保存到rl中
-     // mReceiverResolver成员变量，见下文解释
-    mReceiverResolver.addFilter(bf);
+        IIntentReceiver receiver, IntentFilter filter, String permission) {
+    synchronized(this) {
+        ProcessRecord callerApp = null;
+        if(caller != null) {
+            callerApp = getRecordForAppLocked(caller);
+            ....... //如果callerApp为null，则抛出异常，即系统不允许未登记照册的进程注册
+                //动态广播接收者
+
+                //检查调用进程是否有callerPackage的信息，如果没有，也抛异常
+                if(callerApp.info.uid != Process.SYSTEM_UID &&
+                        !callerApp.pkgList.contains(callerPackage)){
+
+                    throw new SecurityException(......);
+                }
+        }......//if(caller != null)判断结束
+
+        List allSticky = null;
+        //下面这段代码的功能是从系统中所有Sticky Intent中查询匹配IntentFilter的Intent，
+        //匹配的Intent保存在allSticky中
+        Iterator actions = filter.actionsIterator();
+        if(actions != null) {
+            while (actions.hasNext()) {
+                String action = (String)actions.next();
+                allSticky = getStickiesLocked(action, filter, allSticky);
+            }
+        } ......
+        //如果存在sticky的Intent，则选取第一个Intent作为本函数的返回值
+        Intentsticky = allSticky != null ? (Intent)allSticky.get(0) : null;
+        //如果没有设置接收者，则直接返回sticky 的intent
+        if(receiver == null)  return sticky;
+
+        //新的数据类型ReceiverList及mRegisteredReceivers成员变量，见下文的解释
+        //receiver.asBinder将返回IIntentReceiver的Bp端
+        ReceiverList rl
+            = (ReceiverList)mRegisteredReceivers.get(receiver.asBinder());
+
+        //如果是首次调用，则此处rl的值将为null
+        if (rl== null) {
+            rl =new ReceiverList(this, callerApp, Binder.getCallingPid(),
+                    Binder.getCallingUid(),receiver);
+            if (rl.app != null) {
+                rl.app.receivers.add(rl);
+            }else {
+                try {
+                    //监听广播接收者所在进程的死亡消息
+                    receiver.asBinder().linkToDeath(rl, 0);
+                }......
+                rl.linkedToDeath = true;
+            }// if(rl.app != null)判断结束
+
+            //将rl保存到mRegisterReceivers中
+            mRegisteredReceivers.put(receiver.asBinder(), rl);
+        }
+        //新建一个BroadcastFilter对象
+        BroadcastFilter bf = new BroadcastFilter(filter, rl, callerPackage,
+                permission);
+        rl.add(bf);//将其保存到rl中
+        // mReceiverResolver成员变量，见下文解释
+        mReceiverResolver.addFilter(bf);
 ```
 以上代码的流程倒是很简单，不过其中出现的几个成员变量和数据类型却严重阻碍了我们的思维活动。先解决它们，BroadcastFilter及相关成员变量如图6-18所示。
 ![图6-18  BroadcastFilter及相关成员变量](/images/understand2/6-18.png)
@@ -3560,26 +3560,26 @@ public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
 ##### （2） registerReceiver分析之二
 [-->ActivityManagerService.java::registerReceiver]
 ```java
-    //如果allSticky不为空，则表示有Sticky的Intent，需要立即调度广播发送
-     if(allSticky != null) {
-        ArrayList receivers = new ArrayList();
-         receivers.add(bf);
-         intN = allSticky.size();
-         for(int i=0; i<N; i++) {
-            Intent intent = (Intent)allSticky.get(i);
-            //为每一个需要发送的广播创建一个BroadcastRecord（暂称之为广播记录）对象
-            BroadcastRecord r = new BroadcastRecord(intent, null,
-                            null, -1, -1, null,receivers, null, 0, null, null,
-                            false, true, true);
-            //如果mParallelBroadcasts当前没有成员，则需要触发AMS发送广播
-            if (mParallelBroadcasts.size() == 0)
-                 scheduleBroadcastsLocked();//向AMS发送BROADCAST_INTENT_MSG消息
-             //所有非ordered广播记录都保存在mParallelBroadcasts中
-             mParallelBroadcasts.add(r);
-          }//for循环结束
-    }//if (allSticky != null)判断结束
-    returnsticky;
-   }//synchronized结束
+//如果allSticky不为空，则表示有Sticky的Intent，需要立即调度广播发送
+if(allSticky != null) {
+    ArrayList receivers = new ArrayList();
+    receivers.add(bf);
+    intN = allSticky.size();
+    for(int i=0; i<N; i++) {
+        Intent intent = (Intent)allSticky.get(i);
+        //为每一个需要发送的广播创建一个BroadcastRecord（暂称之为广播记录）对象
+        BroadcastRecord r = new BroadcastRecord(intent, null,
+                null, -1, -1, null,receivers, null, 0, null, null,
+                false, true, true);
+        //如果mParallelBroadcasts当前没有成员，则需要触发AMS发送广播
+        if (mParallelBroadcasts.size() == 0)
+            scheduleBroadcastsLocked();//向AMS发送BROADCAST_INTENT_MSG消息
+        //所有非ordered广播记录都保存在mParallelBroadcasts中
+        mParallelBroadcasts.add(r);
+    }//for循环结束
+}//if (allSticky != null)判断结束
+returnsticky;
+}//synchronized结束
 }
 ```
 
@@ -3610,15 +3610,15 @@ public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
 [-->ContextImpl.java::sendBroadcast]
 ```java
 public void sendBroadcast(Intent intent) {
-   StringresolvedType = intent.resolveTypeIfNeeded(getContentResolver());
-   try {
-       intent.setAllowFds(false);
-         //调用AMS的brodcastIntent，在SDK中定义的广播发送函数最终都会调用它
+    StringresolvedType = intent.resolveTypeIfNeeded(getContentResolver());
+    try {
+        intent.setAllowFds(false);
+        //调用AMS的brodcastIntent，在SDK中定义的广播发送函数最终都会调用它
         ActivityManagerNative.getDefault().broadcastIntent(
-               mMainThread.getApplicationThread(), intent, resolvedType, null,
-               Activity.RESULT_OK, null, null, null, false, false);
-        }......
- }
+                mMainThread.getApplicationThread(), intent, resolvedType, null,
+                Activity.RESULT_OK, null, null, null, false, false);
+    }......
+}
 ```
 AMS的broadcastIntent函数的主要工作将交由AMS的broadcastIntentLocked来完成，故此处直接分析broadcastIntentLocked。
 #### 1.  broadcastIntentLocked分析
@@ -3627,33 +3627,33 @@ AMS的broadcastIntent函数的主要工作将交由AMS的broadcastIntentLocked�
 [-->ActivityManagerService.java::broadcastIntentLocked]
 ```java
 private final int broadcastIntentLocked(ProcessRecordcallerApp,
-      StringcallerPackage, Intent intent, String resolvedType,
-     IIntentReceiver resultTo, int resultCode, String resultData,
-      Bundlemap, String requiredPermission,
-     boolean ordered, boolean sticky, int callingPid, int callingUid) {
- 
-   intent =new Intent(intent);
-   //为Intent增加FLAG_EXCLUDE_STOPPED_PACKAGES标志，表示该广播不会传递给被STOPPED
-   //的Package
-  intent.addFlags(Intent.FLAG_EXCLUDE_STOPPED_PACKAGES);
-   //处理一些特殊的广播，包括UID_REMOVED,PACKAGE_REMOVED和PACKAGE_ADDED等
-   finalboolean uidRemoved = Intent.ACTION_UID_REMOVED.equals(
-                                                        intent.getAction());
-   ......//处理特殊的广播，主要和PACKAGE相关，例如接收到PACKAGE_REMOVED广播后,AMS
-   //需将该Package的组件从相关成员中删除，相关代码可自行阅读
- 
-   //处理TIME_ZONE变化广播
-   if(intent.ACTION_TIMEZONE_CHANGED.equals(intent.getAction()))
-        mHandler.sendEmptyMessage(UPDATE_TIME_ZONE);
-   //处理CLEAR_DNS_CACHE广播
-   if(intent.ACTION_CLEAR_DNS_CACHE.equals(intent.getAction()))
+        StringcallerPackage, Intent intent, String resolvedType,
+        IIntentReceiver resultTo, int resultCode, String resultData,
+        Bundlemap, String requiredPermission,
+        boolean ordered, boolean sticky, int callingPid, int callingUid) {
+
+    intent =new Intent(intent);
+    //为Intent增加FLAG_EXCLUDE_STOPPED_PACKAGES标志，表示该广播不会传递给被STOPPED
+    //的Package
+    intent.addFlags(Intent.FLAG_EXCLUDE_STOPPED_PACKAGES);
+    //处理一些特殊的广播，包括UID_REMOVED,PACKAGE_REMOVED和PACKAGE_ADDED等
+    finalboolean uidRemoved = Intent.ACTION_UID_REMOVED.equals(
+            intent.getAction());
+    ......//处理特殊的广播，主要和PACKAGE相关，例如接收到PACKAGE_REMOVED广播后,AMS
+        //需将该Package的组件从相关成员中删除，相关代码可自行阅读
+
+        //处理TIME_ZONE变化广播
+        if(intent.ACTION_TIMEZONE_CHANGED.equals(intent.getAction()))
+            mHandler.sendEmptyMessage(UPDATE_TIME_ZONE);
+    //处理CLEAR_DNS_CACHE广播
+    if(intent.ACTION_CLEAR_DNS_CACHE.equals(intent.getAction()))
         mHandler.sendEmptyMessage(CLEAR_DNS_CACHE);
-   //处理PROXY_CHANGE广播
-   if(Proxy.PROXY_CHANGE_ACTION.equals(intent.getAction())) {
+    //处理PROXY_CHANGE广播
+    if(Proxy.PROXY_CHANGE_ACTION.equals(intent.getAction())) {
         ProxyProperties proxy = intent.getParcelableExtra("proxy");
-         mHandler.sendMessage(mHandler.obtainMessage(
-                                  UPDATE_HTTP_PROXY,proxy));
-   }
+        mHandler.sendMessage(mHandler.obtainMessage(
+                    UPDATE_HTTP_PROXY,proxy));
+    }
 ```
 
 从以上代码可知，broadcastIntentLocked第一阶段的工作主要是处理一些特殊的广播消息。
@@ -3664,85 +3664,85 @@ private final int broadcastIntentLocked(ProcessRecordcallerApp,
 
 [-->ActivityManagerService.java::broadcastIntentLocked]
 ```java
-   //处理发送sticky广播的情况
-  if(sticky) {
-   ......//检查发送进程是否有BROADCAST_STICKY权限
- 
-   if(requiredPermission != null) {
-       //在发送Sticky广播的时候，不能携带权限信息
-        returnBROADCAST_STICKY_CANT_HAVE_PERMISSION;
-     }
-   //在发送Stikcy广播的时候，也不能指定特定的接收对象
-   if(intent.getComponent() != null) ......//抛异常
- 
-   //将这个Sticky的Intent保存到mStickyBroadcasts中
-  ArrayList<Intent> list =mStickyBroadcasts.get(intent.getAction());
-   if (list== null) {
+//处理发送sticky广播的情况
+if(sticky) {
+    ......//检查发送进程是否有BROADCAST_STICKY权限
+
+        if(requiredPermission != null) {
+            //在发送Sticky广播的时候，不能携带权限信息
+            returnBROADCAST_STICKY_CANT_HAVE_PERMISSION;
+        }
+    //在发送Stikcy广播的时候，也不能指定特定的接收对象
+    if(intent.getComponent() != null) ......//抛异常
+
+        //将这个Sticky的Intent保存到mStickyBroadcasts中
+        ArrayList<Intent> list =mStickyBroadcasts.get(intent.getAction());
+    if (list== null) {
         list= new ArrayList<Intent>();
         mStickyBroadcasts.put(intent.getAction(), list);
     }
     ......//如果list中已经有该intent，则直接用新的intent替换旧的intent
-    //否则将该intent加入到list中保存
-    if (i >= N) list.add(new Intent(intent));
-  }
- 
-    //定义两个变量，其中receivers用于保存匹配该Intent的所有广播接收者，包括静态或动态
-    //注册的广播接收者，registeredReceivers用于保存符合该Intent的所有动态注册者
-   Listreceivers = null;
-   List<BroadcastFilter>registeredReceivers = null;
- 
-   try {
-       if(intent.getComponent() != null) {
+        //否则将该intent加入到list中保存
+        if (i >= N) list.add(new Intent(intent));
+}
+
+//定义两个变量，其中receivers用于保存匹配该Intent的所有广播接收者，包括静态或动态
+//注册的广播接收者，registeredReceivers用于保存符合该Intent的所有动态注册者
+Listreceivers = null;
+List<BroadcastFilter>registeredReceivers = null;
+
+try {
+    if(intent.getComponent() != null) {
         ......//如果指定了接收者，则从PKMS中查询它的信息
-       }else {
-          //FLAG_RECEIVER_REGISTERED_ONLY标签表明该广播只能发给动态注册者
-          if ((intent.getFlags()&Intent.FLAG_RECEIVER_REGISTERED_ONLY)== 0) {
+    }else {
+        //FLAG_RECEIVER_REGISTERED_ONLY标签表明该广播只能发给动态注册者
+        if ((intent.getFlags()&Intent.FLAG_RECEIVER_REGISTERED_ONLY)== 0) {
             //如果没有设置前面的标签，则需要查询PKMS，获得那些在AndroidManifest.xml
-           //中声明的广播接收者，即静态广播接收者的信息，并保存到receivers中
-             receivers =
-                   AppGlobals.getPackageManager().queryIntentReceivers(
-                          intent, resolvedType,STOCK_PM_FLAGS);
-            }
-          //再从AMS的mReceiverResolver中查询符合条件的动态广播接收者
-            registeredReceivers =mReceiverResolver.queryIntent(intent,
-                                                resolvedType, false);
-         }
-        }......
- 
-  /*
+            //中声明的广播接收者，即静态广播接收者的信息，并保存到receivers中
+            receivers =
+                AppGlobals.getPackageManager().queryIntentReceivers(
+                        intent, resolvedType,STOCK_PM_FLAGS);
+        }
+        //再从AMS的mReceiverResolver中查询符合条件的动态广播接收者
+        registeredReceivers =mReceiverResolver.queryIntent(intent,
+                resolvedType, false);
+    }
+}......
+
+/*
    判断该广播是否设置了REPLACE_PENDING标签。如果设置了该标签，并且之前的那个Intent还
    没有被处理，则可以用新的Intent替换旧的Intent。这么做的目的是为了减少不必要的广播发送，
    但笔者感觉，这个标签的作用并不靠谱，因为只有旧的Intent没被处理的时候，它才能被替换。
    因为旧Intent被处理的时间不能确定，所以不能保证广播发送者的一番好意能够实现。因此，
    在发送广播时，千万不要以为设置了该标志就一定能节约不必要的广播发送。
-  */
-   final boolean replacePending =
-        (intent.getFlags()&Intent.FLAG_RECEIVER_REPLACE_PENDING) != 0;
- 
-  //先处理动态注册的接收者
-   int NR =registeredReceivers != null ? registeredReceivers.size() : 0;
-   //如果此次广播为非串行化发送，并且符合条件的动态注册接收者个数不为零
-   if(!ordered && NR > 0) {
-      //创建一个BroadcastRecord对象即可，注意，一个BroadcastRecord对象可包括所有的
-     //接收者（可参考图6-19）
-     BroadcastRecord r = new BroadcastRecord(intent, callerApp,
-                   callerPackage, callingPid, callingUid, requiredPermission,
-                   registeredReceivers, resultTo, resultCode, resultData, map,
-                   ordered, sticky, false);
- 
-       boolean replaced = false;
-       if (replacePending) {
-       ......//从mParalledBroadcasts中查找是否有旧的Intent，如果有就替代它，并设置
-      //replaced为true
-     }
-       if(!replaced) {//如果没有被替换，则保存到mParallelBroadcasts中
-          mParallelBroadcasts.add(r);
-          scheduleBroadcastsLocked();//调度一次广播发送
-       }
-       //至此，动态注册的广播接收者已处理完毕，设置registeredReceivers为null
-      registeredReceivers = null;//
-       NR =0;
-  }
+ */
+final boolean replacePending =
+(intent.getFlags()&Intent.FLAG_RECEIVER_REPLACE_PENDING) != 0;
+
+//先处理动态注册的接收者
+int NR =registeredReceivers != null ? registeredReceivers.size() : 0;
+//如果此次广播为非串行化发送，并且符合条件的动态注册接收者个数不为零
+if(!ordered && NR > 0) {
+    //创建一个BroadcastRecord对象即可，注意，一个BroadcastRecord对象可包括所有的
+    //接收者（可参考图6-19）
+    BroadcastRecord r = new BroadcastRecord(intent, callerApp,
+            callerPackage, callingPid, callingUid, requiredPermission,
+            registeredReceivers, resultTo, resultCode, resultData, map,
+            ordered, sticky, false);
+
+    boolean replaced = false;
+    if (replacePending) {
+        ......//从mParalledBroadcasts中查找是否有旧的Intent，如果有就替代它，并设置
+            //replaced为true
+    }
+    if(!replaced) {//如果没有被替换，则保存到mParallelBroadcasts中
+        mParallelBroadcasts.add(r);
+        scheduleBroadcastsLocked();//调度一次广播发送
+    }
+    //至此，动态注册的广播接收者已处理完毕，设置registeredReceivers为null
+    registeredReceivers = null;//
+    NR =0;
+}
 ```
 
 broadcastIntentLocked第二阶段的工作有两项：
@@ -3757,33 +3757,33 @@ broadcastIntentLocked第二阶段的工作有两项：
 
 [-->ActivityManagerService.java::broadcastIntentLocked]
 ```java
-   int ir = 0;
-   if(receivers != null) {
-      StringskipPackages[] = null;
-     ......//处理PACKAGE_ADDED的Intent，系统不希望有些应用程序一安装就启动。
-      //这类程序的工作原理是什么呢？即在该程序内部监听PACKAGE_ADDED广播。如果系统
-     //没有这一招防备，则PKMS安装完程序后所发送的PAKCAGE_ADDED消息将触发该应用的启动
- 
-    ......//处理ACTION_EXTERNAL_APPLICATIONS_AVAILABLE广播
- 
-   ......//将动态注册的接收者registeredReceivers的元素合并到receivers中去
-   //处理完毕后，所有的接收者（无论动态还是静态注册的）都存储到receivers变量中了
-   if((receivers != null && receivers.size() > 0) || resultTo != null) {
-         //创建一个BroadcastRecord对象，注意它的receivers中包括所有的接收者
-        BroadcastRecord r = new BroadcastRecord(intent, callerApp,
-              callerPackage, callingPid, callingUid, requiredPermission,
-              receivers, resultTo, resultCode, resultData, map, ordered,
-              sticky, false);
-       booleanreplaced = false;
-       if (replacePending) {
-        ......//替换mOrderedBroadcasts中旧的Intent
-        }//
-     if(!replaced) {//如果没有替换，则添加该条广播记录到mOrderedBroadcasts中
-        mOrderedBroadcasts.add(r);
-        scheduleBroadcastsLocked();//调度AMS进行广播发送工作
-     }
-  }
-  returnBROADCAST_SUCCESS;
+int ir = 0;
+if(receivers != null) {
+    StringskipPackages[] = null;
+    ......//处理PACKAGE_ADDED的Intent，系统不希望有些应用程序一安装就启动。
+        //这类程序的工作原理是什么呢？即在该程序内部监听PACKAGE_ADDED广播。如果系统
+        //没有这一招防备，则PKMS安装完程序后所发送的PAKCAGE_ADDED消息将触发该应用的启动
+
+        ......//处理ACTION_EXTERNAL_APPLICATIONS_AVAILABLE广播
+
+        ......//将动态注册的接收者registeredReceivers的元素合并到receivers中去
+        //处理完毕后，所有的接收者（无论动态还是静态注册的）都存储到receivers变量中了
+        if((receivers != null && receivers.size() > 0) || resultTo != null) {
+            //创建一个BroadcastRecord对象，注意它的receivers中包括所有的接收者
+            BroadcastRecord r = new BroadcastRecord(intent, callerApp,
+                    callerPackage, callingPid, callingUid, requiredPermission,
+                    receivers, resultTo, resultCode, resultData, map, ordered,
+                    sticky, false);
+            booleanreplaced = false;
+            if (replacePending) {
+                ......//替换mOrderedBroadcasts中旧的Intent
+            }//
+            if(!replaced) {//如果没有替换，则添加该条广播记录到mOrderedBroadcasts中
+                mOrderedBroadcasts.add(r);
+                scheduleBroadcastsLocked();//调度AMS进行广播发送工作
+            }
+        }
+    returnBROADCAST_SUCCESS;
 }
 ```
 
@@ -3802,28 +3802,28 @@ BROADCAST_INTENT_MSG消息将触发processNextBroadcast函数，下面分阶段�
 [-->ActivityManagerService.java::processNextBroadcast]
 ```java
 private final void processNextBroadcast(booleanfromMsg) {
-   //如果是BROADCAST_INTENT_MSG消息触发该函数，则fromMsg为true
-  synchronized(this) {
-    BroadcastRecord r;
-   updateCpuStats();//更新CPU使用情况
-    if(fromMsg)  mBroadcastsScheduled = false;
- 
-    //先处理mParallelBroadcasts中的成员。如前所述，AMS在一个循环中处理它们
-    while(mParallelBroadcasts.size() > 0) {
-         r =mParallelBroadcasts.remove(0);
-         r.dispatchTime =SystemClock.uptimeMillis();
-         r.dispatchClockTime =System.currentTimeMillis();
-        final int N = r.receivers.size();
-         for(int i=0; i<N; i++) {
-           Object target = r.receivers.get(i);
-            //①mParallelBroadcasts中的成员全为BroadcastFilter类型，所以下面的函数
-           //将target直接转换成BroadcastFilter类型。注意，最后一个参数为false
-           deliverToRegisteredReceiverLocked(r, (BroadcastFilter)target,
-                                                         false);
+    //如果是BROADCAST_INTENT_MSG消息触发该函数，则fromMsg为true
+    synchronized(this) {
+        BroadcastRecord r;
+        updateCpuStats();//更新CPU使用情况
+        if(fromMsg)  mBroadcastsScheduled = false;
+
+        //先处理mParallelBroadcasts中的成员。如前所述，AMS在一个循环中处理它们
+        while(mParallelBroadcasts.size() > 0) {
+            r =mParallelBroadcasts.remove(0);
+            r.dispatchTime =SystemClock.uptimeMillis();
+            r.dispatchClockTime =System.currentTimeMillis();
+            final int N = r.receivers.size();
+            for(int i=0; i<N; i++) {
+                Object target = r.receivers.get(i);
+                //①mParallelBroadcasts中的成员全为BroadcastFilter类型，所以下面的函数
+                //将target直接转换成BroadcastFilter类型。注意，最后一个参数为false
+                deliverToRegisteredReceiverLocked(r, (BroadcastFilter)target,
+                        false);
+            }
+            //将这条处理过的记录保存到mHistoryBroadcast中，供调试使用
+            addBroadcastToHistoryLocked(r);
         }
-        //将这条处理过的记录保存到mHistoryBroadcast中，供调试使用
-        addBroadcastToHistoryLocked(r);
-  }
 ```
 
 deliverToRegisteredReceiverLocked函数的功能就是派发广播给接收者，其代码如下：
@@ -3831,55 +3831,55 @@ deliverToRegisteredReceiverLocked函数的功能就是派发广播给接收者�
 [-->ActivityManagerService.java::deliverToRegisteredReceiverLocked]
 ```java
 private final voiddeliverToRegisteredReceiverLocked(BroadcastRecord r,
-                         BroadcastFilter filter, booleanordered) {
-   booleanskip = false;
-   //检查发送进程是否有filter要求的权限
-   if(filter.requiredPermission != null) {
-       intperm = checkComponentPermission(filter.requiredPermission,
-                   r.callingPid, r.callingUid, -1, true);
-       if(perm != PackageManager.PERMISSION_GRANTED) skip = true;
-  }
-   //检查接收者是否有发送者要求的权限
-   if(r.requiredPermission != null) {
-       intperm = checkComponentPermission(r.requiredPermission,
-               filter.receiverList.pid, filter.receiverList.uid, -1, true);
-       if(perm != PackageManager.PERMISSION_GRANTED) skip = true;
+        BroadcastFilter filter, booleanordered) {
+    booleanskip = false;
+    //检查发送进程是否有filter要求的权限
+    if(filter.requiredPermission != null) {
+        intperm = checkComponentPermission(filter.requiredPermission,
+                r.callingPid, r.callingUid, -1, true);
+        if(perm != PackageManager.PERMISSION_GRANTED) skip = true;
     }
- 
-   if(!skip) {
-     if(ordered) {
-     ......//设置一些状态，成员变量等信息，不涉及广播发送
-      }
-     try {
-         //发送广播
-        performReceiveLocked(filter.receiverList.app,   
-              filter.receiverList.receiver,new Intent(r.intent), r.resultCode,
-              r.resultData, r.resultExtras, r.ordered, r.initialSticky);
- 
-         if(ordered) r.state = BroadcastRecord.CALL_DONE_RECEIVE;
-       }......
-     }
-   }
- }
+    //检查接收者是否有发送者要求的权限
+    if(r.requiredPermission != null) {
+        intperm = checkComponentPermission(r.requiredPermission,
+                filter.receiverList.pid, filter.receiverList.uid, -1, true);
+        if(perm != PackageManager.PERMISSION_GRANTED) skip = true;
+    }
+
+    if(!skip) {
+        if(ordered) {
+            ......//设置一些状态，成员变量等信息，不涉及广播发送
+        }
+        try {
+            //发送广播
+            performReceiveLocked(filter.receiverList.app,   
+                    filter.receiverList.receiver,new Intent(r.intent), r.resultCode,
+                    r.resultData, r.resultExtras, r.ordered, r.initialSticky);
+
+            if(ordered) r.state = BroadcastRecord.CALL_DONE_RECEIVE;
+        }......
+    }
+}
+}
 ```
 来看performReceiveLocked函数，其代码如下：
 
 [-->ActivityManagerService.java::performReceiveLocked]
 ```java
 static void performReceiveLocked(ProcessRecordapp, IIntentReceiver receiver,
-      Intentintent, int resultCode, String data, Bundle extras,
-     boolean ordered, boolean sticky) throws RemoteException {
-      if(app != null && app.thread != null) {
-         //如果app及app.thread不为null，则调度scheduleRegisteredReceiver，
+        Intentintent, int resultCode, String data, Bundle extras,
+        boolean ordered, boolean sticky) throws RemoteException {
+    if(app != null && app.thread != null) {
+        //如果app及app.thread不为null，则调度scheduleRegisteredReceiver，
         //注意这个函数名为scheduleRegisteredReceiver，它只针对动态注册的广播接收者
         app.thread.scheduleRegisteredReceiver(receiver,intent, resultCode,
-                   data, extras, ordered, sticky);
-      } else{
-       //否则调用IIntentReceiver的performReceive函数
-      receiver.performReceive(intent, resultCode, data, extras,
-                                     ordered, sticky);
-   }
- }
+                data, extras, ordered, sticky);
+    } else{
+        //否则调用IIntentReceiver的performReceive函数
+        receiver.performReceive(intent, resultCode, data, extras,
+                ordered, sticky);
+    }
+}
 ```
 对于动态注册者而言，在大部分情况下会执行if分支，所以应用进程ApplicationThread的scheduleRegisteredReceiver函数将被调用。稍后再分析应用进程的广播处理流程。
 
@@ -3891,82 +3891,82 @@ static void performReceiveLocked(ProcessRecordapp, IIntentReceiver receiver,
 
 [-->ActivityManagerService.java::processNextBroadcast]
 ```java
-   /*
-    现在要处理mOrderedBroadcasts中的成员。如前所述，它要处理一个接一个的接受者，如果
-    接收者所在进程还未启动，则需要等待。mPendingBroadcast变量用于标识因为应用进程还未
-    启动而处于等待状态的BroadcastRecord。
-   */
-  if(mPendingBroadcast != null) {
-     boolean isDead;
-     synchronized (mPidsSelfLocked) {
+/*
+   现在要处理mOrderedBroadcasts中的成员。如前所述，它要处理一个接一个的接受者，如果
+   接收者所在进程还未启动，则需要等待。mPendingBroadcast变量用于标识因为应用进程还未
+   启动而处于等待状态的BroadcastRecord。
+ */
+if(mPendingBroadcast != null) {
+    boolean isDead;
+    synchronized (mPidsSelfLocked) {
         isDead= (mPidsSelfLocked.get(mPendingBroadcast.curApp.pid) == null);
-      }
-      /*重要说明
-       判断要等待的进程是否为dead进程，如果没有dead进程，则继续等待。仔细思考，此处直接
-       返回会有什么问题。
-       问题不小！假设有两个ordered广播A和B，有两个接收者，AR和BR，并且BR所
-       在进程已经启动并完成初始化Android运行环境。如果processNextBroadcast先处理A，
-       再处理B，那么此处B的处理将因为mPendingBroadcast不为空而被延后。虽然B和A
-       之间没有任何关系（例如完全是两个不同的广播消息），
-       但是事实上，大多数开发人员理解的order是针对单个广播的，例如A有5个接收者，那么对这
-       5个接收者的广播的处理是串行的。通过此处的代码发现，系统竟然串行处理A和B广播，即
-       B广播要待到A的5个接收者都处理完了才能处理。
-      */
-      if(!isDead)   return;
-      else {
-       mPendingBroadcast.state = BroadcastRecord.IDLE;
-       mPendingBroadcast.nextReceiver = mPendingBroadcastRecvIndex;
-       mPendingBroadcast = null;
-     }
-   }
- 
-  boolean looped = false;
-  do {
-        // mOrderedBroadcasts处理完毕
-        if (mOrderedBroadcasts.size() == 0) {
-            scheduleAppGcsLocked();
-            if (looped)  updateOomAdjLocked();
-             return;
+    }
+    /*重要说明
+      判断要等待的进程是否为dead进程，如果没有dead进程，则继续等待。仔细思考，此处直接
+      返回会有什么问题。
+      问题不小！假设有两个ordered广播A和B，有两个接收者，AR和BR，并且BR所
+      在进程已经启动并完成初始化Android运行环境。如果processNextBroadcast先处理A，
+      再处理B，那么此处B的处理将因为mPendingBroadcast不为空而被延后。虽然B和A
+      之间没有任何关系（例如完全是两个不同的广播消息），
+      但是事实上，大多数开发人员理解的order是针对单个广播的，例如A有5个接收者，那么对这
+      5个接收者的广播的处理是串行的。通过此处的代码发现，系统竟然串行处理A和B广播，即
+      B广播要待到A的5个接收者都处理完了才能处理。
+     */
+    if(!isDead)   return;
+    else {
+        mPendingBroadcast.state = BroadcastRecord.IDLE;
+        mPendingBroadcast.nextReceiver = mPendingBroadcastRecvIndex;
+        mPendingBroadcast = null;
+    }
+}
+
+boolean looped = false;
+do {
+    // mOrderedBroadcasts处理完毕
+    if (mOrderedBroadcasts.size() == 0) {
+        scheduleAppGcsLocked();
+        if (looped)  updateOomAdjLocked();
+        return;
+    }
+    r =mOrderedBroadcasts.get(0);
+    boolean forceReceive = false;
+    //下面这段代码用于判断此条广播是否处理时间过长
+    //先得到该条广播的所有接收者
+    intnumReceivers = (r.receivers != null) ? r.receivers.size() : 0;
+    if(mProcessesReady && r.dispatchTime > 0) {
+        long now = SystemClock.uptimeMillis();
+        //如果总耗时超过2倍的接收者个数*每个接收者最长处理时间（10秒），则
+        //强制结束这条广播的处理
+        if ((numReceivers > 0) &&
+                (now > r.dispatchTime +
+                 (2*BROADCAST_TIMEOUT*numReceivers))){
+            broadcastTimeoutLocked(false);//读者阅读完本节后可自行研究该函数
+            forceReceive = true;
+            r.state = BroadcastRecord.IDLE;
         }
-        r =mOrderedBroadcasts.get(0);
-       boolean forceReceive = false;
-        //下面这段代码用于判断此条广播是否处理时间过长
-        //先得到该条广播的所有接收者
-        intnumReceivers = (r.receivers != null) ? r.receivers.size() : 0;
-        if(mProcessesReady && r.dispatchTime > 0) {
-            long now = SystemClock.uptimeMillis();
-           //如果总耗时超过2倍的接收者个数*每个接收者最长处理时间（10秒），则
-           //强制结束这条广播的处理
-            if ((numReceivers > 0) &&
-                   (now > r.dispatchTime +
-                              (2*BROADCAST_TIMEOUT*numReceivers))){
-               broadcastTimeoutLocked(false);//读者阅读完本节后可自行研究该函数
-              forceReceive = true;
-              r.state = BroadcastRecord.IDLE;
-            }
-      }//if(mProcessesReady...)判断结束
- 
-     if (r.state != BroadcastRecord.IDLE)   return;
-     //如果下面这个if条件满足，则表示该条广播要么已经全部被处理，要么被中途取消
-     if(r.receivers == null || r.nextReceiver >= numReceivers
+    }//if(mProcessesReady...)判断结束
+
+    if (r.state != BroadcastRecord.IDLE)   return;
+    //如果下面这个if条件满足，则表示该条广播要么已经全部被处理，要么被中途取消
+    if(r.receivers == null || r.nextReceiver >= numReceivers
             || r.resultAbort || forceReceive) {
-         if(r.resultTo != null) {
-          try {
-               //将该广播的处理结果传给设置了resultTo的接收者
-               performReceiveLocked(r.callerApp, r.resultTo,
-                  new Intent(r.intent), r.resultCode,
-                 r.resultData, r.resultExtras, false, false);
-               r.resultTo = null;
+        if(r.resultTo != null) {
+            try {
+                //将该广播的处理结果传给设置了resultTo的接收者
+                performReceiveLocked(r.callerApp, r.resultTo,
+                        new Intent(r.intent), r.resultCode,
+                        r.resultData, r.resultExtras, false, false);
+                r.resultTo = null;
             }......
-       }
-      cancelBroadcastTimeoutLocked();
-       addBroadcastToHistoryLocked(r);
-      mOrderedBroadcasts.remove(0);
-       r = null;
-      looped = true;
-       continue;
-     }
-  } while (r== null);
+        }
+        cancelBroadcastTimeoutLocked();
+        addBroadcastToHistoryLocked(r);
+        mOrderedBroadcasts.remove(0);
+        r = null;
+        looped = true;
+        continue;
+    }
+} while (r== null);
 ```
 
 processNextBroadcast第二阶段的工作比较简单：
@@ -3981,84 +3981,84 @@ processNextBroadcast第二阶段的工作比较简单：
 
 [-->ActivityManagerService.java::processNextBroadcast]
 ```java
-  int recIdx= r.nextReceiver++;
- r.receiverTime = SystemClock.uptimeMillis();
-  if (recIdx== 0) {
-     r.dispatchTime = r.receiverTime;//记录本广播第一次处理开始的时间
-      r.dispatchClockTime= System.currentTimeMillis();
-  }
-  //设置广播处理超时时间，BROADCAST_TIMEOUT为10秒
-  if (!mPendingBroadcastTimeoutMessage) {
-        longtimeoutTime = r.receiverTime + BROADCAST_TIMEOUT;
-       setBroadcastTimeoutLocked(timeoutTime);
-  }
-  //取该条广播下一个接收者
-  ObjectnextReceiver = r.receivers.get(recIdx);
-  if(nextReceiver instanceof BroadcastFilter) {
-     //如果是动态接收者，则直接调用deliverToRegisteredReceiverLocked处理
+int recIdx= r.nextReceiver++;
+r.receiverTime = SystemClock.uptimeMillis();
+if (recIdx== 0) {
+    r.dispatchTime = r.receiverTime;//记录本广播第一次处理开始的时间
+    r.dispatchClockTime= System.currentTimeMillis();
+}
+//设置广播处理超时时间，BROADCAST_TIMEOUT为10秒
+if (!mPendingBroadcastTimeoutMessage) {
+    longtimeoutTime = r.receiverTime + BROADCAST_TIMEOUT;
+    setBroadcastTimeoutLocked(timeoutTime);
+}
+//取该条广播下一个接收者
+ObjectnextReceiver = r.receivers.get(recIdx);
+if(nextReceiver instanceof BroadcastFilter) {
+    //如果是动态接收者，则直接调用deliverToRegisteredReceiverLocked处理
     BroadcastFilter filter = (BroadcastFilter)nextReceiver;
     deliverToRegisteredReceiverLocked(r, filter, r.ordered);
-     if(r.receiver == null || !r.ordered) {
+    if(r.receiver == null || !r.ordered) {
         r.state = BroadcastRecord.IDLE;
         scheduleBroadcastsLocked();
-       }
-     return;//已经通知一个接收者去处理该广播，需要等它的处理结果，所以此处直接返回
-  }
- //如果是静态接收者，则它的真实类型是ResolveInfo
- ResolveInfo info =  (ResolveInfo)nextReceiver;
-  booleanskip = false;
-  //检查权限
-  int perm =checkComponentPermission(info.activityInfo.permission,
+    }
+    return;//已经通知一个接收者去处理该广播，需要等它的处理结果，所以此处直接返回
+}
+//如果是静态接收者，则它的真实类型是ResolveInfo
+ResolveInfo info =  (ResolveInfo)nextReceiver;
+booleanskip = false;
+//检查权限
+int perm =checkComponentPermission(info.activityInfo.permission,
         r.callingPid, r.callingUid, info.activityInfo.applicationInfo.uid,
         info.activityInfo.exported);
-  if (perm!= PackageManager.PERMISSION_GRANTED) skip = true;
-  if(info.activityInfo.applicationInfo.uid != Process.SYSTEM_UID &&
+if (perm!= PackageManager.PERMISSION_GRANTED) skip = true;
+if(info.activityInfo.applicationInfo.uid != Process.SYSTEM_UID &&
         r.requiredPermission != null) {
-        ......
-       }
-   //设置skip为true
-   if(r.curApp != null && r.curApp.crashing) skip = true;
- 
-   if (skip){
-     r.receiver = null;
-     r.curFilter = null;
-     r.state = BroadcastRecord.IDLE;
-     scheduleBroadcastsLocked();//再调度一次广播处理
-     return;
-   }
- 
-    r.state= BroadcastRecord.APP_RECEIVE;
-    StringtargetProcess = info.activityInfo.processName;
-   r.curComponent = new ComponentName(
-             info.activityInfo.applicationInfo.packageName,
-             info.activityInfo.name);
-  r.curReceiver = info.activityInfo;
-   try {
-          //设置Package stopped的状态为false
-          AppGlobals.getPackageManager().setPackageStoppedState(
-                       r.curComponent.getPackageName(),false);
-         } ......
- 
-  ProcessRecord app = getProcessRecordLocked(targetProcess,
-                         info.activityInfo.applicationInfo.uid);
-   //如果该接收者对应的进程已经存在
-   if (app!= null && app.thread != null) {
+    ......
+}
+//设置skip为true
+if(r.curApp != null && r.curApp.crashing) skip = true;
+
+if (skip){
+    r.receiver = null;
+    r.curFilter = null;
+    r.state = BroadcastRecord.IDLE;
+    scheduleBroadcastsLocked();//再调度一次广播处理
+    return;
+}
+
+r.state= BroadcastRecord.APP_RECEIVE;
+StringtargetProcess = info.activityInfo.processName;
+r.curComponent = new ComponentName(
+        info.activityInfo.applicationInfo.packageName,
+        info.activityInfo.name);
+r.curReceiver = info.activityInfo;
+try {
+    //设置Package stopped的状态为false
+    AppGlobals.getPackageManager().setPackageStoppedState(
+            r.curComponent.getPackageName(),false);
+} ......
+
+ProcessRecord app = getProcessRecordLocked(targetProcess,
+        info.activityInfo.applicationInfo.uid);
+//如果该接收者对应的进程已经存在
+if (app!= null && app.thread != null) {
     try {
-           app.addPackage(info.activityInfo.packageName);
-           //该函数内部调用应用进程的scheduleReceiver函数，读者可自行分析
-           processCurBroadcastLocked(r, app);
-           return;//已经触发该接收者处理本广播，需要等待处理结果
-        }......
-     }
-   //最糟的情况就是该进程还没有启动
-   if((r.curApp=startProcessLocked(targetProcess,
-          info.activityInfo.applicationInfo, true,......)!= 0)) == null) {
-          ......//进程启动失败的处理
-         return;
-   }
-  mPendingBroadcast = r; //设置mPendingBroadcast
-  mPendingBroadcastRecvIndex = recIdx;
- }
+        app.addPackage(info.activityInfo.packageName);
+        //该函数内部调用应用进程的scheduleReceiver函数，读者可自行分析
+        processCurBroadcastLocked(r, app);
+        return;//已经触发该接收者处理本广播，需要等待处理结果
+    }......
+}
+//最糟的情况就是该进程还没有启动
+if((r.curApp=startProcessLocked(targetProcess,
+                info.activityInfo.applicationInfo, true,......)!= 0)) == null) {
+                    ......//进程启动失败的处理
+                        return;
+                }
+mPendingBroadcast = r; //设置mPendingBroadcast
+mPendingBroadcastRecvIndex = recIdx;
+}
 ```
 
 对processNextBroadcast第三阶段的工作总结如下：
@@ -4082,13 +4082,13 @@ processNextBroadcast第二阶段的工作比较简单：
 [-->ActivityThread.java::scheduleRegisteredReceiver]
 ```java
 public voidscheduleRegisteredReceiver(IIntentReceiver receiver, Intent intent,
-       intresultCode, String dataStr, Bundle extras, boolean ordered,
-      boolean sticky) throws RemoteException {
-  //又把receiver对象传了回来。还记得注册时传递的一个IIntentReceiver类型
-  //的对象吗？
-   receiver.performReceive(intent,resultCode, dataStr, extras, ordered,
-                               sticky);
- }
+        intresultCode, String dataStr, Bundle extras, boolean ordered,
+        boolean sticky) throws RemoteException {
+    //又把receiver对象传了回来。还记得注册时传递的一个IIntentReceiver类型
+    //的对象吗？
+    receiver.performReceive(intent,resultCode, dataStr, extras, ordered,
+            sticky);
+}
 ```
 
 就本例而言，receiver对象的真实类型为LoadedApk.ReceiverDispatcher，来看它的performReceive函数，代码如下：
@@ -4096,17 +4096,17 @@ public voidscheduleRegisteredReceiver(IIntentReceiver receiver, Intent intent,
 [-->LoadedApk.java::performReceive]
 ```java
 public void performReceive(Intent intent, intresultCode,
-   Stringdata, Bundle extras, boolean ordered, boolean sticky) {
-   //Args是一个runnable对象
-   Args args= new Args(intent, resultCode, data, extras, ordered, sticky);
-      // mActivityThread是一个Handler，还记得SDK提供的两个同名的registerReceiver
-     //函数吗？如果没有传递Handler，则使用主线程的Handler。
-  if(!mActivityThread.post(args)) {
-      if(mRegistered && ordered) {
-        IActivityManager mgr = ActivityManagerNative.getDefault();
-        args.sendFinished(mgr);
-      }
-   }
+        Stringdata, Bundle extras, boolean ordered, boolean sticky) {
+    //Args是一个runnable对象
+    Args args= new Args(intent, resultCode, data, extras, ordered, sticky);
+    // mActivityThread是一个Handler，还记得SDK提供的两个同名的registerReceiver
+    //函数吗？如果没有传递Handler，则使用主线程的Handler。
+    if(!mActivityThread.post(args)) {
+        if(mRegistered && ordered) {
+            IActivityManager mgr = ActivityManagerNative.getDefault();
+            args.sendFinished(mgr);
+        }
+    }
 }
 ```
 
@@ -4116,26 +4116,26 @@ scheduleRegisteredReceiver最终向主线程的Handler投递了一个Args对象�
 
 [-->LoadedApk.java::Args.run]
 ```java
-   publicvoid run() {
-     finalBroadcastReceiver receiver = mReceiver;
-     final boolean ordered = mOrdered;
-     finalIActivityManager mgr = ActivityManagerNative.getDefault();
-     finalIntent intent = mCurIntent;
+publicvoid run() {
+    finalBroadcastReceiver receiver = mReceiver;
+    final boolean ordered = mOrdered;
+    finalIActivityManager mgr = ActivityManagerNative.getDefault();
+    finalIntent intent = mCurIntent;
     mCurIntent = null;
-     ......
-    try {
-          //获取ClassLoader对象，千万注意，此处并没有通过反射机制创建一个广播接收者，
-          //对于动态接收者来说，在注册前就已经创建完毕
-           ClassLoadercl = mReceiver.getClass().getClassLoader();
-          intent.setExtrasClassLoader(cl);
-          setExtrasClassLoader(cl);
-          receiver.setPendingResult(this);//设置pendingResult
-          //调用该动态接收者的onReceive函数
-          receiver.onReceive(mContext, intent);
-    }......
-     //调用finish完成工作
-     if(receiver.getPendingResult() != null) finish();
-    }
+    ......
+        try {
+            //获取ClassLoader对象，千万注意，此处并没有通过反射机制创建一个广播接收者，
+            //对于动态接收者来说，在注册前就已经创建完毕
+            ClassLoadercl = mReceiver.getClass().getClassLoader();
+            intent.setExtrasClassLoader(cl);
+            setExtrasClassLoader(cl);
+            receiver.setPendingResult(this);//设置pendingResult
+            //调用该动态接收者的onReceive函数
+            receiver.onReceive(mContext, intent);
+        }......
+    //调用finish完成工作
+    if(receiver.getPendingResult() != null) finish();
+}
 ```
 
 Finish的代码很简单，此处不在赘述，在其内部会通过sendFinished函数调用AMS的finishReceiver函数，以通知AMS。
@@ -4147,20 +4147,20 @@ Finish的代码很简单，此处不在赘述，在其内部会通过sendFinishe
 [-->ActivityManagerService.java::finishReceiver]
 ```java
 public void finishReceiver(IBinder who, intresultCode, String resultData,
-           Bundle resultExtras, boolean resultAbort) {
-      ......
-    booleandoNext;
+        Bundle resultExtras, boolean resultAbort) {
+    ......
+        booleandoNext;
     final long origId =Binder.clearCallingIdentity();
     synchronized(this){
         //判断是否还需要继续调度后续的广播发送
-       doNext = finishReceiverLocked(
-             who, resultCode, resultData, resultExtras, resultAbort, true);
-        }
-        if(doNext) { //发起下一次广播发送
-           processNextBroadcast(false);
-        }
-       trimApplications();
-   Binder.restoreCallingIdentity(origId);
+        doNext = finishReceiverLocked(
+                who, resultCode, resultData, resultExtras, resultAbort, true);
+    }
+    if(doNext) { //发起下一次广播发送
+        processNextBroadcast(false);
+    }
+    trimApplications();
+    Binder.restoreCallingIdentity(origId);
 }
 ```
 
@@ -4358,29 +4358,29 @@ Android将应用进程分为五大类，分别为Forground类、Visible类、Ser
 ```java
 //设置线程的调度优先级，Linux kernel并不区分线程和进程，二者对应同一个数据结构Task
 public static final native void setThreadPriority(inttid, int priority)
-           throws IllegalArgumentException, SecurityException;
- 
-/*
-   设置线程的Group，实际上就是设置线程的调度策略，目前Android定义了三种Group。
-   由于缺乏相关资料，加之笔者感觉对应的注释也只可意会不可言传，故此处直接照搬了英文
-   注释，敬请读者谅解。
-   THREAD_GROUP_DEFAULT：Default thread group - gets a 'normal'share of the CPU
-   THREAD_GROUP_BG_NONINTERACTIVE：Background non-interactive thread group.
-   Allthreads in this group are scheduled with a reduced share of the CPU
-   THREAD_GROUP_FG_BOOST：Foreground 'boost' thread group - Allthreads in
-   this group are scheduled with an increasedshare of the CPU.
-   目前代码中还没有地方使用THREAD_GROUP_FG_BOOST这种Group
-*/
+    throws IllegalArgumentException, SecurityException;
+
+    /*
+       设置线程的Group，实际上就是设置线程的调度策略，目前Android定义了三种Group。
+       由于缺乏相关资料，加之笔者感觉对应的注释也只可意会不可言传，故此处直接照搬了英文
+       注释，敬请读者谅解。
+       THREAD_GROUP_DEFAULT：Default thread group - gets a 'normal'share of the CPU
+       THREAD_GROUP_BG_NONINTERACTIVE：Background non-interactive thread group.
+       Allthreads in this group are scheduled with a reduced share of the CPU
+       THREAD_GROUP_FG_BOOST：Foreground 'boost' thread group - Allthreads in
+       this group are scheduled with an increasedshare of the CPU.
+       目前代码中还没有地方使用THREAD_GROUP_FG_BOOST这种Group
+     */
 public static final native void setThreadGroup(inttid, int group)
-           throws IllegalArgumentException, SecurityException;
-//设置进程的调度策略，包括该进程的所有线程
+    throws IllegalArgumentException, SecurityException;
+    //设置进程的调度策略，包括该进程的所有线程
 public static final native voidsetProcessGroup(int pid, int group)
-           throws IllegalArgumentException, SecurityException;
-//设置线程的调度优先级
+    throws IllegalArgumentException, SecurityException;
+    //设置线程的调度优先级
 public static final native voidsetThreadPriority(int priority)
-           throws IllegalArgumentException, SecurityException;
-//调整进程的oom_adj值
-public static final native boolean setOomAdj(intpid, int amt);
+    throws IllegalArgumentException, SecurityException;
+    //调整进程的oom_adj值
+    public static final native boolean setOomAdj(intpid, int amt);
 ```
 
 Process类还为不同调度优先级定义一些非常直观的名字以避免在代码中直接使用整型，例如为最低的调度优先级19定义了整型变量THREAD_PRIORITY_LOWEST。除此之外，Process还提供了fork子进程等相关的函数。
@@ -4404,84 +4404,84 @@ ProcessList类有两个主要功能：
 class ProcessList {
     //当一个进程连续发生Crash的间隔小于60秒时，系统认为它是为Bad进程
     staticfinal int MIN_CRASH_INTERVAL = 60*1000;
-   //下面定义各种状态下进程的oom_adj
- 
-   //不可见进程的oom_adj，最大15，最小为7。杀死这些进程一般不会带来用户能够察觉的影响
+    //下面定义各种状态下进程的oom_adj
+
+    //不可见进程的oom_adj，最大15，最小为7。杀死这些进程一般不会带来用户能够察觉的影响
     staticfinal int HIDDEN_APP_MAX_ADJ = 15;
     staticint HIDDEN_APP_MIN_ADJ = 7;
- 
-   /*
-   位于B List中Service所在进程的oom_adj。什么样的Service会在BList中呢？其中的
-   解释只能用原文来表达” these are the old anddecrepit services that aren't as
-   shiny andinteresting as the ones in the A list“
-   */
+
+    /*
+       位于B List中Service所在进程的oom_adj。什么样的Service会在BList中呢？其中的
+       解释只能用原文来表达” these are the old anddecrepit services that aren't as
+       shiny andinteresting as the ones in the A list“
+     */
     staticfinal int SERVICE_B_ADJ = 8;
- 
-   /*
-   前一个进程的oom_adj，例如从A进程的Activity跳转到位于B进程的Activity，
-   B进程是当前进程，而A进程就是previous进程了。因为从当前进程A退回B进程是一个很简单
-   却很频繁的操作（例如按back键退回上一个Activity），所以previous进程的oom_adj
-   需要单独控制。这里不能简单按照五大类来划分previous进程，还需要综合考虑
-   */
-   staticfinal int PREVIOUS_APP_ADJ = 7;
- 
-   //Home进程的oom_adj为6，用户经常和Home进程交互，故它的oom_adj也需要单独控制
+
+    /*
+       前一个进程的oom_adj，例如从A进程的Activity跳转到位于B进程的Activity，
+       B进程是当前进程，而A进程就是previous进程了。因为从当前进程A退回B进程是一个很简单
+       却很频繁的操作（例如按back键退回上一个Activity），所以previous进程的oom_adj
+       需要单独控制。这里不能简单按照五大类来划分previous进程，还需要综合考虑
+     */
+    staticfinal int PREVIOUS_APP_ADJ = 7;
+
+    //Home进程的oom_adj为6，用户经常和Home进程交互，故它的oom_adj也需要单独控制
     staticfinal int HOME_APP_ADJ = 6;
- 
-   //Service类中进程的oom_adj为5
+
+    //Service类中进程的oom_adj为5
     staticfinal int SERVICE_ADJ = 5;
- 
-   //正在执行backup操作的进程，其oom_adj为4
+
+    //正在执行backup操作的进程，其oom_adj为4
     staticfinal int BACKUP_APP_ADJ = 4;
- 
-   //heavyweight的概念前面曽提到过，该类进程的oom_adj为3
+
+    //heavyweight的概念前面曽提到过，该类进程的oom_adj为3
     staticfinal int HEAVY_WEIGHT_APP_ADJ = 3;
- 
-   //Perceptible进程指那些当前并不在前端显示而用户能感觉到它在运行的进程，例如正在
-   //后台播放音乐的Music
+
+    //Perceptible进程指那些当前并不在前端显示而用户能感觉到它在运行的进程，例如正在
+    //后台播放音乐的Music
     staticfinal int PERCEPTIBLE_APP_ADJ = 2;
- 
-   //Visible类进程，oom_adj为1
+
+    //Visible类进程，oom_adj为1
     staticfinal int VISIBLE_APP_ADJ = 1;
- 
-   //Forground类进程，oom_adj为0
+
+    //Forground类进程，oom_adj为0
     staticfinal int FOREGROUND_APP_ADJ = 0;
- 
-   //persistent类进程（即退出后，系统需要重新启动的重要进程），其oom_adj为-12
+
+    //persistent类进程（即退出后，系统需要重新启动的重要进程），其oom_adj为-12
     staticfinal int PERSISTENT_PROC_ADJ = -12;
- 
+
     //核心服务所在进程，oom_adj为-12
     staticfinal int CORE_SERVER_ADJ = -12;
- 
+
     //系统进程，其oom_adj为-16
     staticfinal int SYSTEM_ADJ = -16;
- 
+
     //内存页大小定义为4KB
     staticfinal int PAGE_SIZE = 4*1024;
- 
+
     //系统中能容纳的不可见进程数最少为2，最多为15。在Android 4.0系统中，可通过设置程序来
     //调整
     staticfinal int MIN_HIDDEN_APPS = 2;
     staticfinal int MAX_HIDDEN_APPS = 15;
- 
-  //下面两个参数用于调整进程的LRU权重。注意，它们的注释和具体代码中的用法不能统一起来
-  staticfinal long CONTENT_APP_IDLE_OFFSET = 15*1000;
-  staticfinal long EMPTY_APP_IDLE_OFFSET = 120*1000;
- 
-  //LMK设置了6个oom_adj阈值
-  privatefinal int[] mOomAdj = new int[] {
-           FOREGROUND_APP_ADJ, VISIBLE_APP_ADJ, PERCEPTIBLE_APP_ADJ,
-           BACKUP_APP_ADJ, HIDDEN_APP_MIN_ADJ, EMPTY_APP_ADJ
-  };
-   //用于内存较低机器（例如小于512MB）中LMK的内存阈值配置
-    privatefinal long[] mOomMinFreeLow = new long[] {
-           8192, 12288, 16384,
-           24576, 28672, 32768
+
+    //下面两个参数用于调整进程的LRU权重。注意，它们的注释和具体代码中的用法不能统一起来
+    staticfinal long CONTENT_APP_IDLE_OFFSET = 15*1000;
+    staticfinal long EMPTY_APP_IDLE_OFFSET = 120*1000;
+
+    //LMK设置了6个oom_adj阈值
+    privatefinal int[] mOomAdj = new int[] {
+        FOREGROUND_APP_ADJ, VISIBLE_APP_ADJ, PERCEPTIBLE_APP_ADJ,
+            BACKUP_APP_ADJ, HIDDEN_APP_MIN_ADJ, EMPTY_APP_ADJ
     };
-   //用于较高内存机器（例如大于1GB）的LMK内存阈值配置
-   privatefinal long[] mOomMinFreeHigh = new long[] {
-           32768, 40960, 49152,
-           57344, 65536, 81920
+    //用于内存较低机器（例如小于512MB）中LMK的内存阈值配置
+    privatefinal long[] mOomMinFreeLow = new long[] {
+        8192, 12288, 16384,
+            24576, 28672, 32768
+    };
+    //用于较高内存机器（例如大于1GB）的LMK内存阈值配置
+    privatefinal long[] mOomMinFreeHigh = new long[] {
+        32768, 40960, 49152,
+            57344, 65536, 81920
     };
 ```
 从以上代码中定义的各种ADJ值可知，AMS中的进程管理规则远比想象得要复杂（读者以后见识到具体的代码，更会有这样的体会）。
@@ -4548,32 +4548,32 @@ int lruSeq;                 // Sequence id for identifyingLRU update cycles
 ```java
 //attachApplication主要工作由attachApplicationLocked完成，故直接分析它
 private final booleanattachApplicationLocked(IApplicationThread thread,
-                                                      int pid) {
- ProcessRecord app;
-  //根据之前的介绍的内容，AMS在创建应用进程前已经将对应的ProcessRecord保存到
-  //mPidsSelfLocked中了
-  ...... //其他一些处理
- 
-  //初始化ProcessRecord中的一些成员变量
-  app.thread= thread;
-  app.curAdj= app.setAdj = -100;
- app.curSchedGroup = Process.THREAD_GROUP_DEFAULT;
-  app.setSchedGroup= Process.THREAD_GROUP_BG_NONINTERACTIVE;
- app.forcingToForeground = null;
- app.foregroundServices = false;
- app.hasShownUi = false;
-  ......
-  //调用应用进程的bindApplication，以初始化其内部的Android运行环境
-  thread.bindApplication(......);
-  //①调用updateLruProcessLocked函数
- updateLruProcessLocked(app, false, true);
- app.lastRequestedGc = app.lastLowMemory = SystemClock.uptimeMillis();
-  ......//启动Activity等操作
- 
-  //②didSomething为false，则调用updateOomAdjLocked函数
-  if(!didSomething) {
-      updateOomAdjLocked();
- }
+        int pid) {
+    ProcessRecord app;
+    //根据之前的介绍的内容，AMS在创建应用进程前已经将对应的ProcessRecord保存到
+    //mPidsSelfLocked中了
+    ...... //其他一些处理
+
+        //初始化ProcessRecord中的一些成员变量
+        app.thread= thread;
+    app.curAdj= app.setAdj = -100;
+    app.curSchedGroup = Process.THREAD_GROUP_DEFAULT;
+    app.setSchedGroup= Process.THREAD_GROUP_BG_NONINTERACTIVE;
+    app.forcingToForeground = null;
+    app.foregroundServices = false;
+    app.hasShownUi = false;
+    ......
+        //调用应用进程的bindApplication，以初始化其内部的Android运行环境
+        thread.bindApplication(......);
+    //①调用updateLruProcessLocked函数
+    updateLruProcessLocked(app, false, true);
+    app.lastRequestedGc = app.lastLowMemory = SystemClock.uptimeMillis();
+    ......//启动Activity等操作
+
+        //②didSomething为false，则调用updateOomAdjLocked函数
+        if(!didSomething) {
+            updateOomAdjLocked();
+        }
 ```
 
 在以上这段代码中有两个重要函数调用，分别是updateLruProcessLocked和updateOomAdjLocked。
@@ -4587,87 +4587,87 @@ private final booleanattachApplicationLocked(IApplicationThread thread,
 [-->ActivityManagerService.java::updateLruProcessLocked]
 ```java
 final void updateLruProcessLocked(ProcessRecordapp,
-           boolean oomAdj, boolean updateActivityTime) {
-  mLruSeq++;//每一次调整LRU列表，系统都会分配一个唯一的编号
-  updateLruProcessInternalLocked(app, oomAdj, updateActivityTime, 0);
- }
+        boolean oomAdj, boolean updateActivityTime) {
+    mLruSeq++;//每一次调整LRU列表，系统都会分配一个唯一的编号
+    updateLruProcessInternalLocked(app, oomAdj, updateActivityTime, 0);
+}
 [-->ActivityManagerService.java::updateLruProcessInternalLocked]
 private final voidupdateLruProcessInternalLocked(ProcessRecord app,
-           boolean oomAdj, boolean updateActivityTime, int bestPos) {
- 
-  //获取app在mLruProcesses中的索引位置，对于本例而言，返回值lrui为-1
-  int lrui =mLruProcesses.indexOf(app);
-  //如果之前有记录，则先从数组中删掉，因为此处需要重新调整位置
-  if (lrui>= 0) mLruProcesses.remove(lrui);
- 
-  //获取mLruProcesses中数组索引的最大值，从0开始
-  int i =mLruProcesses.size()-1;
-  intskipTop = 0;
-       
-  app.lruSeq= mLruSeq;  //将系统全局的lru调整编号赋给ProcessRecord的lruSeq
-       
-  //更新lastActivityTime值，其实就是获取一个时间
-  if(updateActivityTime) {
+        boolean oomAdj, boolean updateActivityTime, int bestPos) {
+
+    //获取app在mLruProcesses中的索引位置，对于本例而言，返回值lrui为-1
+    int lrui =mLruProcesses.indexOf(app);
+    //如果之前有记录，则先从数组中删掉，因为此处需要重新调整位置
+    if (lrui>= 0) mLruProcesses.remove(lrui);
+
+    //获取mLruProcesses中数组索引的最大值，从0开始
+    int i =mLruProcesses.size()-1;
+    intskipTop = 0;
+
+    app.lruSeq= mLruSeq;  //将系统全局的lru调整编号赋给ProcessRecord的lruSeq
+
+    //更新lastActivityTime值，其实就是获取一个时间
+    if(updateActivityTime) {
         app.lastActivityTime =SystemClock.uptimeMillis();
-  }
- 
-  if(app.activities.size() > 0) {
-      //如果该app含Activity，则lruWeight为当前时间
-      app.lruWeight = app.lastActivityTime;
-   } else if(app.pubProviders.size() > 0) {
-       /*
-        如果有发布的ContentProvider，则lruWeight要减去一个OFFSET。
-        对此的理解需结合CONTENT_APP_IDLE_OFFSET的定义。读者暂时把它
-        看做一个常数
-        */
-       app.lruWeight = app.lastActivityTime -
-                            ProcessList.CONTENT_APP_IDLE_OFFSET;
+    }
+
+    if(app.activities.size() > 0) {
+        //如果该app含Activity，则lruWeight为当前时间
+        app.lruWeight = app.lastActivityTime;
+    } else if(app.pubProviders.size() > 0) {
+        /*
+           如果有发布的ContentProvider，则lruWeight要减去一个OFFSET。
+           对此的理解需结合CONTENT_APP_IDLE_OFFSET的定义。读者暂时把它
+           看做一个常数
+         */
+        app.lruWeight = app.lastActivityTime -
+            ProcessList.CONTENT_APP_IDLE_OFFSET;
         //设置skipTop。这个变量实际上没有用，放在此处让人很头疼
         skipTop = ProcessList.MIN_HIDDEN_APPS;
-   } else {
-         app.lruWeight = app.lastActivityTime -
-                              ProcessList.EMPTY_APP_IDLE_OFFSET;
-         skipTop = ProcessList.MIN_HIDDEN_APPS;
-   }
- 
-  //从数组最后一个元素开始循环
-  while (i>= 0) {
-     ProcessRecord p = mLruProcesses.get(i);
- 
-     //下面这个if语句没有任何意义，因为skipTop除了做自减操作外，不影响其他任何内容
-      if(skipTop > 0 && p.setAdj >= ProcessList.HIDDEN_APP_MIN_ADJ) {
-          skipTop--;
-       }
-       //将app调整到合适的位置
-       if(p.lruWeight <= app.lruWeight || i < bestPos) {
-           mLruProcesses.add(i+1, app);
-           break;
-       }
-       i--;
-  }
-  //如果没有找到合适的位置，则把app加到队列头
-  if (i <0)   mLruProcesses.add(0, app);
- 
-   //如果该将app 绑定到其他service，则要对应调整Service所在进程的LRU
-   if (app.connections.size() > 0) {
-       for(ConnectionRecord cr : app.connections) {
-          if(cr.binding != null && cr.binding.service != null
-                        && cr.binding.service.app!= null
-                        &&cr.binding.service.app.lruSeq != mLruSeq) {
-                        updateLruProcessInternalLocked(cr.binding.service.app,
-                               oomAdj,updateActivityTime,i+1);
+    } else {
+        app.lruWeight = app.lastActivityTime -
+            ProcessList.EMPTY_APP_IDLE_OFFSET;
+        skipTop = ProcessList.MIN_HIDDEN_APPS;
+    }
+
+    //从数组最后一个元素开始循环
+    while (i>= 0) {
+        ProcessRecord p = mLruProcesses.get(i);
+
+        //下面这个if语句没有任何意义，因为skipTop除了做自减操作外，不影响其他任何内容
+        if(skipTop > 0 && p.setAdj >= ProcessList.HIDDEN_APP_MIN_ADJ) {
+            skipTop--;
+        }
+        //将app调整到合适的位置
+        if(p.lruWeight <= app.lruWeight || i < bestPos) {
+            mLruProcesses.add(i+1, app);
+            break;
+        }
+        i--;
+    }
+    //如果没有找到合适的位置，则把app加到队列头
+    if (i <0)   mLruProcesses.add(0, app);
+
+    //如果该将app 绑定到其他service，则要对应调整Service所在进程的LRU
+    if (app.connections.size() > 0) {
+        for(ConnectionRecord cr : app.connections) {
+            if(cr.binding != null && cr.binding.service != null
+                    && cr.binding.service.app!= null
+                    &&cr.binding.service.app.lruSeq != mLruSeq) {
+                updateLruProcessInternalLocked(cr.binding.service.app,
+                        oomAdj,updateActivityTime,i+1);
             }
         }
     }
-  //conProviders也是一种Provider，相关信息下一章再介绍
+    //conProviders也是一种Provider，相关信息下一章再介绍
     if(app.conProviders.size() > 0) {
-         for(ContentProviderRecord cpr : app.conProviders.keySet()) {
+        for(ContentProviderRecord cpr : app.conProviders.keySet()) {
             ......//对ContentProvider所在进程做类似的调整
- 
-           }
+
         }
-  //在本例中，oomAdj为false，故updateOomAdjLocked不会被调用
-  if (oomAdj) updateOomAdjLocked(); //以后分析
+    }
+    //在本例中，oomAdj为false，故updateOomAdjLocked不会被调用
+    if (oomAdj) updateOomAdjLocked(); //以后分析
 }
 ```
 
@@ -4688,69 +4688,69 @@ private final voidupdateLruProcessInternalLocked(ProcessRecord app,
 [-->ActivityManagerService.java::updateOomAdjLocked()]
 ```java
 final void updateOomAdjLocked() {
-  //在一般情况下，resumedAppLocked返回 mResumedActivity，即当前正处于前台的Activity
-  finalActivityRecord TOP_ACT = resumedAppLocked();
-  //得到前台Activity所属进程的ProcessRecord信息
-  finalProcessRecord TOP_APP = TOP_ACT != null ? TOP_ACT.app : null;
- 
-  mAdjSeq++;//oom_adj在进行调节时也会有唯一的序号
- 
-  mNewNumServiceProcs= 0;
- 
-  /*
-    下面这几句代码的作用如下：
-    1 根据hidden adj划分级别，一共有9个级别（即numSlots值）
-    2 根据mLruProcesses的成员个数计算平均落在各个级别的进程数（即factor值）。但是这里
-      的魔数（magic number）4却令人头疼不已。如有清楚该内容的读者，不妨让分享一下
-      研究结果
-  */
-  intnumSlots = ProcessList.HIDDEN_APP_MAX_ADJ -
-                                          ProcessList.HIDDEN_APP_MIN_ADJ + 1;
-  int factor= (mLruProcesses.size()-4)/numSlots;
-  if (factor< 1) factor = 1;
- 
- 
-  int step =0;
-  intnumHidden = 0;
-       
-  int i =mLruProcesses.size();
-  intcurHiddenAdj = ProcessList.HIDDEN_APP_MIN_ADJ;
- //从mLruProcesses数组末端开始循环
-  while (i> 0) {
-     i--;
-     ProcessRecordapp = mLruProcesses.get(i);
- 
-     //①调用另外一个updateOomAdjLocked函数
-     updateOomAdjLocked(app,curHiddenAdj, TOP_APP, true);
- 
-     // updateOomAdjLocked函数会更新app的curAdj
-    if(curHiddenAdj < ProcessList.HIDDEN_APP_MAX_ADJ
-                              &&app.curAdj == curHiddenAdj) {
-       /*
-       这段代码的目的其实很简单。即当某个adj级别的ProcessRecord处理个数超过均值后，
-       就跳到下一级别进行处理。注意，这段代码的结果会影响updateOomAdjLocked的第二个参数
-      */
-           step++;
-           if(step >= factor) {
-               step = 0;
-               curHiddenAdj++;
-           }
-       }// if(curHiddenAdj < ProcessList.HIDDEN_APP_MAX_ADJ...)判断结束
- 
-     //app.killedBackground初值为false
-     if(!app.killedBackground) {
-          if (app.curAdj >= ProcessList.HIDDEN_APP_MIN_ADJ) {
+    //在一般情况下，resumedAppLocked返回 mResumedActivity，即当前正处于前台的Activity
+    finalActivityRecord TOP_ACT = resumedAppLocked();
+    //得到前台Activity所属进程的ProcessRecord信息
+    finalProcessRecord TOP_APP = TOP_ACT != null ? TOP_ACT.app : null;
+
+    mAdjSeq++;//oom_adj在进行调节时也会有唯一的序号
+
+    mNewNumServiceProcs= 0;
+
+    /*
+       下面这几句代码的作用如下：
+       1 根据hidden adj划分级别，一共有9个级别（即numSlots值）
+       2 根据mLruProcesses的成员个数计算平均落在各个级别的进程数（即factor值）。但是这里
+       的魔数（magic number）4却令人头疼不已。如有清楚该内容的读者，不妨让分享一下
+       研究结果
+     */
+    intnumSlots = ProcessList.HIDDEN_APP_MAX_ADJ -
+        ProcessList.HIDDEN_APP_MIN_ADJ + 1;
+    int factor= (mLruProcesses.size()-4)/numSlots;
+    if (factor< 1) factor = 1;
+
+
+    int step =0;
+    intnumHidden = 0;
+
+    int i =mLruProcesses.size();
+    intcurHiddenAdj = ProcessList.HIDDEN_APP_MIN_ADJ;
+    //从mLruProcesses数组末端开始循环
+    while (i> 0) {
+        i--;
+        ProcessRecordapp = mLruProcesses.get(i);
+
+        //①调用另外一个updateOomAdjLocked函数
+        updateOomAdjLocked(app,curHiddenAdj, TOP_APP, true);
+
+        // updateOomAdjLocked函数会更新app的curAdj
+        if(curHiddenAdj < ProcessList.HIDDEN_APP_MAX_ADJ
+                &&app.curAdj == curHiddenAdj) {
+            /*
+               这段代码的目的其实很简单。即当某个adj级别的ProcessRecord处理个数超过均值后，
+               就跳到下一级别进行处理。注意，这段代码的结果会影响updateOomAdjLocked的第二个参数
+             */
+            step++;
+            if(step >= factor) {
+                step = 0;
+                curHiddenAdj++;
+            }
+        }// if(curHiddenAdj < ProcessList.HIDDEN_APP_MAX_ADJ...)判断结束
+
+        //app.killedBackground初值为false
+        if(!app.killedBackground) {
+            if (app.curAdj >= ProcessList.HIDDEN_APP_MIN_ADJ) {
                 numHidden++;
-              //mProcessLimit初始值为ProcessList.MAX（值为15），
-             //可通过setProcessLimit函数对其进行修改
+                //mProcessLimit初始值为ProcessList.MAX（值为15），
+                //可通过setProcessLimit函数对其进行修改
                 if (numHidden > mProcessLimit) {
-                      app.killedBackground =true;
-                      //如果后台进程个数超过限制，则会杀死对应的后台进程
-                     Process.killProcessQuiet(app.pid);
+                    app.killedBackground =true;
+                    //如果后台进程个数超过限制，则会杀死对应的后台进程
+                    Process.killProcessQuiet(app.pid);
                 }
             }
-      }//if(!app.killedBackground)判断结束
-  }//while循环结束
+        }//if(!app.killedBackground)判断结束
+    }//while循环结束
 ```
 
 updateOomAdjLocked第一阶段的工作看起来很简单，但是其中也包含一些较难理解的内容。
@@ -4769,51 +4769,51 @@ updateOomAdjLocked第一阶段的工作看起来很简单，但是其中也包�
 
 [-->ActivityManagerService.java::updateOomAdjLocked]
 ```java
- mNumServiceProcs = mNewNumServiceProcs;
- //numHidden表示处于hidden状态的进程个数
-  //当Hidden进程个数小于7时候（15/2的整型值）,执行if分支
-  if(numHidden <= (ProcessList.MAX_HIDDEN_APPS/2)) {
-       ......
-     /*
-      我们不讨论这段缺乏文档及使用魔数的代码，但这里有个知识点要注意：
-      该知识点和Android 4.0新增接口ComponentCallbacks2有关，主要是通知应用进程进行
-      内存清理，ComponentCallbacks2接口定了一个函数onTrimMemory(int level)，
-      而四大组件除BroadcastReceiver外，均实现了该接口。系统定义了4个level以通知进程
-      做对应处理：
-      TRIM_MEMORY_UI_HIDDEN，提示进程当前不处于前台，故可释放一些UI资源
-      TRIM_MEMORY_BACKGROUND，表明该进程已加入LRU列表，此时进程可以对一些简单的资源
-      进行清理
-      TRIM_MEMORY_MODERATE，提示进程可以释放一些资源，这样其他进程的日子会好过些。
-      即所谓的“我为人人，人人为我”
-      TRIM_MEMORY_COMPLETE，该进程需尽可能释放一些资源，否则当内存不足时，它可能被杀死
-      */
-   } else {//假设hidden进程数超过7，
-      finalint N = mLruProcesses.size();
-      for(i=0; i<N; i++) {
-       ProcessRecord app = mLruProcesses.get(i);
+mNumServiceProcs = mNewNumServiceProcs;
+//numHidden表示处于hidden状态的进程个数
+//当Hidden进程个数小于7时候（15/2的整型值）,执行if分支
+if(numHidden <= (ProcessList.MAX_HIDDEN_APPS/2)) {
+    ......
+        /*
+           我们不讨论这段缺乏文档及使用魔数的代码，但这里有个知识点要注意：
+           该知识点和Android 4.0新增接口ComponentCallbacks2有关，主要是通知应用进程进行
+           内存清理，ComponentCallbacks2接口定了一个函数onTrimMemory(int level)，
+           而四大组件除BroadcastReceiver外，均实现了该接口。系统定义了4个level以通知进程
+           做对应处理：
+           TRIM_MEMORY_UI_HIDDEN，提示进程当前不处于前台，故可释放一些UI资源
+           TRIM_MEMORY_BACKGROUND，表明该进程已加入LRU列表，此时进程可以对一些简单的资源
+           进行清理
+           TRIM_MEMORY_MODERATE，提示进程可以释放一些资源，这样其他进程的日子会好过些。
+           即所谓的“我为人人，人人为我”
+           TRIM_MEMORY_COMPLETE，该进程需尽可能释放一些资源，否则当内存不足时，它可能被杀死
+         */
+} else {//假设hidden进程数超过7，
+    finalint N = mLruProcesses.size();
+    for(i=0; i<N; i++) {
+        ProcessRecord app = mLruProcesses.get(i);
         if ((app.curAdj >ProcessList.VISIBLE_APP_ADJ || app.systemNoUi)
-              && app.pendingUiClean) {
+                && app.pendingUiClean) {
             if (app.trimMemoryLevel <
-                        ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
-                        && app.thread!= null) {
-                   try {//调用应用进程ApplicationThread的scheduleTrimMemory函数
-                        app.thread.scheduleTrimMemory(
-                                    ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN);
-                      }......
-                }// if (app.trimMemoryLevel...)判断结束
-              app.trimMemoryLevel =
-                             ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN;
-                   app.pendingUiClean = false;
-         }else {
-              app.trimMemoryLevel = 0;
-          }
-       }//for循环结束
-        }//else结束
-   //Android4.0中设置有一个开发人员选项，其中有一项用于控制是否销毁后台的Activity。
-   //读者可自行研究destroyActivitiesLocked函数
-   if (mAlwaysFinishActivities)
-       mMainStack.destroyActivitiesLocked(null, false,"always-finish");
- }
+                    ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
+                    && app.thread!= null) {
+                try {//调用应用进程ApplicationThread的scheduleTrimMemory函数
+                    app.thread.scheduleTrimMemory(
+                            ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN);
+                }......
+            }// if (app.trimMemoryLevel...)判断结束
+            app.trimMemoryLevel =
+                ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN;
+            app.pendingUiClean = false;
+        }else {
+            app.trimMemoryLevel = 0;
+        }
+    }//for循环结束
+}//else结束
+//Android4.0中设置有一个开发人员选项，其中有一项用于控制是否销毁后台的Activity。
+//读者可自行研究destroyActivitiesLocked函数
+if (mAlwaysFinishActivities)
+    mMainStack.destroyActivitiesLocked(null, false,"always-finish");
+    }
 ```
 
 通过上述代码，可获得两个信息：
@@ -4839,50 +4839,50 @@ updateOomAdjLocked第一阶段的工作看起来很简单，但是其中也包�
 [-->ActivityManagerService.java::updateOomAdjLocked]
 ```java
 private final boolean updateOomAdjLocked( ProcessRecordapp, int hiddenAdj,
-           ProcessRecord TOP_APP, boolean doingAll) {
-  //设置该app的hiddenAdj
- app.hiddenAdj = hiddenAdj;
- 
-  if(app.thread == null)  return false;
- 
-  finalboolean wasKeeping = app.keeping;
-  booleansuccess = true;
-   //下面这个函数的调用极其关键。从名字上看，它会计算该进程的oom_adj及调度策略
-  computeOomAdjLocked(app, hiddenAdj, TOP_APP, false, doingAll);
- 
-  if(app.curRawAdj != app.setRawAdj) {
-      if (wasKeeping && !app.keeping) {
-           .....//统计电量
-          app.lastCpuTime = app.curCpuTime;
+        ProcessRecord TOP_APP, boolean doingAll) {
+    //设置该app的hiddenAdj
+    app.hiddenAdj = hiddenAdj;
+
+    if(app.thread == null)  return false;
+
+    finalboolean wasKeeping = app.keeping;
+    booleansuccess = true;
+    //下面这个函数的调用极其关键。从名字上看，它会计算该进程的oom_adj及调度策略
+    computeOomAdjLocked(app, hiddenAdj, TOP_APP, false, doingAll);
+
+    if(app.curRawAdj != app.setRawAdj) {
+        if (wasKeeping && !app.keeping) {
+            .....//统计电量
+                app.lastCpuTime = app.curCpuTime;
         }
- 
-     app.setRawAdj = app.curRawAdj;
-  }
-  //如果新旧oom_adj不同，则重新设置该进程的oom_adj
-  if(app.curAdj != app.setAdj) {
-       if(Process.setOomAdj(app.pid, app.curAdj)) //设置该进程的oom_adj
+
+        app.setRawAdj = app.curRawAdj;
+    }
+    //如果新旧oom_adj不同，则重新设置该进程的oom_adj
+    if(app.curAdj != app.setAdj) {
+        if(Process.setOomAdj(app.pid, app.curAdj)) //设置该进程的oom_adj
             app.setAdj = app.curAdj;
-       .....
-   }
-  //如果新旧调度策略不同，则需重新设置该进程的调度策略
-  if(app.setSchedGroup != app.curSchedGroup) {
-      app.setSchedGroup = app.curSchedGroup;
+        .....
+    }
+    //如果新旧调度策略不同，则需重新设置该进程的调度策略
+    if(app.setSchedGroup != app.curSchedGroup) {
+        app.setSchedGroup = app.curSchedGroup;
         //waitingToKill是一个字符串，用于描述杀掉该进程的原因
-       if (app.waitingToKill != null &&
-            app.setSchedGroup == Process.THREAD_GROUP_BG_NONINTERACTIVE) {
-             Process.killProcessQuiet(app.pid);//
+        if (app.waitingToKill != null &&
+                app.setSchedGroup == Process.THREAD_GROUP_BG_NONINTERACTIVE) {
+            Process.killProcessQuiet(app.pid);//
             success = false;
         } else{
-          if (true) {//强制执行if分支
+            if (true) {//强制执行if分支
                 long oldId = Binder.clearCallingIdentity();
-                   try {//设置进程调度策略
-                       Process.setProcessGroup(app.pid, app.curSchedGroup);
-                   }......
-               } ......
-           }
+                try {//设置进程调度策略
+                    Process.setProcessGroup(app.pid, app.curSchedGroup);
+                }......
+            } ......
         }
-   returnsuccess;
- }
+    }
+    returnsuccess;
+}
 ```
 
 上面的代码还算简单，主要完成两项工作：
@@ -4902,119 +4902,119 @@ private final boolean updateOomAdjLocked( ProcessRecordapp, int hiddenAdj,
 [-->ActivityManagerService.java::computeOomAdjLocked]
 ```java
 private final intcomputeOomAdjLocked(ProcessRecord app, int hiddenAdj,
-           ProcessRecord TOP_APP, boolean recursed, boolean doingAll) {
-  ......
-  app.adjTypeCode= ActivityManager.RunningAppProcessInfo.REASON_UNKNOWN;
- app.adjSource = null;
- app.adjTarget = null;
-  app.empty= false;
-  app.hidden= false;
- 
-  //该应用进程包含Activity的个数
-  final intactivitiesSize = app.activities.size();
- 
-  //如果maxAdj小于FOREGROUND_APP_ADJ，基本上没什么工作可以做了。这类进程优先级相当高
-  if(app.maxAdj <= ProcessList.FOREGROUND_APP_ADJ) {
-       ......//读者可自行阅读这块代码
-      return(app.curAdj=app.maxAdj);
-   }
- 
-  finalboolean hadForegroundActivities = app.foregroundActivities;
- 
- app.foregroundActivities = false;
- app.keeping = false;
- app.systemNoUi = false;
- 
-  int adj;
-  intschedGroup;
-  //如果app为前台Activity所在的那个应用进程
-  if (app ==TOP_APP) {
-       adj =ProcessList.FOREGROUND_APP_ADJ;
-      schedGroup = Process.THREAD_GROUP_DEFAULT;
-       app.adjType= "top-activity";
-      app.foregroundActivities = true;
+        ProcessRecord TOP_APP, boolean recursed, boolean doingAll) {
+    ......
+        app.adjTypeCode= ActivityManager.RunningAppProcessInfo.REASON_UNKNOWN;
+    app.adjSource = null;
+    app.adjTarget = null;
+    app.empty= false;
+    app.hidden= false;
+
+    //该应用进程包含Activity的个数
+    final intactivitiesSize = app.activities.size();
+
+    //如果maxAdj小于FOREGROUND_APP_ADJ，基本上没什么工作可以做了。这类进程优先级相当高
+    if(app.maxAdj <= ProcessList.FOREGROUND_APP_ADJ) {
+        ......//读者可自行阅读这块代码
+            return(app.curAdj=app.maxAdj);
+    }
+
+    finalboolean hadForegroundActivities = app.foregroundActivities;
+
+    app.foregroundActivities = false;
+    app.keeping = false;
+    app.systemNoUi = false;
+
+    int adj;
+    intschedGroup;
+    //如果app为前台Activity所在的那个应用进程
+    if (app ==TOP_APP) {
+        adj =ProcessList.FOREGROUND_APP_ADJ;
+        schedGroup = Process.THREAD_GROUP_DEFAULT;
+        app.adjType= "top-activity";
+        app.foregroundActivities = true;
     } else if (app.instrumentationClass != null){
-             ......//略过instrumentationClass不为null的情况
+        ......//略过instrumentationClass不为null的情况
     } else if (app.curReceiver != null ||
-         (mPendingBroadcast != null && mPendingBroadcast.curApp == app)){
-         //此情况对应正在执行onReceive函数的广播接收者所在进程，它的优先级也很高
-         adj = ProcessList.FOREGROUND_APP_ADJ;
-         schedGroup = Process.THREAD_GROUP_DEFAULT;
-         app.adjType = "broadcast";
-   } else if(app.executingServices.size() > 0) {
+            (mPendingBroadcast != null && mPendingBroadcast.curApp == app)){
+        //此情况对应正在执行onReceive函数的广播接收者所在进程，它的优先级也很高
+        adj = ProcessList.FOREGROUND_APP_ADJ;
+        schedGroup = Process.THREAD_GROUP_DEFAULT;
+        app.adjType = "broadcast";
+    } else if(app.executingServices.size() > 0) {
         //正在执行Service生命周期函数的进程
         adj= ProcessList.FOREGROUND_APP_ADJ;
-       schedGroup = Process.THREAD_GROUP_DEFAULT;
-       app.adjType = "exec-service";
+        schedGroup = Process.THREAD_GROUP_DEFAULT;
+        app.adjType = "exec-service";
     } elseif (activitiesSize > 0) {
-         adj = hiddenAdj;
+        adj = hiddenAdj;
         schedGroup =Process.THREAD_GROUP_BG_NONINTERACTIVE;
         app.hidden = true;
         app.adjType = "bg-activities";
     } else {//不含任何组件的进程，即所谓的Empty进程
-         adj= hiddenAdj;
+        adj= hiddenAdj;
         schedGroup = Process.THREAD_GROUP_BG_NONINTERACTIVE;
-         app.hidden= true;
-         app.empty = true;
+        app.hidden= true;
+        app.empty = true;
         app.adjType = "bg-empty";
-   }
-   //下面几段代码将根据情况重新调整前面计算处理的adj和schedGroup，我们以后面的
-   //mHomeProcess判断为例
-   if(!app.foregroundActivities && activitiesSize > 0) {
-         //对无前台Activity所在进程的处理
-   }
- 
-   if (adj> ProcessList.PERCEPTIBLE_APP_ADJ) {
+    }
+    //下面几段代码将根据情况重新调整前面计算处理的adj和schedGroup，我们以后面的
+    //mHomeProcess判断为例
+    if(!app.foregroundActivities && activitiesSize > 0) {
+        //对无前台Activity所在进程的处理
+    }
+
+    if (adj> ProcessList.PERCEPTIBLE_APP_ADJ) {
         .......
     }
-   //如果前面计算出来的adj大于HOME_APP_ADJ，并且该进程又是Home进程，则需要重新调整
-   if (adj> ProcessList.HOME_APP_ADJ && app == mHomeProcess) {
+    //如果前面计算出来的adj大于HOME_APP_ADJ，并且该进程又是Home进程，则需要重新调整
+    if (adj> ProcessList.HOME_APP_ADJ && app == mHomeProcess) {
         //重新调整adj和schedGroupde的值
         adj = ProcessList.HOME_APP_ADJ;
-       schedGroup = Process.THREAD_GROUP_BG_NONINTERACTIVE;
-       app.hidden = false;
-       app.adjType = "home";//描述调节adj的原因
-   }
-  
-   if (adj> ProcessList.PREVIOUS_APP_ADJ && app == mPreviousProcess
-           && app.activities.size() > 0) {
-          ......
-   }
- 
-  app.adjSeq = mAdjSeq;
-  app.curRawAdj = adj;
- 
+        schedGroup = Process.THREAD_GROUP_BG_NONINTERACTIVE;
+        app.hidden = false;
+        app.adjType = "home";//描述调节adj的原因
+    }
+
+    if (adj> ProcessList.PREVIOUS_APP_ADJ && app == mPreviousProcess
+            && app.activities.size() > 0) {
+        ......
+    }
+
+    app.adjSeq = mAdjSeq;
+    app.curRawAdj = adj;
+
     ......
-   //下面这几段代码处理那些进程中含有Service，ContentProvider组件情况下的adj调节
-   if(app.services.size() != 0 && (adj > ProcessList.FOREGROUND_APP_ADJ
-          || schedGroup == Process.THREAD_GROUP_BG_NONINTERACTIVE)) {
-   }
- 
-   if(s.connections.size() > 0 && (adj >ProcessList.FOREGROUND_APP_ADJ
-             || schedGroup == Process.THREAD_GROUP_BG_NONINTERACTIVE)) {
-   }
- 
-   if(app.pubProviders.size() != 0 && (adj >ProcessList.FOREGROUND_APP_ADJ
-              || schedGroup == Process.THREAD_GROUP_BG_NONINTERACTIVE)) {
-           ......
-   }
- 
-   //终于计算完毕
-  app.curRawAdj = adj;
-       
-   if (adj> app.maxAdj) {
+        //下面这几段代码处理那些进程中含有Service，ContentProvider组件情况下的adj调节
+        if(app.services.size() != 0 && (adj > ProcessList.FOREGROUND_APP_ADJ
+                    || schedGroup == Process.THREAD_GROUP_BG_NONINTERACTIVE)) {
+        }
+
+    if(s.connections.size() > 0 && (adj >ProcessList.FOREGROUND_APP_ADJ
+                || schedGroup == Process.THREAD_GROUP_BG_NONINTERACTIVE)) {
+    }
+
+    if(app.pubProviders.size() != 0 && (adj >ProcessList.FOREGROUND_APP_ADJ
+                || schedGroup == Process.THREAD_GROUP_BG_NONINTERACTIVE)) {
+        ......
+    }
+
+    //终于计算完毕
+    app.curRawAdj = adj;
+
+    if (adj> app.maxAdj) {
         adj= app.maxAdj;
         if(app.maxAdj <= ProcessList.PERCEPTIBLE_APP_ADJ)
-           schedGroup = Process.THREAD_GROUP_DEFAULT;
+            schedGroup = Process.THREAD_GROUP_DEFAULT;
     }
- 
+
     if (adj< ProcessList.HIDDEN_APP_MIN_ADJ)
         app.keeping = true;
-     ......
-   app.curAdj = adj;
-   app.curSchedGroup = schedGroup;
-   ......
-   returnapp.curRawAdj;
+    ......
+        app.curAdj = adj;
+    app.curSchedGroup = schedGroup;
+    ......
+        returnapp.curRawAdj;
 }
 ```
 computeOomAdjLocked的工作比较琐碎，实际上也谈不上什么算法，仅仅是简单地根据各种情况来设置几个值。随着系统的改进和完善，这部分代码变动的可能性比较大。
@@ -5043,11 +5043,11 @@ updateOomAdjLocked调用点很多，这里给出其中一个updateOomAdjLocked�
 ```java
 private static final void commonInit() {
 
-   //调用完毕后，该应用中所有线程抛出的未处理异常都会由UncaughtHandler来处理
+    //调用完毕后，该应用中所有线程抛出的未处理异常都会由UncaughtHandler来处理
 
-   Thread.setDefaultUncaughtExceptionHandler(newUncaughtHandler());
+    Thread.setDefaultUncaughtExceptionHandler(newUncaughtHandler());
 
-  ......
+    ......
 
 }
 ```
@@ -5058,24 +5058,24 @@ private static final void commonInit() {
 
 [-->RuntimeInit.java::UncaughtHandler]
 ```java
- privatestatic class UncaughtHandler implements
-                                           Thread.UncaughtExceptionHandler{
-   publicvoid uncaughtException(Thread t, Throwable e) {
-    try {
-          if (mCrashing) return;
-           mCrashing = true;
-         //调用AMS的handleApplicationCrash函数。第一个参数mApplicationObject其实
-        //就是前面经常见到的ApplicationThread对象
-          ActivityManagerNative.getDefault().handleApplicationCrash(
-               mApplicationObject, new  ApplicationErrorReport.CrashInfo(e));
-     } ......
-    finally{
-           //这里有一句注释很有意思：Try everything to make surethis process goes
-          //away.从下面这两句调用来看，该应用进程确实想方设法要离开Java世界
-          Process.killProcess(Process.myPid());//把自己杀死
-          System.exit(10);//如果上面那句话不成功，再尝试exit方法
-     }
-   }
+privatestatic class UncaughtHandler implements
+Thread.UncaughtExceptionHandler{
+    publicvoid uncaughtException(Thread t, Throwable e) {
+        try {
+            if (mCrashing) return;
+            mCrashing = true;
+            //调用AMS的handleApplicationCrash函数。第一个参数mApplicationObject其实
+            //就是前面经常见到的ApplicationThread对象
+            ActivityManagerNative.getDefault().handleApplicationCrash(
+                    mApplicationObject, new  ApplicationErrorReport.CrashInfo(e));
+        } ......
+        finally{
+            //这里有一句注释很有意思：Try everything to make surethis process goes
+            //away.从下面这两句调用来看，该应用进程确实想方设法要离开Java世界
+            Process.killProcess(Process.myPid());//把自己杀死
+            System.exit(10);//如果上面那句话不成功，再尝试exit方法
+        }
+    }
 }
 ```
 
@@ -5086,88 +5086,88 @@ AMS handleApplicationCrash函数的代码如下：
 [-->ActivityManagerService.java::handleApplicationCrash]
 ```java
 public void handleApplicationCrash(IBinder app,
-                             ApplicationErrorReport.CrashInfocrashInfo) {
-  //找到对应的ProcessRecord信息，后面那个字符串“Crash”用于打印输出
- ProcessRecord r = findAppProcess(app, "Crash");
-  finalString processName = app == null ? "system_server"
-                        : (r == null ? "unknown": r.processName);
-   //添加crash信息到dropbox中
- ddErrorToDropBox("crash", r, processName, null, null, null,null, null,
-                         crashInfo);
-  //调用crashApplication函数
- crashApplication(r, crashInfo);
+        ApplicationErrorReport.CrashInfocrashInfo) {
+    //找到对应的ProcessRecord信息，后面那个字符串“Crash”用于打印输出
+    ProcessRecord r = findAppProcess(app, "Crash");
+    finalString processName = app == null ? "system_server"
+        : (r == null ? "unknown": r.processName);
+    //添加crash信息到dropbox中
+    ddErrorToDropBox("crash", r, processName, null, null, null,null, null,
+            crashInfo);
+    //调用crashApplication函数
+    crashApplication(r, crashInfo);
 }
 ```
 
 [-->ActivityManagerService.java::crashApplication]
 ```java
 private void crashApplication(ProcessRecord r,
-                   ApplicationErrorReport.CrashInfocrashInfo) {
-   longtimeMillis = System.currentTimeMillis();
-   //从应用进程传递过来的crashInfo中获取相关信息
-   StringshortMsg = crashInfo.exceptionClassName;
-   StringlongMsg = crashInfo.exceptionMessage;
-   StringstackTrace = crashInfo.stackTrace;
-   if(shortMsg != null && longMsg != null) {
-      longMsg = shortMsg + ": " + longMsg;
-     } elseif (shortMsg != null) {
-      longMsg = shortMsg;
-   }
- 
-  AppErrorResult result = new AppErrorResult();
-  synchronized (this) {
-      if(mController != null) {
-         //通知监视者。目前仅MonkeyTest中会为AMS设置监听者。测试过程中可设定是否一检测
-         //到App Crash即停止测试。另外，Monkey测试也会将App Crash信息保存起来
-        //供开发人员分析
-       }
- 
-      final long origId =Binder.clearCallingIdentity();
- 
-      if (r!= null && r.instrumentationClass != null) {
-       ......// instrumentationClass不为空的情况
-      }
-      //①调用makeAppCrashingLocked处理，如果返回false，则整个处理流程完毕
-     if (r == null || !makeAppCrashingLocked(r,shortMsg, longMsg,
-                        stackTrace)) {
-         ......
-       return;
-      }
-     Message msg = Message.obtain();
-     msg.what = SHOW_ERROR_MSG;
-     HashMap data = new HashMap();
-     data.put("result", result);
-     data.put("app", r);
-     msg.obj = data;
-    //发送SHOW_ERROR_MSG消息给mHandler，默认处理是弹出一个对话框，提示用户某进程   //崩溃（Crash），用户可以选择“退出”或 “退出并报告”
-     mHandler.sendMessage(msg);
-      ......
-   }//synchronized(this)结束
- 
-   //下面这个get函数是阻塞的，直到用户处理了对话框为止。注意，此处涉及两个线程：
- //handleApplicationCrash函数是在Binder调用线程中处理的，而对话框则是在mHandler所
-  //在线程中处理的
-   int res =result.get();
-   IntentappErrorIntent = null;
-  synchronized (this) {
-     if (r!= null)
-        mProcessCrashTimes.put(r.info.processName, r.info.uid,
-                       SystemClock.uptimeMillis());
- 
-   if (res== AppErrorDialog.FORCE_QUIT_AND_REPORT)
-      //createAppErrorIntentLocked返回一个Intent，该Intent的Action是
-      //"android.intent.action.APP_ERROR"，指定接收者是app. errorReportReceiver
-      //成员，该成员变量在关键点makeAppCrashingLocked中被设置
-       appErrorIntent =createAppErrorIntentLocked(r, timeMillis,
-                       crashInfo);
-   }//synchronized(this)结束
- 
-   if(appErrorIntent != null) {
-       try {//启动能处理APP_ERROR的应用进程，目前的源码中还没有地方处理它
-             mContext.startActivity(appErrorIntent);
-       } ......
+        ApplicationErrorReport.CrashInfocrashInfo) {
+    longtimeMillis = System.currentTimeMillis();
+    //从应用进程传递过来的crashInfo中获取相关信息
+    StringshortMsg = crashInfo.exceptionClassName;
+    StringlongMsg = crashInfo.exceptionMessage;
+    StringstackTrace = crashInfo.stackTrace;
+    if(shortMsg != null && longMsg != null) {
+        longMsg = shortMsg + ": " + longMsg;
+    } elseif (shortMsg != null) {
+        longMsg = shortMsg;
     }
- }
+
+    AppErrorResult result = new AppErrorResult();
+    synchronized (this) {
+        if(mController != null) {
+            //通知监视者。目前仅MonkeyTest中会为AMS设置监听者。测试过程中可设定是否一检测
+            //到App Crash即停止测试。另外，Monkey测试也会将App Crash信息保存起来
+            //供开发人员分析
+        }
+
+        final long origId =Binder.clearCallingIdentity();
+
+        if (r!= null && r.instrumentationClass != null) {
+            ......// instrumentationClass不为空的情况
+        }
+        //①调用makeAppCrashingLocked处理，如果返回false，则整个处理流程完毕
+        if (r == null || !makeAppCrashingLocked(r,shortMsg, longMsg,
+                    stackTrace)) {
+            ......
+                return;
+        }
+        Message msg = Message.obtain();
+        msg.what = SHOW_ERROR_MSG;
+        HashMap data = new HashMap();
+        data.put("result", result);
+        data.put("app", r);
+        msg.obj = data;
+        //发送SHOW_ERROR_MSG消息给mHandler，默认处理是弹出一个对话框，提示用户某进程   //崩溃（Crash），用户可以选择“退出”或 “退出并报告”
+        mHandler.sendMessage(msg);
+        ......
+    }//synchronized(this)结束
+
+    //下面这个get函数是阻塞的，直到用户处理了对话框为止。注意，此处涉及两个线程：
+    //handleApplicationCrash函数是在Binder调用线程中处理的，而对话框则是在mHandler所
+    //在线程中处理的
+    int res =result.get();
+    IntentappErrorIntent = null;
+    synchronized (this) {
+        if (r!= null)
+            mProcessCrashTimes.put(r.info.processName, r.info.uid,
+                    SystemClock.uptimeMillis());
+
+        if (res== AppErrorDialog.FORCE_QUIT_AND_REPORT)
+            //createAppErrorIntentLocked返回一个Intent，该Intent的Action是
+            //"android.intent.action.APP_ERROR"，指定接收者是app. errorReportReceiver
+            //成员，该成员变量在关键点makeAppCrashingLocked中被设置
+            appErrorIntent =createAppErrorIntentLocked(r, timeMillis,
+                    crashInfo);
+    }//synchronized(this)结束
+
+    if(appErrorIntent != null) {
+        try {//启动能处理APP_ERROR的应用进程，目前的源码中还没有地方处理它
+            mContext.startActivity(appErrorIntent);
+        } ......
+    }
+}
 ```
 
 以上代码中还有一个关键函数makeAppCrashingLocked，其代码如下：
@@ -5175,32 +5175,32 @@ private void crashApplication(ProcessRecord r,
 [-->ActivityManagerService.java::makeAppCrashingLocked]
 ```java
 private booleanmakeAppCrashingLocked(ProcessRecord app,
-           String shortMsg, String longMsg, String stackTrace) {
-  app.crashing = true;
-   //生成一个错误报告，存放在crashingReport变量中
-  app.crashingReport = generateProcessError(app,
-               ActivityManager.ProcessErrorStateInfo.CRASHED, null, shortMsg,
-               longMsg, stackTrace);
-   /*
-    在上边代码中，我们知道系统会通过APP_ERROR Intent启动一个Activity去处理错误报告，
-    实际上在此之前，系统需要为它找到指定的接收者（如果有）。代码在startAppProblemLocked
-    中，此处简单描述该函数的处理过程如下：
-    1 先查询Settings Secure表中“send_action_app_error”是否使能，如果没有使能，则
-      不能设置指定接收者
-    2 通过PKMS查询安装此Crash应用的应用是否能接收APP_ERROR Intent。必须注意
-     安装此应用的应用（例如通过“安卓市场”安装了该Crash应用）。如果没有，则转下一步处理
-    3 查询系统属性“ro.error.receiver.system.apps”是否指定了APP_ERROR处理者，如果
-      没有，则转下一步处理
-    4 查询系统属性“ro.error.receiver.default”是否指定了默认的处理者
-    5 处理者的信息保存在app的errorReportReceiver变量中
-    另外，如果该Crash应用正好是串行广播发送处理中的一员，则需要结束它的处理流程以
-    保证后续广播处理能正常执行。读者可参考skipCurrentReceiverLocked函数
-  */
-  startAppProblemLocked(app);
-  app.stopFreezingAllLocked();
-   //调用handleAppCrashLocked做进一步处理。读者可自行阅读
-   returnhandleAppCrashLocked(app);
- }
+        String shortMsg, String longMsg, String stackTrace) {
+    app.crashing = true;
+    //生成一个错误报告，存放在crashingReport变量中
+    app.crashingReport = generateProcessError(app,
+            ActivityManager.ProcessErrorStateInfo.CRASHED, null, shortMsg,
+            longMsg, stackTrace);
+    /*
+       在上边代码中，我们知道系统会通过APP_ERROR Intent启动一个Activity去处理错误报告，
+       实际上在此之前，系统需要为它找到指定的接收者（如果有）。代码在startAppProblemLocked
+       中，此处简单描述该函数的处理过程如下：
+       1 先查询Settings Secure表中“send_action_app_error”是否使能，如果没有使能，则
+       不能设置指定接收者
+       2 通过PKMS查询安装此Crash应用的应用是否能接收APP_ERROR Intent。必须注意
+       安装此应用的应用（例如通过“安卓市场”安装了该Crash应用）。如果没有，则转下一步处理
+       3 查询系统属性“ro.error.receiver.system.apps”是否指定了APP_ERROR处理者，如果
+       没有，则转下一步处理
+       4 查询系统属性“ro.error.receiver.default”是否指定了默认的处理者
+       5 处理者的信息保存在app的errorReportReceiver变量中
+       另外，如果该Crash应用正好是串行广播发送处理中的一员，则需要结束它的处理流程以
+       保证后续广播处理能正常执行。读者可参考skipCurrentReceiverLocked函数
+     */
+    startAppProblemLocked(app);
+    app.stopFreezingAllLocked();
+    //调用handleAppCrashLocked做进一步处理。读者可自行阅读
+    returnhandleAppCrashLocked(app);
+}
 ```
 
 当App的Crash处理完后，事情并未就此结束，因为该应用进程退出后，之前AMS为它设置的讣告接收对象将被唤醒。接下来介绍AppDeathRecipientbinderDied的处理流程。
@@ -5212,11 +5212,11 @@ private booleanmakeAppCrashingLocked(ProcessRecord app,
 [-->ActvityManagerService.java::AppDeathRecipientbinderDied]
 ```java
 public void binderDied() {
-  //注意，该函数也是通过Binder线程调用的，所以此处要加锁
- synchronized(ActivityManagerService.this) {
-       appDiedLocked(mApp, mPid, mAppThread);
-   }
- }
+    //注意，该函数也是通过Binder线程调用的，所以此处要加锁
+    synchronized(ActivityManagerService.this) {
+        appDiedLocked(mApp, mPid, mAppThread);
+    }
+}
 ```
 
 最终的处理函数是appDiedLocked，其中所传递的3个参数保存了对应死亡进程的信息。来看appDiedLocked的代码：：
@@ -5224,48 +5224,48 @@ public void binderDied() {
 [-->ActvityManagerService.java::appDiedLocked]
 ```java
 final void appDiedLocked(ProcessRecord app, intpid,
-                                                IApplicationThread thread) {
-   ......
-   if(app.pid == pid && app.thread != null &&
-          app.thread.asBinder() == thread.asBinder()) {
-   //当内存低到水位线时，LMK模块也会杀死进程。对AMS来说，需要区分进程死亡是LMK导致的
-   //还是其他原因导致的。App instrumentationClass一般都为空，故此处doLowMem为true
-    booleandoLowMem = app.instrumentationClass == null;
- 
-    //①下面这个函数非常重要
-   handleAppDiedLocked(app, false, true);
- 
-    if(doLowMem) {
-      boolean haveBg = false;
-      //如果系统中还存在oom_adj大于HIDDEN_APP_MIN_ADJ的进程，就表明不是LMK模块因
-      //内存不够而导致进程死亡的
-       for(int i=mLruProcesses.size()-1; i>=0; i--) {
-          ProcessRecord rec = mLruProcesses.get(i);
-          if (rec.thread != null && rec.setAdj >=
-                                           ProcessList.HIDDEN_APP_MIN_ADJ){
-                haveBg = true;//还有后台进程，故可确定系统内存尚未吃紧
-                break;
-            }
-        }//for循环结束
-      //如果没有后台进程，表明系统内存已吃紧
-      if(!haveBg) {
-         long now = SystemClock.uptimeMillis();
-          for(int i=mLruProcesses.size()-1; i>=0; i--) {
-               .....//将这些进程按一定规则加到mProcessesToGc中，尽量保证
-              //heavy/important/visible/foreground的进程位于mProcessesToGc数组
-              //的前端
-          }//for循环结束
-          /*
-           发送GC_BACKGROUND_PROCESSES_MSG消息给mHandler，该消息的处理过程就是：
-           调用应用进程的scheduleLowMemory或processInBackground函数。其中，
-           scheduleLowMemory将触发onLowMemory回调被调用，而processInBackground将
-           触发应用进程进行一次垃圾回收
-           读者可自行阅读该消息的处理函数performAppGcsIfAppropriateLocked
-          */
-         scheduleAppGcsLocked();
-       }// if(!haveBg)判断结束
-    }//if(doLowMem)判断结束
- }
+        IApplicationThread thread) {
+    ......
+        if(app.pid == pid && app.thread != null &&
+                app.thread.asBinder() == thread.asBinder()) {
+            //当内存低到水位线时，LMK模块也会杀死进程。对AMS来说，需要区分进程死亡是LMK导致的
+            //还是其他原因导致的。App instrumentationClass一般都为空，故此处doLowMem为true
+            booleandoLowMem = app.instrumentationClass == null;
+
+            //①下面这个函数非常重要
+            handleAppDiedLocked(app, false, true);
+
+            if(doLowMem) {
+                boolean haveBg = false;
+                //如果系统中还存在oom_adj大于HIDDEN_APP_MIN_ADJ的进程，就表明不是LMK模块因
+                //内存不够而导致进程死亡的
+                for(int i=mLruProcesses.size()-1; i>=0; i--) {
+                    ProcessRecord rec = mLruProcesses.get(i);
+                    if (rec.thread != null && rec.setAdj >=
+                            ProcessList.HIDDEN_APP_MIN_ADJ){
+                        haveBg = true;//还有后台进程，故可确定系统内存尚未吃紧
+                        break;
+                    }
+                }//for循环结束
+                //如果没有后台进程，表明系统内存已吃紧
+                if(!haveBg) {
+                    long now = SystemClock.uptimeMillis();
+                    for(int i=mLruProcesses.size()-1; i>=0; i--) {
+                        .....//将这些进程按一定规则加到mProcessesToGc中，尽量保证
+                            //heavy/important/visible/foreground的进程位于mProcessesToGc数组
+                            //的前端
+                    }//for循环结束
+                    /*
+                       发送GC_BACKGROUND_PROCESSES_MSG消息给mHandler，该消息的处理过程就是：
+                       调用应用进程的scheduleLowMemory或processInBackground函数。其中，
+                       scheduleLowMemory将触发onLowMemory回调被调用，而processInBackground将
+                       触发应用进程进行一次垃圾回收
+                       读者可自行阅读该消息的处理函数performAppGcsIfAppropriateLocked
+                     */
+                    scheduleAppGcsLocked();
+                }// if(!haveBg)判断结束
+            }//if(doLowMem)判断结束
+        }
 ```
 
 以上代码中有一个关键函数handleAppDiedLocked，下面来看它的处理过程。
@@ -5275,13 +5275,13 @@ final void appDiedLocked(ProcessRecord app, intpid,
 [-->ActivityManagerService.java::handleAppDiedLocked]
 ```java
 private final voidhandleAppDiedLocked(ProcessRecord app,
-           boolean restarting, boolean allowRestart) {
-   //①在本例中，传入的参数为restarting=false, allowRestart=true
-  cleanUpApplicationRecordLocked(app, restarting, allowRestart, -1);
-   if(!restarting) {
-       mLruProcesses.remove(app);
-   }
-   ......//下面还有一部分代码处理和Activity相关的收尾工作，读者可自行阅读
+        boolean restarting, boolean allowRestart) {
+    //①在本例中，传入的参数为restarting=false, allowRestart=true
+    cleanUpApplicationRecordLocked(app, restarting, allowRestart, -1);
+    if(!restarting) {
+        mLruProcesses.remove(app);
+    }
+    ......//下面还有一部分代码处理和Activity相关的收尾工作，读者可自行阅读
 }
 ```
 重点看上边代码中的cleanUpApplicationRecordLocked函数，该函数的主要功能就是处理Service、ContentProvider及BroadcastReceiver相关的收尾工作。先来看Service方面的工作。
@@ -5290,25 +5290,25 @@ private final voidhandleAppDiedLocked(ProcessRecord app,
 
 [-->ActivityManagerService.java::cleanUpApplicationRecordLocked]
 ```java
- privatefinal void cleanUpApplicationRecordLocked(ProcessRecord app,
-       boolean restarting, boolean allowRestart, int index) {
-   if (index>= 0) mLruProcesses.remove(index);
- 
-   mProcessesToGc.remove(app);
-   //如果该Crash进程有对应打开的对话框，则关闭它们，这些对话框包括crash、anr和wait等
-   if(app.crashDialog != null) {
-       app.crashDialog.dismiss();
-       app.crashDialog = null;
-   }
-   ......//处理anrDialog、waitDialog
- 
-   //清理app的一些参数
-  app.crashing = false;
-  app.notResponding = false;
-   ......
-   //处理该进程中所驻留的Service或它和别的进程中的Service建立的Connection关系
-   //该函数是AMS Service处理流程中很重要的一环，读者要仔细阅读
-   killServicesLocked(app,allowRestart);
+privatefinal void cleanUpApplicationRecordLocked(ProcessRecord app,
+        boolean restarting, boolean allowRestart, int index) {
+    if (index>= 0) mLruProcesses.remove(index);
+
+    mProcessesToGc.remove(app);
+    //如果该Crash进程有对应打开的对话框，则关闭它们，这些对话框包括crash、anr和wait等
+    if(app.crashDialog != null) {
+        app.crashDialog.dismiss();
+        app.crashDialog = null;
+    }
+    ......//处理anrDialog、waitDialog
+
+        //清理app的一些参数
+        app.crashing = false;
+    app.notResponding = false;
+    ......
+        //处理该进程中所驻留的Service或它和别的进程中的Service建立的Connection关系
+        //该函数是AMS Service处理流程中很重要的一环，读者要仔细阅读
+        killServicesLocked(app,allowRestart);
 ```
 
 cleanUpApplicationRecordLocked函数首先处理几个对话框（dialog），然后调用killServicesLocked函数做相关处理。作为Service流程的一部分，读者需要深入研究。
@@ -5319,52 +5319,52 @@ cleanUpApplicationRecordLocked函数首先处理几个对话框（dialog），�
 
 [-->ActivityManagerService.java::cleanUpApplicationRecordLocked]
 ```java
-   booleanrestart = false;
- 
-   int NL = mLaunchingProviders.size();
-       
-   if(!app.pubProviders.isEmpty()) {
-       //得到该进程中发布的ContentProvider信息
-       Iterator<ContentProviderRecord> it =
-                          app.pubProviders.values().iterator();
-       while(it.hasNext()) {
-         ContentProviderRecord cpr = it.next();
-          cpr.provider = null;
-         cpr.proc = null;
-         int i = 0;
-          if(!app.bad && allowRestart) {
-              for (; i<NL; i++) {
-                 /*
+booleanrestart = false;
+
+int NL = mLaunchingProviders.size();
+
+if(!app.pubProviders.isEmpty()) {
+    //得到该进程中发布的ContentProvider信息
+    Iterator<ContentProviderRecord> it =
+        app.pubProviders.values().iterator();
+    while(it.hasNext()) {
+        ContentProviderRecord cpr = it.next();
+        cpr.provider = null;
+        cpr.proc = null;
+        int i = 0;
+        if(!app.bad && allowRestart) {
+            for (; i<NL; i++) {
+                /*
                    如果有客户端进程在等待这个已经死亡的ContentProvider,则系统会
                    尝试重新启动它，即设置restart变量为true
-                */
-                 if (mLaunchingProviders.get(i) == cpr) {
-                       restart = true;
-                        break;
-                  }
-              }//for循环结束
-          } else  i = NL;
- 
-          if(i >= NL) {
-             /*
-              如果没有客户端进程等待这个ContentProvider，则调用下面这个函数处理它，我们
-              在卷I的第10章曾提过一个问题，即ContentProvider进程被杀死
-              后，系统该如何处理那些使用了该ContentProvider的客户端进程。例如，Music和
-              MediaProvider之间有交互，如果杀死了MediaProvider，Music会怎样呢？
-              答案是系统会杀死Music，证据就在removeDyingProviderLocked函数
-              中，读者可自行阅读其内部处理流程
+                 */
+                if (mLaunchingProviders.get(i) == cpr) {
+                    restart = true;
+                    break;
+                }
+            }//for循环结束
+        } else  i = NL;
+
+        if(i >= NL) {
+            /*
+               如果没有客户端进程等待这个ContentProvider，则调用下面这个函数处理它，我们
+               在卷I的第10章曾提过一个问题，即ContentProvider进程被杀死
+               后，系统该如何处理那些使用了该ContentProvider的客户端进程。例如，Music和
+               MediaProvider之间有交互，如果杀死了MediaProvider，Music会怎样呢？
+               答案是系统会杀死Music，证据就在removeDyingProviderLocked函数
+               中，读者可自行阅读其内部处理流程
              */
-             removeDyingProviderLocked(app, cpr);
-             NL = mLaunchingProviders.size();
-           }
-      }// while(it.hasNext())循环结束
+            removeDyingProviderLocked(app, cpr);
+            NL = mLaunchingProviders.size();
+        }
+    }// while(it.hasNext())循环结束
     app.pubProviders.clear();
-   }
-   //下面这个函数的功能是检查本进程中的ContentProvider是否存在于
-  // mLaunchingProviders中，如果存在，则表明有客户端在等待，故需考虑是否重启本进程或者
-  //杀死客户端（当死亡进程变成bad process的时，需要杀死客户端）
-   if(checkAppInLaunchingProvidersLocked(app, false)) restart = true;
-   ......
+}
+//下面这个函数的功能是检查本进程中的ContentProvider是否存在于
+// mLaunchingProviders中，如果存在，则表明有客户端在等待，故需考虑是否重启本进程或者
+//杀死客户端（当死亡进程变成bad process的时，需要杀死客户端）
+if(checkAppInLaunchingProvidersLocked(app, false)) restart = true;
+......
 ```
 
 从以上的描述中可知，ContentProvider所在进程和其客户端进程实际上有着非常紧密而隐晦（之所以说其隐晦，是因为SDK中没有任何说明）的关系。在目前软件开发追求模块间尽量保持松耦合关系的大趋势下，Android中的ContentProvider和其客户端这种紧耦合的设计思路似乎不够明智。不过，这种设计是否是不得已而为之呢？读者不妨探讨一下，如果有更合适的解决方案，期待能一起分享。
@@ -5374,52 +5374,52 @@ cleanUpApplicationRecordLocked函数首先处理几个对话框（dialog），�
 [-->ActivityManagerService.java::cleanUpApplicationRecordLocked]
 
 ```java
-  skipCurrentReceiverLocked(app);
-    //从AMS中去除接收者
-   if(app.receivers.size() > 0) {
-      Iterator<ReceiverList> it = app.receivers.iterator();
-       while(it.hasNext()) {
-          removeReceiverLocked(it.next());
-        }
-       app.receivers.clear();
-   }
-       
-   if(mBackupTarget != null && app.pid == mBackupTarget.app.pid) {
-         //处理Backup信息
+skipCurrentReceiverLocked(app);
+//从AMS中去除接收者
+if(app.receivers.size() > 0) {
+    Iterator<ReceiverList> it = app.receivers.iterator();
+    while(it.hasNext()) {
+        removeReceiverLocked(it.next());
     }
- 
-    mHandler.obtainMessage(DISPATCH_PROCESS_DIED, app.pid,
-                                   app.info.uid,null).sendToTarget();
-    //注意该变量名为restarting，前面设置为restart.
-    if(restarting) return;
- 
- 
-    if(!app.persistent) {
-        mProcessNames.remove(app.processName, app.info.uid);
-         if(mHeavyWeightProcess == app) {
-             ......//处理HeavyWeightProcess
-           }
-      } elseif (!app.removed) {
-         if(mPersistentStartingProcesses.indexOf(app) < 0) {
-              mPersistentStartingProcesses.add(app);
-               restart = true;
-          }
-      }
-    mProcessesOnHold.remove(app);
-     if (app== mHomeProcess)  mHomeProcess = null;
-       
-    
-     if(restart) {//如果需要重启，则调用startProcessLocked处理它
-          mProcessNames.put(app.processName, app.info.uid, app);
-         startProcessLocked(app, "restart", app.processName);
-     } elseif (app.pid > 0 && app.pid != MY_PID) {
-        synchronized (mPidsSelfLocked) {
-             mPidsSelfLocked.remove(app.pid);
-             mHandler.removeMessages(PROC_START_TIMEOUT_MSG, app);
-          }
-         app.setPid(0);
-     }
- }
+    app.receivers.clear();
+}
+
+if(mBackupTarget != null && app.pid == mBackupTarget.app.pid) {
+    //处理Backup信息
+}
+
+mHandler.obtainMessage(DISPATCH_PROCESS_DIED, app.pid,
+        app.info.uid,null).sendToTarget();
+//注意该变量名为restarting，前面设置为restart.
+if(restarting) return;
+
+
+if(!app.persistent) {
+    mProcessNames.remove(app.processName, app.info.uid);
+    if(mHeavyWeightProcess == app) {
+        ......//处理HeavyWeightProcess
+    }
+} elseif (!app.removed) {
+    if(mPersistentStartingProcesses.indexOf(app) < 0) {
+        mPersistentStartingProcesses.add(app);
+        restart = true;
+    }
+}
+mProcessesOnHold.remove(app);
+if (app== mHomeProcess)  mHomeProcess = null;
+
+
+if(restart) {//如果需要重启，则调用startProcessLocked处理它
+    mProcessNames.put(app.processName, app.info.uid, app);
+    startProcessLocked(app, "restart", app.processName);
+} elseif (app.pid > 0 && app.pid != MY_PID) {
+    synchronized (mPidsSelfLocked) {
+        mPidsSelfLocked.remove(app.pid);
+        mHandler.removeMessages(PROC_START_TIMEOUT_MSG, app);
+    }
+    app.setPid(0);
+}
+}
 ```
 
 在这段代码中，除了处理BrodcastReceiver方面的工作外，还包括其他方面的收尾工作。最后，如果要重启该应用，则需调用startProcessLocked函数进行处理。这部分代码不再详述，读者可自行阅读。
