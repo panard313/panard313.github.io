@@ -24,6 +24,7 @@ tags:
 
 [-> PowerManager.java]
 
+```java
     public void reboot(String reason) {
         try {
             //【见小节2.2】
@@ -31,11 +32,13 @@ tags:
         } catch (RemoteException e) {
         }
     }
+```
 
 ### 2.2 BinderService.reboot
 
 [-> PowerManagerService.java]
 
+```java
     private final class BinderService extends IPowerManager.Stub {
         public void reboot(boolean confirm, String reason, boolean wait) {
             //权限检查
@@ -53,6 +56,7 @@ tags:
             }
         }
     }
+```
 
 此时参数为shutdownOrRebootInternal(false, false, reason, true);
 
@@ -64,6 +68,7 @@ tags:
 
 [-> PowerManagerService.java]
 
+```java
     private void shutdownOrRebootInternal(final boolean shutdown, final boolean confirm,
             final String reason, boolean wait) {
         ...
@@ -99,11 +104,13 @@ tags:
             }
         }
     }
+```
 
 ### 2.4 SDT.reboot
 
 [-> ShutdownThread.java]
 
+```java
     public static void reboot(final Context context, String reason, boolean confirm) {
         mReboot = true;
         mRebootSafeMode = false;
@@ -112,6 +119,7 @@ tags:
         //【见小节2.5】
         shutdownInner(context, confirm);
     }
+```
 
 mReboot为true则代表重启操作，值为false则代表关机操作。
 
@@ -119,6 +127,7 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
 
 [-> ShutdownThread.java]
 
+```java
     static void shutdownInner(final Context context, boolean confirm) {
         //确保只有唯一的线程执行shutdown/reboot操作
         synchronized (sIsStartedGuard) {
@@ -145,11 +154,13 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
             beginShutdownSequence(context);
         }
     }
+```
 
 ### 2.6 SDT.beginShutdownSequence
 
 [-> ShutdownThread.java]
 
+```java
     private static void beginShutdownSequence(Context context) {
         synchronized (sIsStartedGuard) {
             if (sIsStarted) {
@@ -222,6 +233,7 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
         sInstance.start();
     }
 
+```
 
 此处`ProgressDialog`根据不同reboot reason会不同UI框：
 
@@ -240,6 +252,7 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
 
 [-> ShutdownThread.java]
 
+```java
     public final class ShutdownThread extends Thread {
         public void run() {
             BroadcastReceiver br = new BroadcastReceiver() {
@@ -354,6 +367,7 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
             rebootOrShutdown(mContext, mReboot, mReason);
         }
     }
+```
 
 设置"sys.shutdown.requested"，记录下`mReboot`和`mReason`。如果是进入安全模式，则"persist.sys.safemode=1"。
 
@@ -371,6 +385,7 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
 
 通过AMP.shutdown，通过binder调用到AMS.shutdown.
 
+```java
     public boolean shutdown(int timeout) {
         //权限检测
         if (checkCallingPermission(android.Manifest.permission.SHUTDOWN)
@@ -401,17 +416,21 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
 
         return timedout;
     }
+```
 
 此处timeout为MAX_BROADCAST_TIME=10s
 
 #### 2.7.2 PMS.shutdown
 
+```java
     public void shutdown() {
         mPackageUsage.write(true);
     }
+```
 
 此处mPackageUsage数据类型是PMS的内部类PackageUsage。
 
+```java
     private class PackageUsage {
         void write(boolean force) {
             if (force) {
@@ -421,9 +440,11 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
             ...
         }
     }
+```
 
 对于force=true，接下来调用writeInternal方法。
 
+```java
     private class PackageUsage {
         private void writeInternal() {
             synchronized (mPackages) {
@@ -462,6 +483,7 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
             mLastWritten.set(SystemClock.elapsedRealtime());
         }
     }
+```
 
 /data/system/package-usage.list文件中每一行记录一条package及其上次使用时间(单位ms)。
 
@@ -471,6 +493,7 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
 
 [-> ShutdownThread.java]
 
+```java
     private void shutdownRadios(final int timeout) {
         final long endTime = SystemClock.elapsedRealtime() + timeout;
         Thread t = new Thread() {
@@ -524,6 +547,7 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
         } catch (InterruptedException ex) {
         }
     }
+```
 
 创建新的线程来处理NFC, Radio and Bluetooth这些射频相关的模块的shutdown过程。每间隔500ms，check一次，直到nfc、bluetooth、radio全部关闭或者超时(MAX_RADIO_WAIT_TIME=12s)才会退出循环。
 
@@ -531,14 +555,17 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
 
 [-> MountService.java]
 
+```java
     public void shutdown(final IMountShutdownObserver observer) {
         enforcePermission(android.Manifest.permission.SHUTDOWN);
         //向名为“MountService”的线程发送H_SHUTDOWN消息
         mHandler.obtainMessage(H_SHUTDOWN, observer).sendToTarget();
     }
+```
 
 `MountService`线程收到消息后进入handleMessage出来相应消息
 
+```java
     class MountServiceHandler extends Handler {
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -563,15 +590,18 @@ mReboot为true则代表重启操作，值为false则代表关机操作。
             }
         }
     }
+```
 
 observer的回调方法onShutDownComplete()，会调用actionDone()，该方法通知mActionDoneSync已完成
 
+```java
     void actionDone() {
         synchronized (mActionDoneSync) {
             mActionDone = true;
             mActionDoneSync.notifyAll();
         }
     }
+```
 
 调用mActionDoneSync.notifyAll()之后，那么便可以继续往下执行rebootOrShutdown方法。
 
@@ -579,6 +609,7 @@ observer的回调方法onShutDownComplete()，会调用actionDone()，该方法�
 
 [-> ShutdownThread.java]
 
+```java
     public static void rebootOrShutdown(final Context context, boolean reboot, String reason) {
         if (reboot) {
             Log.i(TAG, "Rebooting, reason: " + reason);
@@ -593,6 +624,7 @@ observer的回调方法onShutDownComplete()，会调用actionDone()，该方法�
         //关闭电源 [见流程2.10]
         PowerManagerService.lowLevelShutdown(reason);
     }
+```
 
 对于重启原因:
 
@@ -602,6 +634,7 @@ observer的回调方法onShutDownComplete()，会调用actionDone()，该方法�
 
 ### 2.9 PMS.lowLevelReboot
 
+```java
     public static void lowLevelReboot(String reason) {
         if (reason == null) {
             reason = "";
@@ -618,6 +651,7 @@ observer的回调方法onShutDownComplete()，会调用actionDone()，该方法�
         }
         Slog.wtf(TAG, "Unexpected return from lowLevelReboot!");
     }
+```
 
 - 当reboot原因是“recovery”，则设置属性`ctl.start=pre-recovery`；
 - 当其他情况，则设置属性"sys.powerctl=reboot,[reason]"。

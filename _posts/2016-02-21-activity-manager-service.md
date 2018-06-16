@@ -37,6 +37,7 @@ tags:
 ### 2.1 startBootstrapServices
 [-> SystemServer.java]
 
+```java
     private void startBootstrapServices() {
         ...
         //启动AMS服务【见小节2.2】
@@ -54,6 +55,7 @@ tags:
         //设置SystemServer【见小节2.3】
         mActivityManagerService.setSystemProcess();
     }
+```
 
 ### 2.2 启动AMS服务
 
@@ -65,6 +67,7 @@ SystemServiceManager.startService(ActivityManagerService.Lifecycle.class) 功能
 #### 2.1.1 AMS.Lifecycle
 [-> ActivityManagerService.java]
 
+```java
     public static final class Lifecycle extends SystemService {
         private final ActivityManagerService mService;
 
@@ -83,11 +86,13 @@ SystemServiceManager.startService(ActivityManagerService.Lifecycle.class) 功能
             return mService;
         }
     }
+```
 
 该过程：创建AMS内部类的Lifecycle，已经创建AMS对象，并调用AMS.start();
 
 #### 2.1.2 AMS创建
 
+```java
     public ActivityManagerService(Context systemContext) {
         mContext = systemContext;
         mFactoryTest = FactoryTest.getMode();//默认为FACTORY_TEST_OFF
@@ -173,11 +178,13 @@ SystemServiceManager.startService(ActivityManagerService.Lifecycle.class) 功能
         };
         ...
     }
+```
 
 该过程共创建了3个线程，分别为"ActivityManager"，"android.ui"，"CpuTracker"。
 
 #### 2.1.3 AMS.start
 
+```java
     private void start() {
         Process.removeAllProcessGroups(); //移除所有的进程组
         mProcessCpuThread.start(); //启动CpuTracker线程
@@ -188,9 +195,11 @@ SystemServiceManager.startService(ActivityManagerService.Lifecycle.class) 功能
         LocalServices.addService(ActivityManagerInternal.class, new LocalService());
     }
 
+```
 
 ### 2.3 AMS.setSystemProcess
 
+```java
     public void setSystemProcess() {
         try {
             ServiceManager.addService(Context.ACTIVITY_SERVICE, this, true);
@@ -225,12 +234,14 @@ SystemServiceManager.startService(ActivityManagerService.Lifecycle.class) 功能
             throw new RuntimeException("", e);
         }
     }
+```
 
 该方法主要工作是注册各种服务。
 
 #### 2.3.1 AT.installSystemApplicationInfo
 [-> ActivityThread.java]
 
+```java
     public void installSystemApplicationInfo(ApplicationInfo info, ClassLoader classLoader) {
         synchronized (this) {
             //
@@ -239,20 +250,24 @@ SystemServiceManager.startService(ActivityManagerService.Lifecycle.class) 功能
             mProfiler = new Profiler();
         }
     }
+```
 
 该方法调用ContextImpl的nstallSystemApplicationInfo()方法，最终调用LoadedApk的installSystemApplicationInfo，加载名为“android”的package
 
 #### 2.3.2  installSystemApplicationInfo
 [-> LoadedApk.java]
 
+```java
     void installSystemApplicationInfo(ApplicationInfo info, ClassLoader classLoader) {
         assert info.packageName.equals("android");
         mApplicationInfo = info; //将包名为"android"的应用信息保存到mApplicationInfo
         mClassLoader = classLoader;
     }
+```
 
 ### 2.4 startOtherServices
 
+```java
     private void startOtherServices() {
       ...
       //安装系统Provider 【见小节2.4.1】
@@ -278,9 +293,11 @@ SystemServiceManager.startService(ActivityManagerService.Lifecycle.class) 功能
           }
       }
     }
+```
 
 #### 2.4.1 AMS.installSystemProviders
 
+```java
     public final void installSystemProviders() {
         List<ProviderInfo> providers;
         synchronized (this) {
@@ -304,19 +321,23 @@ SystemServiceManager.startService(ActivityManagerService.Lifecycle.class) 功能
         // 创建核心Settings Observer，用于监控Settings的改变。
         mCoreSettingsObserver = new CoreSettingsObserver(this);
     }
+```
 
 ## 三. AMS.systemReady
 
 AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执行简单划分以下几部分：
 
+```java
     public void systemReady(final Runnable goingCallback) {
         before goingCallback;
         goingCallback.run();
         after goingCallback;
     }
+```
 
 ### 3.1 before goingCallback
 
+```java
     synchronized(this) {
         if (mSystemReady) { //首次为flase，则不进入该分支
             if (goingCallback != null) {
@@ -387,6 +408,7 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
     Slog.i(TAG, "System now ready");
     EventLog.writeEvent(EventLogTags.BOOT_PROGRESS_AMS_READY,
          SystemClock.uptimeMillis());
+```
 
 该阶段的主要功能：
 
@@ -396,6 +418,7 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
 
 #### 3.1.1 deliverPreBootCompleted
 
+```java
     private boolean deliverPreBootCompleted(final Runnable onFinishCallback,
             ArrayList<ComponentName> doneReceivers, int userId) {
         Intent intent = new Intent(Intent.ACTION_PRE_BOOT_COMPLETED);
@@ -430,10 +453,12 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
         cont.go(); //【见小节3.1.3】
         return true;
     }
+```
 
 #### 3.1.2 PreBootContinuation
 [-> ActivityManagerService.java ::PreBootContinuation]
 
+```java
     final class PreBootContinuation extends IIntentReceiver.Stub {
 
         PreBootContinuation(Intent _intent, Runnable _onFinishCallback,
@@ -445,9 +470,11 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
             users = _users;
         }
     }
+```
 
 #### 3.1.3 PreBootContinuation.go
 
+```java
     void go() {
         if (lastRi != curRi) {
             ActivityInfo ai = ris.get(curRi).activityInfo;
@@ -467,11 +494,13 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
                 0, null, null, null, AppOpsManager.OP_NONE,
                 null, true, false, MY_PID, Process.SYSTEM_UID, users[curUser]);
     }
+```
 
 ### 3.2 goingCallback.run()
 
 此处的goingCallback,便是在startOtherServices()过程中传递进来的参数
 
+```java
     private void startOtherServices() {
       ...
       mActivityManagerService.systemReady(new Runnable() {
@@ -515,6 +544,7 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
         }
       });
     }
+```
 
 该过程启动各种进程：
 
@@ -525,17 +555,20 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
 
 #### 3.2.1 startSystemUi
 
+```java
     static final void startSystemUi(Context context) {
         Intent intent = new Intent();
         intent.setComponent(new ComponentName("com.android.systemui",
                     "com.android.systemui.SystemUIService"));
         context.startServiceAsUser(intent, UserHandle.OWNER);
     }
+```
 
 启动服务"com.android.systemui/.SystemUIService"
 
 ### 3.3 after goingCallback
 
+```java
     //启动【见小节3.3.1】
     mSystemServiceManager.startUser(mCurrentUserId);
     synchronized (this) {
@@ -582,6 +615,7 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
         mStackSupervisor.resumeTopActivitiesLocked();
         sendUserSwitchBroadcastsLocked(-1, mCurrentUserId);
     }
+```
 
 该阶段主要功能：
 
@@ -595,6 +629,7 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
 #### 3.3.1 SSM.startUser
 [-> SystemServiceManager.java]
 
+```java
     public void startUser(final int userHandle) {
         final int serviceLen = mServices.size();
         for (int i = 0; i < serviceLen; i++) {
@@ -607,9 +642,11 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
             }
         }
     }
+```
 
 #### 3.3.2 AMS.startHomeActivityLocked
 
+```java
     boolean startHomeActivityLocked(int userId, String reason) {
         //home intent有CATEGORY_HOME
         Intent intent = getHomeIntent();
@@ -629,6 +666,7 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
         }
         return true;
     }
+```
 
 ## 四. 总结
 
@@ -658,6 +696,7 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
 ### 4.2 AMS.systemReady
 另外，AMS.systemReady()的大致过程如下:
 
+```java
     public final class ActivityManagerService{
 
         public void systemReady(final Runnable goingCallback) {
@@ -674,6 +713,7 @@ AMS.systemReady()方法的参数为Runable类型的goingCallback， 该方法执
             mStackSupervisor.resumeTopActivitiesLocked(); //恢复栈顶的Activity
         }
     }
+```
 
 再说一说`mProcessesReady`：
 

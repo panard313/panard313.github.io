@@ -16,16 +16,19 @@ Android有一套异常处理机制, 分析Crash时最常见的便是先查看其
 ### 1.1 初始化Throwable对象
 [-> Throwable.java]
 
+```java
     public Throwable(String detailMessage, Throwable cause) {
         this.detailMessage = detailMessage;
         this.cause = cause;
         this.stackTrace = EmptyArray.STACK_TRACE_ELEMENT;
         fillInStackTrace(); // [见小节1.2]
     }
+```
 
 ### 1.2  fillInStackTrace
 [-> Throwable.java]
 
+```java
     public Throwable fillInStackTrace() {
         if (stackTrace == null) {
             return this; 
@@ -34,12 +37,14 @@ Android有一套异常处理机制, 分析Crash时最常见的便是先查看其
         stackTrace = EmptyArray.STACK_TRACE_ELEMENT;
         return this;
     }
+```
     
 ## 二. 打印调用栈
 
 ### 2.1 printStackTrace
 [-> Throwable.java]
 
+```java
     public void printStackTrace() {
         printStackTrace(System.err);
     }
@@ -51,10 +56,12 @@ Android有一套异常处理机制, 分析Crash时最常见的便是先查看其
             throw new AssertionError();
         }
     }
+```
 
 ### 2.2 printStackTrace
 [-> Throwable.java]
 
+```java
     private void printStackTrace(Appendable err, String indent, StackTraceElement[] parentStack)
         throws IOException {
         err.append(toString()); //[见小节2.2.1]
@@ -92,12 +99,14 @@ Android有一套异常处理机制, 分析Crash时最常见的便是先查看其
             cause.printStackTrace(err, indent, stack); //[见小节2.2.4]
         }
     }
+```
 
 其中indent为空.
 
 #### 2.2.1 toString
 [-> Throwable.java]
 
+```java
     public String toString() {
         //获取detailMessage
         String msg = getLocalizedMessage();
@@ -108,6 +117,7 @@ Android有一套异常处理机制, 分析Crash时最常见的便是先查看其
         }
         return name + ": " + msg;
     }
+```
 
 这是输出的第一行.例如:
 
@@ -118,6 +128,7 @@ Android有一套异常处理机制, 分析Crash时最常见的便是先查看其
 
 #### 2.2.2 getInternalStackTrace
 
+```java
     private StackTraceElement[] getInternalStackTrace() {
         if (stackTrace == EmptyArray.STACK_TRACE_ELEMENT) {
             // 当stackTrace为空, 则获取native调用栈
@@ -130,21 +141,25 @@ Android有一套异常处理机制, 分析Crash时最常见的便是先查看其
           return stackTrace;
         }
     }
+```
 
 #### 2.2.3 getCause
 
+```java
     public Throwable getCause() {
         if (cause == this) {
             return null;
         }
         return cause;
     }
+```
 
 默认cause等于this, 当创建的Throwable带有cause的话, 则返回的便是新的Throwable对象.
 
 ### 2.3 打印Caused by
 [-> Throwable.java]
 
+```java
     private void printStackTrace(Appendable err, String indent, StackTraceElement[] parentStack)
             throws IOException {
         err.append(toString());
@@ -180,9 +195,11 @@ Android有一套异常处理机制, 分析Crash时最常见的便是先查看其
             ... //第二次cause为空,一般为空. 也存在级联情况
         }
     }
+```
 
 #### 2.3.1 countDuplicates
 
+```java
     private static int countDuplicates(StackTraceElement[] currentStack,
             StackTraceElement[] parentStack) {
         int duplicates = 0;
@@ -198,6 +215,7 @@ Android有一套异常处理机制, 分析Crash时最常见的便是先查看其
         }
         return duplicates;
     }
+```
     
 比较parentStack和当前currentStack, 分别从栈底开始比较, 最终得到栈帧重复个数duplicates
 

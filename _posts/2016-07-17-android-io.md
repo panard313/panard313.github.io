@@ -55,6 +55,7 @@ MountService运行在`system_server`进程，在系统启动到阶段PHASE_WAIT_
 ### 2.1 启动
 [-> SystemServer.java]
 
+```java
     private void startOtherServices() {
         ...
         IMountService mountService = null;
@@ -73,6 +74,7 @@ MountService运行在`system_server`进程，在系统启动到阶段PHASE_WAIT_
             ...
         });
     }
+```
 
 NotificationManagerService依赖于MountService，比如media/usb通知事件，所以需要先启动MountService。此处MOUNT_SERVICE_CLASS=`com.android.server.MountService$Lifecycle`.
 
@@ -86,6 +88,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
 
 [-> MountService.java]
 
+```java
     class MountService extends IMountService.Stub
             implements INativeDaemonConnectorCallbacks, Watchdog.Monitor {
         public static class Lifecycle extends SystemService {
@@ -99,6 +102,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
         }
         ...
     }
+```
 
 创建MountService对象，并向Binder服务的大管家ServiceManager登记，该服务名为“mount”，对应服务对象为mMountService。登记之后，其他地方当需要MountService的服务时便可以通过服务名来向ServiceManager来查询具体的MountService服务。
 
@@ -106,6 +110,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
 
 [-> MountService.java]
 
+```java
     public MountService(Context context) {
         sSelf = this;
 
@@ -165,6 +170,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
             Watchdog.getInstance().addMonitor(this);
         }
     }
+```
 
 其主要功能依次是：
 
@@ -182,6 +188,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
 
 ### 2.4 Callbacks
 
+```java
     class MountService {
         ...
         private static class Callbacks extends Handler {
@@ -193,11 +200,13 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
             ...
         }
     }
+```
 
 创建Callbacks时的Looper为FgThread.get().getLooper()，其中`FgThread`采用单例模式，是一个线程名为"android.fg"的HandlerThread。另外，Callbacks对象有一个成员变量`mCallbacks`，如下：
 
 [-> RemoteCallbackList.java]
 
+```java
     public class RemoteCallbackList<E extends IInterface> {
         ArrayMap<IBinder, Callback> mCallbacks
                 = new ArrayMap<IBinder, Callback>();
@@ -222,12 +231,14 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
         }
         ...
     }
+```
 
 通过`register()`方法添加IMountServiceListener对象信息到`mCallbacks`成员变量。RemoteCallbackList的内部类Callback继承于IBinder.DeathRecipient，很显然这是死亡通知，当binder服务端进程死亡后，回调binderDied方法通知binder客户端进行相应地处理。
 
 ### 2.5 NativeDaemonConnector
 [-> NativeDaemonConnector.java]
 
+```java
     NativeDaemonConnector(INativeDaemonConnectorCallbacks callbacks, String socket,
             int responseQueueSize, String logTag, int maxLogSize, PowerManager.WakeLock wl) {
         this(callbacks, socket, responseQueueSize, logTag, maxLogSize, wl,
@@ -252,6 +263,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
         TAG = logTag != null ? logTag : "NativeDaemonConnector";
         mLocalLog = new LocalLog(maxLogSize);
     }
+```
 
 - mLooper为FgThread.get().getLooper()，即运行在"android.fg"线程；
 - mResponseQueue对象中成员变量`mPendingCmds`数据类型为LinkedList，记录着vold进程上报的响应事件，事件个数上限为500。
@@ -260,6 +272,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
 
 [-> NativeDaemonConnector.java]
 
+```java
     final class NativeDaemonConnector implements Runnable, Handler.Callback, Watchdog.Monitor {
         public void run() {
             mCallbackHandler = new Handler(mLooper, this);
@@ -275,6 +288,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
             }
         }
     }
+```
 
 在线程`VoldConnector`中建立了名为`vold`的socket的客户端，通过循环方式不断监听Vold服务端发送过来的消息。 另外，同理还有一个线程`CryptdConnector也采用类似的方式，建立了`cryptd`的socket客户端，监听Vold中另个线程发送过来的消息。到此,MountService与NativeDaemonConnector都已经启动，那么接下来到系统启动到达阶段PHASE_ACTIVITY_MANAGER_READY，则调用到onBootPhase方法。
 
@@ -285,6 +299,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
 
 由于MountService的内部Lifecycle已添加SystemServiceManager的`mServices`服务列表；系统启动到`PHASE_ACTIVITY_MANAGER_READY`时会回调`mServices`中的`onBootPhase`方法
 
+```java
     public static class Lifecycle extends SystemService {
         public void onBootPhase(int phase) {
             if (phase == SystemService.PHASE_ACTIVITY_MANAGER_READY) {
@@ -292,13 +307,16 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
             }
         }
     }
+```
 
 再调用MountService.systemReady方法，该方法主要是通过`mHandler`发送消息。
 
+```java
     private void systemReady() {
         mSystemReady = true;
         mHandler.obtainMessage(H_SYSTEM_READY).sendToTarget();
     }
+```
 
 此处`mHandler = new MountServiceHandler(hthread.getLooper())`,采用的是线程"MountService"中的Looper。到此system_server主线程通过handler向线程"MountService"发送`H_SYSTEM_READY`消息，接下来进入线程"MountService"的MountServiceHandler对象(简称MSH)的handleMessage()来处理相关的消息。
 
@@ -306,6 +324,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
 
 [-> MountService.java ::MountServiceHandler]
 
+```java
     class MountServiceHandler extends Handler {
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -317,10 +336,12 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
             }
         }
     }
+```
 
 ### 2.9 handleSystemReady
 [-> MountService.java]
 
+```java
     private void handleSystemReady() {
         synchronized (mLock) {
             //【见小节2.10】
@@ -330,10 +351,12 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
         //计划执行日常的fstrim操作【】
         MountServiceIdler.scheduleIdlePass(mContext);
     }
+```
 
 ### 2.10 resetIfReadyAndConnectedLocked
 [-> MountService.java]
 
+```java
     private void resetIfReadyAndConnectedLocked() {
         Slog.d(TAG, "Thinking about reset, mSystemReady=" + mSystemReady
                 + ", mDaemonConnected=" + mDaemonConnected);
@@ -364,17 +387,21 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
             }
         }
     }
+```
 
 ### 2.11 NDC.execute
 [-> NativeDaemonConnector.java]
 
+```java
     public NativeDaemonEvent execute(String cmd, Object... args)
             throws NativeDaemonConnectorException {
         return execute(DEFAULT_TIMEOUT, cmd, args);
     }
+```
 
 其中`DEFAULT_TIMEOUT=1min`，即命令执行超时时长为1分钟。经过层层调用，executeForList()
 
+```java
     public NativeDaemonEvent[] executeForList(long timeoutMs, String cmd, Object... args)
             throws NativeDaemonConnectorException {
         final long startTime = SystemClock.elapsedRealtime();
@@ -417,12 +444,14 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
         ...
         return events.toArray(new NativeDaemonEvent[events.size()]);
     }
+```
 
 首先，将带执行的命令mSequenceNumber执行加1操作，再将cmd(例如`3 volume reset`)写入到socket的输出流，通过循环与poll机制等待执行底层响应该操作结果，否则直到1分钟超时才结束该方法。即便收到底层的响应码，如果响应码属于[100,200)区间，则继续阻塞等待后续事件上报。
 
 ### 2.12 ResponseQueue.remove
 [-> MountService.java ::ResponseQueue]
 
+```java
     private static class ResponseQueue {
         public NativeDaemonEvent remove(int cmdNum, long timeoutMs, String logCmd) {
             PendingCmd found = null;
@@ -450,6 +479,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
             return result;
         }
     }
+```
 
 这里用到poll，先来看看`responses = new ArrayBlockingQueue<NativeDaemonEvent>(10)`,这是一个长度为10的可阻塞队列。
 这里的poll也是阻塞的方式来轮询事件。
@@ -457,6 +487,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
 #### responses.poll
 [-> ArrayBlockingQueue.java]
 
+```java
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
         long nanos = unit.toNanos(timeout);
         final ReentrantLock lock = this.lock;
@@ -474,6 +505,7 @@ mSystemServiceManager.startService(MOUNT_SERVICE_CLASS)主要完成3件事：
             lock.unlock();
         }
     }
+```
 
 **小知识**：这里用到了ReentrantLock同步锁，该锁跟synchronized有功能有很相似，用于多线程并发访问。那么ReentrantLock与synchronized相比,
 
@@ -493,6 +525,7 @@ ReentrantLock的劣势：
 ### 2.13 listenToSocket
 [-> NativeDaemonConnector.java]
 
+```java
     private void listenToSocket() throws IOException {
         LocalSocket socket = null;
 
@@ -562,12 +595,14 @@ ReentrantLock的劣势：
             ...
         }
     }
+```
 
 这里有一个动作是mResponseQueue.add()，通过该方法便能触发ResponseQueue.poll阻塞操作继续往下执行。
 
 ### 2.14 ResponseQueue.add
 [-> NativeDaemonConnector.java]
 
+```java
     private static class ResponseQueue {
         public void add(int cmdNum, NativeDaemonEvent response) {
            PendingCmd found = null;
@@ -594,10 +629,12 @@ ReentrantLock的劣势：
            } catch (InterruptedException e) { }
        }
     }
+```
 
 #### responses.put
 [-> ArrayBlockingQueue.java]
 
+```java
     public void put(E e) throws InterruptedException {
         checkNotNull(e);
         final ReentrantLock lock = this.lock;
@@ -612,19 +649,23 @@ ReentrantLock的劣势：
         }
     }
 
+```
 
 看完了如何向mPendingCmds中增加待处理的命令,再来回过来看看,当当listenToSocket刚开始监听前,收到Native的Daemon连接后的执行操作.
 
 ### 2.15 MS.onDaemonConnected
 [-> MountService.java]
 
+```java
     public void onDaemonConnected() {
         mDaemonConnected = true;
         mHandler.obtainMessage(H_DAEMON_CONNECTED).sendToTarget();
     }
+```
 
 当前主线程发送消息`H_DAEMON_CONNECTED`给线程MountService`，该线程收到消息后调用MountServiceHandler的handleMessage()相应分支后，进而调用handleDaemonConnected()方法。
 
+```java
     private void handleDaemonConnected() {
         synchronized (mLock) {
             resetIfReadyAndConnectedLocked();
@@ -642,11 +683,13 @@ ReentrantLock的劣势：
         //用于通知ASEC扫描已完成
         mAsecsScanned.countDown();
     }
+```
 
 这里的PMS.scanAvailableAsecs()经过层层调用，最终核心工作还是通过MountService.getSecureContainerList。
 
 [-> MountService.java]
 
+```java
     public String[] getSecureContainerList() {
         enforcePermission(android.Manifest.permission.ASEC_ACCESS);
         //等待mConnectedSignal计数锁达到零
@@ -662,6 +705,7 @@ ReentrantLock的劣势：
             return new String[0];
         }
     }
+```
 
 ### 2.16 小节
 
@@ -694,6 +738,7 @@ Vold的service定义如下：
 
 [-> system/vold/Main.cpp]
 
+```java
     int main(int argc, char** argv) {
         setenv("ANDROID_LOG_TAGS", "*:v", 1);
         android::base::InitLogging(argv, android::base::LogdLogger(android::base::SYSTEM));
@@ -767,6 +812,7 @@ Vold的service定义如下：
 
         exit(0);
     }
+```
 
 该方法的主要功能是创建下面4个对象并启动
 
@@ -783,14 +829,17 @@ Vold的service定义如下：
 
 [-> VolumeManager.cpp]
 
+```java
     VolumeManager *VolumeManager::Instance() {
         if (!sInstance)
             sInstance = new VolumeManager();
         return sInstance;
     }
+```
 
 创建单例模式的VolumeManager对象
 
+```java
     VolumeManager::VolumeManager() {
         mDebug = false;
         mActiveContainers = new AsecIdCollection();
@@ -800,17 +849,21 @@ Vold的service定义如下：
         //当UMS获取时，则设置dirty ratio为0
         mUmsDirtyRatio = 0;
     }
+```
 
 #### 3.2.2 vm->setBroadcaster
 
+```java
     void setBroadcaster(SocketListener *sl) {
          mBroadcaster = sl;
      }
+```
 
 将新创建的`CommandListener`对象sl赋值给vm对象的成员变量`mBroadcaster`
 
 #### 3.2.3 vm->start
 
+```java
     int VolumeManager::start() {
         //卸载所有设备，以提供最干净的环境
         unmountAll();
@@ -821,11 +874,13 @@ Vold的service定义如下：
         mInternalEmulated->create();
         return 0;
     }
+```
 
 mInternalEmulated的据类型为`EmulatedVolume`，设备路径为`/data/media`，id和label为“emulated”，mMountFlags=0。`EmulatedVolume`继承于`VolumeBase`
 
 ##### 3.2.3.1 unmountAll
 
+```java
     int VolumeManager::unmountAll() {
         std::lock_guard<std::mutex> lock(mLock);
 
@@ -860,6 +915,7 @@ mInternalEmulated的据类型为`EmulatedVolume`，设备路径为`/data/media`�
 
         return 0;
     }
+```
 
 此处打开的"/proc/mounts"每一行内容依次是文件名，目录，类型，操作。例如：
 
@@ -873,6 +929,7 @@ mInternalEmulated的据类型为`EmulatedVolume`，设备路径为`/data/media`�
 
 **卸载内部存储**:
 
+```java
     status_t EmulatedVolume::doUnmount() {
         if (mFusePid > 0) {
             kill(mFusePid, SIGTERM);
@@ -896,6 +953,7 @@ mInternalEmulated的据类型为`EmulatedVolume`，设备路径为`/data/media`�
 
         return OK;
     }
+```
 
 `KillProcessesUsingPath`的功能很强大，通过文件path来查看其所在进程，并杀掉相应进程。当以下5处任意一处存在与path相同的地方，则会杀掉相应的进程：
 
@@ -909,6 +967,7 @@ mInternalEmulated的据类型为`EmulatedVolume`，设备路径为`/data/media`�
 
 [-> VolumeBase.cpp]
 
+```java
     status_t VolumeBase::create() {
         mCreated = true;
         status_t res = doCreate();
@@ -927,11 +986,13 @@ mInternalEmulated的据类型为`EmulatedVolume`，设备路径为`/data/media`�
         VolumeManager::Instance()->getBroadcaster()->sendBroadcast(event,
                 StringPrintf("%s %s", getId().c_str(), value.c_str()).c_str(), false);
     }
+```
 
 #### 3.2.4 process_config(vm)
 
 [-> system/vold/Main.cpp]
 
+```java
     static int process_config(VolumeManager *vm) {
         //获取Fstab路径
         std::string path(android::vold::DefaultFstabPath());
@@ -966,6 +1027,7 @@ mInternalEmulated的据类型为`EmulatedVolume`，设备路径为`/data/media`�
         property_set("vold.has_adoptable", has_adoptable ? "1" : "0");
         return 0;
     }
+```
 
 Fstab路径：首先通过`getprop ro.hardware`，比如高通芯片则为`qcom`那么Fstab路径就是`/fstab.qcom`，那么该文件的具体内容，例如(当然这个不同手机会有所不同)：
 
@@ -985,20 +1047,25 @@ Fstab路径：首先通过`getprop ro.hardware`，比如高通芯片则为`qcom`
 #### 3.3.1 创建
 [-> NetlinkManager.cpp]
 
+```java
     NetlinkManager *NetlinkManager::Instance() {
         if (!sInstance)
             sInstance = new NetlinkManager();
         return sInstance;
     }
+```
 
 #### 3.3.2 nm->setBroadcaster
 
+```java
     void setBroadcaster(SocketListener *sl) {
         mBroadcaster = sl;
     }
+```
 
 #### 3.3.3 nm->start
 
+```java
     int NetlinkManager::start() {
         struct sockaddr_nl nladdr;
         int sz = 64 * 1024;
@@ -1042,6 +1109,7 @@ Fstab路径：首先通过`getprop ro.hardware`，比如高通芯片则为`qcom`
         close(mSock);
         return -1;
     }
+```
 
 #### 3.3.4 NetlinkHandler
 
@@ -1049,6 +1117,7 @@ NetlinkHandler继承于`NetlinkListener`，`NetlinkListener`继承于`SocketList
 
 [-> SocketListener.cpp]
 
+```java
     SocketListener::SocketListener(int socketFd, bool listen) {
         //listen=false
         init(NULL, socketFd, listen, false);
@@ -1065,6 +1134,7 @@ NetlinkHandler继承于`NetlinkListener`，`NetlinkListener`继承于`SocketList
         //创建socket通信的client端
         mClients = new SocketClientCollection();
     }
+```
 
 到此，mListen = false; mSocketName = NULL; mUseCmdNum = false。 另外，这里用到的同步锁，用于控制多线程并发访问。 接着在来看看start过程：
 
@@ -1072,12 +1142,15 @@ NetlinkHandler继承于`NetlinkListener`，`NetlinkListener`继承于`SocketList
 
 [-> NetlinkHandler.cpp]
 
+```java
     int NetlinkHandler::start() {
         return this->startListener();
     }
+```
 
 [-> SocketListener.cpp]
 
+```java
     int SocketListener::startListener() {
         return startListener(4);
     }
@@ -1103,12 +1176,14 @@ NetlinkHandler继承于`NetlinkListener`，`NetlinkListener`继承于`SocketList
 
         return 0;
     }
+```
 
 mCtrlPipe是匿名管道，这是一个二元数组，mCtrlPipe[0]从管道读数据，mCtrlPipe[1]从管道写数据。
 
 #### 3.3.6 threadStart
 [-> SocketListener.cpp]
 
+```java
     void *SocketListener::threadStart(void *obj) {
         SocketListener *me = reinterpret_cast<SocketListener *>(obj);
         //【见小节3.3.7】
@@ -1116,10 +1191,12 @@ mCtrlPipe是匿名管道，这是一个二元数组，mCtrlPipe[0]从管道读�
         pthread_exit(NULL); //线程退出
         return NULL;
     }
+```
 
 #### 3.3.7  SL->runListener
 [-> SocketListener.cpp]
 
+```java
     void SocketListener::runListener() {
         SocketClientCollection pendingList;
         while(1) {
@@ -1217,6 +1294,7 @@ mCtrlPipe是匿名管道，这是一个二元数组，mCtrlPipe[0]从管道读�
             }
         }
     }
+```
 
 ### 3.4 CommandListener
 
@@ -1224,6 +1302,7 @@ mCtrlPipe是匿名管道，这是一个二元数组，mCtrlPipe[0]从管道读�
 
 [-> CommandListener.cpp]
 
+```java
     CommandListener::CommandListener() :
                      FrameworkListener("vold", true) {
         registerCmd(new DumpCmd());
@@ -1233,11 +1312,13 @@ mCtrlPipe是匿名管道，这是一个二元数组，mCtrlPipe[0]从管道读�
         registerCmd(new StorageCmd());
         registerCmd(new FstrimCmd());
     }
+```
 
 ##### 3.4.1.1 FrameworkListener
 
 [-> FrameworkListener.cpp]
 
+```java
     FrameworkListener::FrameworkListener(const char *socketName, bool withSeq) :
                                 SocketListener(socketName, true, withSeq) {
         init(socketName, withSeq);
@@ -1250,11 +1331,13 @@ mCtrlPipe是匿名管道，这是一个二元数组，mCtrlPipe[0]从管道读�
         mWithSeq = withSeq; //true
     }
 
+```
 
 ##### 3.4.1.2 SocketListener
 
 [-> SocketListener.cpp]
 
+```java
     SocketListener::SocketListener(const char *socketName, bool listen, bool useCmdNum) {
         init(socketName, -1, listen, useCmdNum);
     }
@@ -1267,11 +1350,13 @@ mCtrlPipe是匿名管道，这是一个二元数组，mCtrlPipe[0]从管道读�
         pthread_mutex_init(&mClientsLock, NULL);
         mClients = new SocketClientCollection();
     }
+```
 
 socket名为“vold”
 
 ##### 3.4.1.3 registerCmd
 
+```java
     void FrameworkListener::registerCmd(FrameworkCommand *cmd) {
         mCommands->push_back(cmd);
     }
@@ -1279,11 +1364,13 @@ socket名为“vold”
     CommandListener::VolumeCmd::VolumeCmd() :
                  VoldCommand("volume") {
     }
+```
 
 创建这些对象 DumpCmd，VolumeCmd，AsecCmd，ObbCmd，StorageCmd，FstrimCmd，并都加入到mCommands队列。
 
 #### 3.4.2 cl->startListener
 
+```java
     int SocketListener::startListener() {
         return startListener(4);
     }
@@ -1317,6 +1404,7 @@ socket名为“vold”
 
         return 0;
     }
+```
 
 ## 四、小结
 

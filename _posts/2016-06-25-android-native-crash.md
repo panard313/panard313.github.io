@@ -42,6 +42,7 @@ tags:
 
 [-> linker.cpp]
 
+```java
     extern "C" ElfW(Addr) __linker_init(void* raw_args) {
       KernelArgumentBlock args(raw_args);
       ElfW(Addr) linker_addr = args.getauxval(AT_BASE);
@@ -50,11 +51,13 @@ tags:
       ElfW(Addr) start_address = __linker_init_post_relocation(args, linker_addr);
       return start_address;
     }
+```
 
 ### 1.3 __linker_init_post_relocation
 
 [-> linker.cpp]
 
+```java
     static ElfW(Addr) __linker_init_post_relocation(KernelArgumentBlock& args, ElfW(Addr) linker_base) {
       ...
       // Sanitize the environment.
@@ -65,11 +68,13 @@ tags:
       debuggerd_init();
       ...
     }
+```
 
 ### 1.4 debuggerd_init
 
 [-> linker/debugger.cpp]
 
+```java
     __LIBC_HIDDEN__ void debuggerd_init() {
       struct sigaction action;
       memset(&action, 0, sizeof(action));
@@ -92,6 +97,7 @@ tags:
     #endif
       sigaction(SIGTRAP, &action, nullptr);
     }
+```
 
 ### 1.5 debuggerd_signal_handler
 
@@ -100,6 +106,7 @@ tags:
 
 [-> linker/debugger.cpp]
 
+```java
     static void debuggerd_signal_handler(int signal_number, siginfo_t* info, void*) {
       if (!have_siginfo(signal_number)) {
         info = nullptr; //SA_SIGINFO标识被意外清空，则info未定义
@@ -125,11 +132,13 @@ tags:
           break;
       }
     }
+```
 
 ### 1.6 send_debuggerd_packet
 
 [-> linker/debugger.cpp]
 
+```java
     static void send_debuggerd_packet(siginfo_t* info) {
       // Mutex防止多个crashing线程同一时间来来尝试跟debuggerd进行通信
       static pthread_mutex_t crash_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -163,6 +172,7 @@ tags:
       }
       close(s);
     }
+```
 
 该方法的主要功能：
 
@@ -180,6 +190,7 @@ debuggerd 守护进程启动后，一直在等待socket client的连接。当nat
 
 [-> /debuggerd/debuggerd.cpp]
 
+```java
     static int do_server() {
       ...
       for (;;) {
@@ -196,11 +207,13 @@ debuggerd 守护进程启动后，一直在等待socket client的连接。当nat
       }
       return 0;
     }
+```
 
 ### 2.2 handle_request
 
 [-> /debuggerd/debuggerd.cpp]
 
+```java
     static void handle_request(int fd) {
       android::base::unique_fd closer(fd);
       debugger_request_t request;
@@ -221,11 +234,13 @@ debuggerd 守护进程启动后，一直在等待socket client的连接。当nat
         monitor_worker_process(fork_pid, request);
       }
     }
+```
 
 ### 2.3 read_request
 
 [-> /debuggerd/debuggerd.cpp]
 
+```java
     static int read_request(int fd, debugger_request_t* out_request) {
       ucred cr;
       socklen_t len = sizeof(cr);
@@ -270,6 +285,7 @@ debuggerd 守护进程启动后，一直在等待socket client的连接。当nat
       }
       return 0;
     }
+```
 
 read_request执行完成后，则从socket通道中读取到out_request。
 
@@ -279,6 +295,7 @@ read_request执行完成后，则从socket通道中读取到out_request。
 
 [-> /debuggerd/debuggerd.cpp]
 
+```java
     static void worker_process(int fd, debugger_request_t& request) {
       std::string tombstone_path;
       int tombstone_fd = -1;
@@ -340,6 +357,7 @@ read_request执行完成后，则从socket通道中读取到out_request。
       }
       ...
     }
+```
 
 整个过程比较复杂，下面只介绍attach_gdb=false的执行流程：
 
@@ -359,6 +377,7 @@ read_request执行完成后，则从socket通道中读取到out_request。
 
 [-> debuggerd.cpp]
 
+```java
     static int activity_manager_connect() {
       android::base::unique_fd amfd(socket(PF_UNIX, SOCK_STREAM, 0));
       if (amfd.get() < -1) {
@@ -389,6 +408,7 @@ read_request执行完成后，则从socket通道中读取到out_request。
 
       return amfd.release();
     }
+```
 
 该方法的功能是建立跟上层`ActivityManager`的socket连接。对于"/data/system/ndebugsocket"的服务端是在，NativeCrashListener.java方法中创建并启动的。
 
@@ -397,6 +417,7 @@ read_request执行完成后，则从socket通道中读取到out_request。
 
 [-> debuggerd.cpp]
 
+```java
     static bool perform_dump(const debugger_request_t& request, int fd, int tombstone_fd,
                              BacktraceMap* backtrace_map, const std::set<pid_t>& siblings,
                              int* crash_signal, std::string* amfd_data) {
@@ -437,6 +458,7 @@ read_request执行完成后，则从socket通道中读取到out_request。
 
       return true;
     }
+```
 
 对于以下信号都是致命的信号:
 
@@ -454,6 +476,7 @@ read_request执行完成后，则从socket通道中读取到out_request。
 
 [-> debuggerd.cpp]
 
+```java
     static void activity_manager_write(int pid, int signal, int amfd, const std::string& amfd_data) {
       if (amfd == -1) {
         return;
@@ -480,6 +503,7 @@ read_request执行完成后，则从socket通道中读取到out_request。
       //读取应答消息，如果3s超时未收到则读取失败
       android::base::ReadFully(amfd, &eodMarker, 1);
     }
+```
 
 debuggerd与AMS的NativeCrashListener建立socket连接后，再通过该方法发送数据，数据项包括pid、signal、dump信息。
 
@@ -489,6 +513,7 @@ debuggerd与AMS的NativeCrashListener建立socket连接后，再通过该方法�
 
 ### 2.5 monitor_worker_process
 
+```java
     static void monitor_worker_process(int child_pid, const debugger_request_t& request) {
       struct timespec timeout = {.tv_sec = 10, .tv_nsec = 0 };
       if (should_attach_gdb(request)) {
@@ -534,6 +559,7 @@ debuggerd与AMS的NativeCrashListener建立socket连接后，再通过该方法�
         kill_worker = true;
         kill_target = true;
       }
+```
 
 该方法是运行在debuggerd父进程，用于监控子进程的执行情况。
 
@@ -541,6 +567,7 @@ debuggerd与AMS的NativeCrashListener建立socket连接后，再通过该方法�
 
 debuggerd服务端调用链：
 
+```java
     do_server
         handle_request
             read_request
@@ -554,6 +581,7 @@ debuggerd服务端调用链：
                 ptrace(PTRACE_DETACH, request.tid, 0, 0);
                 send_signal
             monitor_worker_process(父进程执行)
+```
 
 handle_request方法中通过fork机制，创建子进程来执行worker_process，由于fork返回两次，返回到父进程则执行monitor_worker_process。
 
@@ -563,6 +591,7 @@ handle_request方法中通过fork机制，创建子进程来执行worker_process
 
 [-> SystemServer.java]
 
+```java
     private void startOtherServices() {
         ...
         mActivityManagerService.systemReady(new Runnable() {
@@ -579,6 +608,7 @@ handle_request方法中通过fork机制，创建子进程来执行worker_process
             }
         }
     }
+```
 
 当开机过程中启动服务启动到阶段`PHASE_ACTIVITY_MANAGER_READY`(550)，即服务可以广播自己的Intents，然后启动native crash的监听进程。
 
@@ -586,11 +616,13 @@ handle_request方法中通过fork机制，创建子进程来执行worker_process
 
 [-> ActivityManagerService.java]
 
+```java
     public void startObservingNativeCrashes() {
         //【见小节3.3】
         final NativeCrashListener ncl = new NativeCrashListener(this);
         ncl.start();
     }
+```
 
 NativeCrashListener继承于`Thread`，可见这是线程，通过调用start方法来启动线程开始工作。
 
@@ -598,6 +630,7 @@ NativeCrashListener继承于`Thread`，可见这是线程，通过调用start方
 
 [-> NativeCrashListener.java]
 
+```java
     public void run() {
         final byte[] ackSignal = new byte[1];
         {
@@ -646,6 +679,7 @@ NativeCrashListener继承于`Thread`，可见这是线程，通过调用start方
             Slog.e(TAG, "Unable to init native debug socket!", e);
         }
     }
+```
 
 该方法主要功能：
 
@@ -657,6 +691,7 @@ NativeCrashListener继承于`Thread`，可见这是线程，通过调用start方
 ### 3.4 consumeNativeCrashData
 [-> NativeCrashListener.java]
 
+```java
     void consumeNativeCrashData(FileDescriptor fd) {
         //进入该方法，标识着debuggerd已经与AMS建立连接
         final byte[] buf = new byte[4096];
@@ -717,6 +752,7 @@ NativeCrashListener继承于`Thread`，可见这是线程，通过调用start方
             Slog.e(TAG, "Exception dealing with report", e);
         }
     }
+```
 
 读取debuggerd那端发送过来的数据，再通过NativeCrashReporter来把native crash事件报告给framework层。
 
@@ -724,6 +760,7 @@ NativeCrashListener继承于`Thread`，可见这是线程，通过调用start方
 
 [-> NativeCrashListener.java]
 
+```java
     class NativeCrashReporter extends Thread {
         public void run() {
             try {
@@ -741,6 +778,7 @@ NativeCrashListener继承于`Thread`，可见这是线程，通过调用start方
             }
         }
     }
+```
 
 不论是Native crash还是framework crash最终都会调用到`handleApplicationCrashInner()`，该方法见文章[理解Android Crash处理流程](https://panard313.github.io/2016/06/24/app-crash/#handleApplicationCrashInner)。
 

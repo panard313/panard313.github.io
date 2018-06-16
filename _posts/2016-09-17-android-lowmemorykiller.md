@@ -52,6 +52,7 @@ Android基于Linux的系统，其实Linux有类似的内存管理策略——OOM
 ### 2.1 applyOomAdjLocked
 [-> ActivityManagerService.java]
 
+```java
     private final boolean applyOomAdjLocked(ProcessRecord app, boolean doingAll, long now,
             long nowElapsed) {
         ...
@@ -62,9 +63,11 @@ Android基于Linux的系统，其实Linux有类似的内存管理策略——OOM
         }
         ...
     }
+```
 
 ### 2.2 PL.setOomAdj
 
+```java
     public static final void setOomAdj(int pid, int uid, int amt) {
         //当adj=16，则直接返回
         if (amt == UNKNOWN_ADJ)
@@ -83,11 +86,13 @@ Android基于Linux的系统，其实Linux有类似的内存管理策略——OOM
                     + " = " + amt);
         }
     }
+```
 
 buf大小为16个字节，依次写入LMK_PROCPRIO(命令类型), pid(进程pid), uid(进程uid), amt(目标adj)，将这些字节通过socket发送给lmkd.
 
 ### 2.3 PL.writeLmkd
 
+```java
     private static void writeLmkd(ByteBuffer buf) {
         //当socket打开失败会尝试3次
         for (int i = 0; i < 3; i++) {
@@ -114,6 +119,7 @@ buf大小为16个字节，依次写入LMK_PROCPRIO(命令类型), pid(进程pid)
             }
         }
     }
+```
 
 - 当sLmkdSocket为空，并且打开失败，重新执行该操作；
 - 当sLmkdOutputStream写入buf信息失败，则会关闭sLmkdSocket，重新执行该操作；
@@ -122,6 +128,7 @@ buf大小为16个字节，依次写入LMK_PROCPRIO(命令类型), pid(进程pid)
 
 ### 2.4 PL.openLmkdSocket
 
+```java
     private static boolean openLmkdSocket() {
         try {
             sLmkdSocket = new LocalSocket(LocalSocket.SOCKET_SEQPACKET);
@@ -137,6 +144,7 @@ buf大小为16个字节，依次写入LMK_PROCPRIO(命令类型), pid(进程pid)
         }
         return true;
     }
+```
 
 sLmkdSocket采用的是SOCK_SEQPACKET，这是类型的socket能提供顺序确定的，可靠的，双向基于连接的socket endpoint，与类型SOCK_STREAM很相似，唯一不同的是SEQPACKET保留消息的边界，而SOCK_STREAM是基于字节流，并不会记录边界。
 
@@ -161,6 +169,7 @@ lmkd启动后，接下里的操作都在`platform/system/core/lmkd/lmkd.c`文件
 
 ### 3.1 main
 
+```java
     int main(int argc __unused, char **argv __unused) {
         struct sched_param param = {
                 .sched_priority = 1,
@@ -173,9 +182,11 @@ lmkd启动后，接下里的操作都在`platform/system/core/lmkd/lmkd.c`文件
         ALOGI("exiting");
         return 0;
     }
+```
 
 ### 3.2 init
 
+```java
     static int init(void) {
         struct epoll_event epev;
         int i;
@@ -217,11 +228,13 @@ lmkd启动后，接下里的操作都在`platform/system/core/lmkd/lmkd.c`文件
         }
         return 0;
     }
+```
 
 这里，通过检验/sys/module/lowmemorykiller/parameters/minfree节点是否具有可写权限来判断是否使用kernel接口来管理lmk事件。默认该节点是具有系统可写的权限，也就意味着`use_inkernel_interface`=1.
 
 ### 3.3 mainloop
 
+```java
     static void mainloop(void) {
         while (1) {
             struct epoll_event events[maxevents];
@@ -245,12 +258,14 @@ lmkd启动后，接下里的操作都在`platform/system/core/lmkd/lmkd.c`文件
             }
         }
     }
+```
 
 主循环调用epoll_wait()，等待epollfd上的事件，当接收到中断或者不存在事件，则执行continue操作。当事件到来，则
 调用的ctrl_connect_handler方法，该方法是由init()过程中设定的方法。
 
 ### 3.4 ctrl_connect_handler
 
+```java
     static void ctrl_connect_handler(uint32_t events __unused) {
         struct epoll_event epev;
         if (ctrl_dfd >= 0) {
@@ -274,11 +289,13 @@ lmkd启动后，接下里的操作都在`platform/system/core/lmkd/lmkd.c`文件
             return;
         }
     }
+```
 
 当事件触发，则调用ctrl_data_handler
 
 ### 3.5 ctrl_data_handler
 
+```java
     static void ctrl_data_handler(uint32_t events) {
         if (events & EPOLLHUP) {
             //ActivityManager 连接已断开
@@ -289,9 +306,11 @@ lmkd启动后，接下里的操作都在`platform/system/core/lmkd/lmkd.c`文件
             ctrl_command_handler();
         }
     }
+```
 
 ### 3.6 ctrl_command_handler
 
+```java
     static void ctrl_command_handler(void) {
         int ibuf[CTRL_PACKET_MAX / sizeof(int)];
         int len;
@@ -332,12 +351,14 @@ lmkd启动后，接下里的操作都在`platform/system/core/lmkd/lmkd.c`文件
     wronglen:
         ALOGE("Wrong control socket read length cmd=%d len=%d", cmd, len);
     }
+```
 
 `CTRL_PACKET_MAX` 大小等于 (sizeof(int) * (MAX_TARGETS * 2 + 1))；而MAX_TARGETS=6,对于sizeof(int)=4的系统，则`CTRL_PACKET_MAX`=52。
 获取framework传递过来的buf数据后，根据3种不同的命令，进入不同的分支。 接下来，继续以前面传递过来的`LMK_PROCPRIO`命令来往下讲解，进入`cmd_procprio`过程。
 
 ### 3.7 cmd_procprio
 
+```java
     static void cmd_procprio(int pid, int uid, int oomadj) {
         struct proc *procp;
         char path[80];
@@ -368,6 +389,7 @@ lmkd启动后，接下里的操作都在`platform/system/core/lmkd/lmkd.c`文件
             proc_slot(procp);
         }
     }
+```
 
 向节点/proc/<pid>/oom_score_adj`写入oomadj。由于use_inkernel_interface=1，那么再接下里需要看看kernel的情况
 
@@ -386,6 +408,7 @@ lowmemorykiller driver位于 drivers/staging/Android/lowmemorykiller.c
 
 ### 4.1 lowmemorykiller初始化
 
+```java
     static struct shrinker lowmem_shrinker = {
         .scan_objects = lowmem_scan,
         .count_objects = lowmem_count,
@@ -405,6 +428,7 @@ lowmemorykiller driver位于 drivers/staging/Android/lowmemorykiller.c
 
     module_init(lowmem_init);
     module_exit(lowmem_exit);
+```
 
 通过register_shrinker和unregister_shrinker分别用于初始化和退出。
 
@@ -416,6 +440,7 @@ LMK驱动通过注册shrinker来实现的，shrinker是linux kernel标准的回�
 
 ### 4.3 lowmem_count
 
+```java
     static unsigned long lowmem_count(struct shrinker *s,
                       struct shrink_control *sc)
     {
@@ -424,6 +449,7 @@ LMK驱动通过注册shrinker来实现的，shrinker是linux kernel标准的回�
             global_page_state(NR_INACTIVE_ANON) +
             global_page_state(NR_INACTIVE_FILE);
     }
+```
 
 ANON代表匿名映射，没有后备存储器；FILE代表文件映射；
 内存计算公式= 活动匿名内存 + 活动文件内存 + 不活动匿名内存 + 不活动文件内存
@@ -432,6 +458,7 @@ ANON代表匿名映射，没有后备存储器；FILE代表文件映射；
 
 当触发lmkd,则先杀oom_adj最大的进程, 当oom_adj相等时,则选择oom_score_adj最大的进程.
 
+```java
     static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
     {
         struct task_struct *tsk;
@@ -527,6 +554,7 @@ ANON代表匿名映射，没有后备存储器；FILE代表文件映射；
         rcu_read_unlock();
         return rem;
     }
+```
 
 - 选择oom_score_adj最大的进程中，并且rss内存最大的进程作为选中要杀的进程。
 - 杀进程方式：`send_sig(SIGKILL, selected, 0)``向选中的目标进程发送signal 9来杀掉目标进程。

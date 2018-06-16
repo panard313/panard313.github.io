@@ -39,11 +39,13 @@ tags:
 
 ### 2.1 核心类
 
-java.lang.Class： 代表类
-java.lang.reflect.Constructor:  代表类的构造方法
-java.lang.reflect.Field:  代表类的属性
-java.lang.reflect.Method:  代表类的方法
-java.lang.reflect.Modifier：代表类、方法、属性的描述修饰符。
+```java
+    java.lang.Class： 代表类
+    java.lang.reflect.Constructor:  代表类的构造方法
+    java.lang.reflect.Field:  代表类的属性
+    java.lang.reflect.Method:  代表类的方法
+    java.lang.reflect.Modifier：代表类、方法、属性的描述修饰符。
+```
 
 其中Modifier取值范围如下：
 public, protected, private, abstract, static, final, transient, volatile, synchronized, native, strictfp, interface。
@@ -56,27 +58,33 @@ Constructor， Field， Method这三个类都继承AccessibleObject，该对象�
 ### 2.2 核心方法
 1.成员属性(Field)：
 
+```java
     getFields()：获得类的public类型的属性。
     getDeclaredFields()：获得类的所有属性。
     getField(String name)
     getDeclaredField(String name)：获取类的特定属性
 
+```
 
 2.成员方法(Method)：
 
+```java
     getMethods()：获得类的public类型的方法。
     getDeclaredMethods()：获得类的所有方法。
     getMethod(String name, Class[] parameterTypes)：获得类的特定方法
     getDeclaredMethod(String name, Class[] parameterTypes)：获得类的特定方法
 
+```
 
 3.构造方法(Constructor)：
 
+```java
     getConstructors()：获得类的public类型的构造方法。
     getDeclaredConstructors()：获得类的所有构造方法。
     getConstructor(Class[] parameterTypes)：获得类的特定构造方法
     getDeclaredConstructor(Class[] params)；获得类的特定方法
 
+```
 
 ### 2.3 深入Class类
 
@@ -112,8 +120,10 @@ Class.forName(String className); (最常用)
 ### 4.如何通过反射调用内部类？
 假设com.reflect.Outer类有一个内部类inner，调用方法如下：
 
+```java
     String className = "com.reflect.Outer$inner";
     Class.forName(className);
+```
 
 关于内部类以及反射实用，请查看下一篇文章从代码角度来述说的[Java反射之实用篇。](https://panard313.github.io/2015/10/31/java-reflection-2/);
 

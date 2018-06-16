@@ -78,6 +78,7 @@ Java虚拟机规范规定：Class文件格式采用伪结构来存储数据，�
 ## 2.2 ClassFile结构
 一个Class类文件是由一个ClassFile结构组成：
 
+```java
     ClassFile {
         u4             magic;               //魔数，固定值0xCAFEBABE
         u2             minor_version;       //次版本号
@@ -96,6 +97,7 @@ Java虚拟机规范规定：Class文件格式采用伪结构来存储数据，�
         u2             attributes_count;    //属性的个数
         attribute_info attributes[attributes_count];          //具体的属性内容
     }
+```
 
 一个Class文件的大小：26 + cp_info[] + u2[] + field_info[] + method_info[] + attribute_info[]
 
@@ -117,10 +119,12 @@ a. 常量池长度
 
 b. 常量池内容,格式如下：
 
+```java
     cp_info {
         u1 tag;
         u1 info[];
     }
+```
 
 包括两个类常量，字面量和符号引用：
 
@@ -162,6 +166,7 @@ Class文件都是二进制格式，可通过`Jdk/bin/javap.exe`工具，分析Cl
 
 字段表用于描述类或接口中声明的变量，格式如下：
 
+```java
     field_info {
         u2             access_flags; //访问标识
         u2             name_index;  //名称索引
@@ -169,6 +174,7 @@ Class文件都是二进制格式，可通过`Jdk/bin/javap.exe`工具，分析Cl
         u2             attributes_count; //属性个数
         attribute_info attributes[attributes_count];  //属性表的具体内容
     }
+```
 
 字段访问标识如下：(表中加粗项是字段独有的)
 
@@ -192,6 +198,7 @@ Java语法中，接口中的字段默认包含ACC_PUBLIC, ACC_STATIC, ACC_FINAL�
 
 方法表用于描述类或接口中声明的方法，格式如下：
 
+```java
     method_info {
         u2             access_flags; //访问标识
         u2             name_index;  //名称索引
@@ -199,6 +206,7 @@ Java语法中，接口中的字段默认包含ACC_PUBLIC, ACC_STATIC, ACC_FINAL�
         u2             attributes_count;  //属性个数
         attribute_info attributes[attributes_count]; //属性表的具体内容
     }
+```
 
 方法访问标识如下：(表中加粗项是方法独有的)
 
@@ -226,11 +234,13 @@ Java语法中，接口中的字段默认包含ACC_PUBLIC, ACC_STATIC, ACC_FINAL�
 
 属性表格式：
 
+```java
     attribute_info {
         u2 attribute_name_index;   //属性名索引
         u4 attribute_length;       //属性长度
         u1 info[attribute_length]; //属性的具体内容
     }
+```
 
 属性表的限制相对宽松，不需要各个属性表有严格的顺序，只有不与已有的属性名重复，任何自定义的编译器都可以向属性表中写入自定义的属性信息，Java虚拟机运行时会忽略掉无法识别的属性。
 关于虚拟机规范中预定义的属性，这里不展开讲了，列举几个常用的。
@@ -251,6 +261,7 @@ java程序方法体中的代码，经编译后得到的字节码指令存储在C
 
 Code属性的格式如下：
 
+```java
     Code_attribute {
         u2 attribute_name_index; //常量池中的uft8类型的索引，值固定为”Code“
         u4 attribute_length; //属性值长度，为整个属性表长度-6
@@ -267,6 +278,7 @@ Code属性的格式如下：
         u2 attributes_count;     //属性的个数
         attribute_info attributes[attributes_count]; //具体的属性内容
     }
+```
 
 - slot是虚拟机未局部变量分配内存使用的最小单位。对于byte/char/float/int/short/boolean/returnAddress等长度不超过32位的局部变量，每个占用1个Slot；对于long和double这两种64位的数据类型则需要2个Slot来存放。
 - 实例方法中有隐藏参数this, 显式异常处理器的参数，方法体定义的局部变量都使用局部变量表来存放。

@@ -22,6 +22,7 @@ sp强指针其实就是一个模块类，先来看看其定义：
 
 ### 1.1 sp模块类
 
+```c++
     template<typename T>
     class sp {
     public:
@@ -62,6 +63,7 @@ sp强指针其实就是一个模块类，先来看看其定义：
         void set_pointer(T* ptr);
         T* m_ptr; //指针
     };
+```
 
 ### 1.2 关系图
 
@@ -74,10 +76,12 @@ sp强指针其实就是一个模块类，先来看看其定义：
 
 位于StrongPointer.h文件，有4种方式来初始化sp对象，如下：
 
+```c++
     sp(T* other); //方式1
     sp(const sp<T>& other); //方式2
     sp& operator = (T* other); //方式3
     sp& operator = (const sp<T>& other);//方式4
+```
 
 从以下实现来看，可知：
 
@@ -86,24 +90,29 @@ sp强指针其实就是一个模块类，先来看看其定义：
 
 #### 括号方式1
 
+```c++
     template<typename T>
     sp<T>::sp(T* other)
             : m_ptr(other) {
         if (other)
             other->incStrong(this);
     }
+```
 
 #### 括号方式2
 
+```c++
     template<typename T>
     sp<T>::sp(const sp<T>& other)
             : m_ptr(other.m_ptr) {
         if (m_ptr)
             m_ptr->incStrong(this);
     }
+```
 
 #### 等号方式3
 
+```c++
     template<typename T>
     sp<T>& sp<T>::operator =(const sp<T>& other) {
         T* otherPtr(other.m_ptr);
@@ -114,9 +123,11 @@ sp强指针其实就是一个模块类，先来看看其定义：
         m_ptr = otherPtr;
         return *this;
     }
+```
 
 #### 等号方式4
 
+```c++
     template<typename T>
     sp<T>& sp<T>::operator =(T* other) {
         if (other)
@@ -126,13 +137,16 @@ sp强指针其实就是一个模块类，先来看看其定义：
         m_ptr = other;
         return *this;
     }
+```
 
 ### 2.2 sp<ProcessState>分析
 
 Android源码中有大量的binder通信， ProcessState便是最常见的sp对象， 这里以该sp实例初始化为例，有如下两个方法：
 
+```c++
     sp<ProcessState> proc(ProcessState::self()); //采用括号方式2
     sp<ProcessState> gProcess = new ProcessState; //采用等号方式4
+```
 
 说明：
 
@@ -144,10 +158,12 @@ ProcessState继承于RefBase，所以初始化过程会初始化其父类RefBase
 ### 2.3 RefBase构造函数
 [-> RefBase.cpp]
 
+```c++
     RefBase::RefBase()
         : mRefs(new weakref_impl(this))
     {
     }
+```
 
 RefBase初始化过程，会创建weakref_impl对象，继续已上述举例来说明，此处this为指向ProcessState的指针。
 由此，可见创建ProcessState对象的同时，还会创建weakref_impl对象。
@@ -155,6 +171,7 @@ RefBase初始化过程，会创建weakref_impl对象，继续已上述举例来�
 #### 2.3.1 weakref_impl
 [-> RefBase.cpp ::weakref_impl]
 
+```c++
     weakref_impl(RefBase* base)
            : mStrong(INITIAL_STRONG_VALUE) //强引用计数为 0x1000 0000
            , mWeak(0) //弱引用计数为0
@@ -166,6 +183,7 @@ RefBase初始化过程，会创建weakref_impl对象，继续已上述举例来�
            , mRetain(false)
        {
        }
+```
 
 weakref_impl的成员变量mBase为ProcessState指针。
 不管【小节2.2】哪种方式，最终都会调用目标对象的incStrong()方法，接下来说说该方法。
@@ -173,6 +191,7 @@ weakref_impl的成员变量mBase为ProcessState指针。
 ### 2.4 incStrong
 [-> RefBase.cpp]
 
+```c++
     void RefBase::incStrong(const void* id) const
     {
         weakref_impl* const refs = mRefs;
@@ -188,6 +207,7 @@ weakref_impl的成员变量mBase为ProcessState指针。
         //当首次调用incStrong，则再回调onFirstRef；
         refs->mBase->onFirstRef();
     }
+```
 
 该方法的主要功能：
 
@@ -197,6 +217,7 @@ weakref_impl的成员变量mBase为ProcessState指针。
 #### 2.4.1 incWeak
 [-> RefBase.cpp ::weakref_type]
 
+```c++
     void RefBase::weakref_type::incWeak(const void* id)
     {
         weakref_impl* const impl = static_cast<weakref_impl*>(this);
@@ -204,6 +225,7 @@ weakref_impl的成员变量mBase为ProcessState指针。
         //增加弱引用计数
         const int32_t c __unused = android_atomic_inc(&impl->mWeak);
     }
+```
 
 addWeakRef调用addRef()，非debug版本，该方法mTrackEnabled=false，则不做任何操作。
 也就是代表着incWeak的工作就是mWeak引用计数+1。同理addStrongRef()方法也不做任何操作。
@@ -215,15 +237,18 @@ addWeakRef调用addRef()，非debug版本，该方法mTrackEnabled=false，则�
 
 #### 2.5.1 sp析构函数
 
+```c++
     template<typename T>
     sp<T>::sp(const sp<T>& other)
             : m_ptr(other.m_ptr) {
         if (m_ptr)
             m_ptr->decStrong(this); //【见小节2.6】
     }
+```
 
 #### 2.5.2 RefBase析构函数
 
+```c++
     RefBase::~RefBase()
     {
         if (mRefs->mStrong == INITIAL_STRONG_VALUE) {
@@ -239,10 +264,12 @@ addWeakRef调用addRef()，非debug版本，该方法mTrackEnabled=false，则�
         }
         const_cast<weakref_impl*&>(mRefs) = NULL;
     }
+```
 
 ### 2.6 decStrong
 [-> RefBase.cpp]
 
+```c++
     void RefBase::decStrong(const void* id) const
     {
         weakref_impl* const refs = mRefs;
@@ -258,6 +285,7 @@ addWeakRef调用addRef()，非debug版本，该方法mTrackEnabled=false，则�
         //【见小节2.6.1】
         refs->decWeak(id);
     }
+```
 
 该方法的主要功能：
 
@@ -268,6 +296,7 @@ addWeakRef调用addRef()，非debug版本，该方法mTrackEnabled=false，则�
 #### 2.6.1 decWeak
 [-> RefBase.cpp ::weakref_type]
 
+```c++
     void RefBase::weakref_type::decWeak(const void* id)
     {
         weakref_impl* const impl = static_cast<weakref_impl*>(this);
@@ -293,6 +322,7 @@ addWeakRef调用addRef()，非debug版本，该方法mTrackEnabled=false，则�
             }
         }
     }
+```
 
 当强弱引用都减到0，普遍常见是会把实际对象和weakref_impl对象都释放。
 

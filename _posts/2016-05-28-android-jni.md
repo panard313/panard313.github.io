@@ -41,6 +41,7 @@ Android系统在启动启动过程中，先启动Kernel创建init进程，紧接
 
 [–>AndroidRuntime.cpp]
 
+```java
     int AndroidRuntime::startReg(JNIEnv* env)
     {
         //设置线程创建方法为javaCreateThreadEtc
@@ -56,9 +57,11 @@ Android系统在启动启动过程中，先启动Kernel创建init进程，紧接
         return 0;
     }
 
+```
 
 register_jni_procs(gRegJNI, NELEM(gRegJNI), env)这行代码的作用就是就是循环调用`gRegJNI`数组成员所对应的方法。
 
+```java
     static int register_jni_procs(const RegJNIRec array[], size_t count, JNIEnv* env)
     {
         for (size_t i = 0; i < count; i++) {
@@ -68,15 +71,18 @@ register_jni_procs(gRegJNI, NELEM(gRegJNI), env)这行代码的作用就是就�
         }
         return 0;
     }
+```
 
 `gRegJNI`数组，有100多个成员变量，定义在`AndroidRuntime.cpp`：
 
 
+```java
     static const RegJNIRec gRegJNI[] = {
         REG_JNI(register_android_os_MessageQueue),
         REG_JNI(register_android_os_Binder),
         ...
     };
+```
 
 该数组的每个成员都代表一个类文件的jni映射，其中REG_JNI是一个宏定义，在[Zygote](https://panard313.github.io/2016/02/13/android-zygote)中介绍过，该宏的作用就是调用相应的方法。
 
@@ -88,8 +94,10 @@ register_jni_procs(gRegJNI, NELEM(gRegJNI), env)这行代码的作用就是就�
 
 当分析Android消息机制源码，遇到`MessageQueue.java`中有多个native方法，比如：
 
+```java
      private native void nativePollOnce(long ptr, int timeoutMillis);
 
+```
 
 **步骤1：**
 `MessageQueue.java`的全限定名为android.os.MessageQueue.java，方法名：android.os.MessageQueue.nativePollOnce()，而相对应的native层方法名只是将点号替换为下划线，可得`android_os_MessageQueue_nativePollOnce()`。
@@ -113,11 +121,13 @@ register_jni_procs(gRegJNI, NELEM(gRegJNI), env)这行代码的作用就是就�
 
 打开`android_os_MessageQueue.cpp`文件，搜索android_os_MessageQueue_nativePollOnce方法，这便找到了目标方法：
 
+```java
     static void android_os_MessageQueue_nativePollOnce(JNIEnv* env, jobject obj,
             jlong ptr, jint timeoutMillis) {
         NativeMessageQueue* nativeMessageQueue = reinterpret_cast<NativeMessageQueue*>(ptr);
         nativeMessageQueue->pollOnce(env, obj, timeoutMillis);
     }
+```
 
 到这里完成了一次从Java层方法搜索到所对应的C++方法的过程。
 
@@ -127,16 +137,20 @@ register_jni_procs(gRegJNI, NELEM(gRegJNI), env)这行代码的作用就是就�
 
 Binder.java所对应的native文件：android_util_Binder.cpp
 
+```java
     public static final native int getCallingPid();
+```
 
 根据实例(一)方式，找到getCallingPid ==> android_os_Binder_getCallingPid()，并且在AndroidRuntime.cpp中的gRegJNI数组中找到`register_android_os_Binder`。
 
 按实例(一)方式则native文名应该为android_os_Binder.cpp，可是在`/framework/base/core/jni/`目录下找不到该文件，这是例外的情况。其实真正的文件名为`android_util_Binder.cpp`，这就是例外，这一点有些费劲，不明白为何google要如此打破规律的命名。
 
+```java
     static jint android_os_Binder_getCallingPid(JNIEnv* env, jobject clazz)
     {
         return IPCThreadState::self()->getCallingPid();
     }
+```
 
 有人可能好奇，既然如何遇到打破常规的文件命令，怎么办？这个并不难，首先，可以尝试在`/framework/base/core/jni/`中搜索，对于binder.java，可以直接搜索binder关键字，其他也类似。如果这里也找不到，可以通过grep全局搜索`android_os_Binder_getCallingPid`这个方法在哪个文件。
 
@@ -150,6 +164,7 @@ Binder.java所对应的native文件：android_util_Binder.cpp
 
 前面两种都是在Android系统启动之初，便已经注册过JNI所对应的方法。 那么如果程序自己定义的jni方法，该如何查看jni方法所在位置呢？下面以MediaPlayer.java为例，其包名为android.media：
 
+```java
     public class MediaPlayer{
         static {
             System.loadLibrary("media_jni");
@@ -159,6 +174,7 @@ Binder.java所对应的native文件：android_util_Binder.cpp
         private static native final void native_init();
         ...
     }
+```
 
 通过static静态代码块中System.loadLibrary方法来加载动态库，库名为`media_jni`, Android平台则会自动扩展成所对应的`libmedia_jni.so`库。 接着通过关键字`native`加在native_init方法之前，便可以在java层直接使用native层方法。
 
@@ -171,6 +187,7 @@ Binder.java所对应的native文件：android_util_Binder.cpp
 
 再然后，你会发现果然在该Android.mk所在目录`/frameworks/base/media/jni/`中找到android_media_MediaPlayer.cpp文件，并在文件中存在相应的方法：
 
+```java
       static void
     android_media_MediaPlayer_native_init(JNIEnv *env)
     {
@@ -179,6 +196,7 @@ Binder.java所对应的native文件：android_util_Binder.cpp
         fields.context = env->GetFieldID(clazz, "mNativeContext", "J");
         ...
     }
+```
 
 **Tips：**MediaPlayer.java中的native_init方法所对应的native方法位于`/frameworks/base/media/jni/`目录下的`android_media_MediaPlayer.cpp`文件中的`android_media_MediaPlayer_native_init`方法。
 
@@ -197,13 +215,16 @@ JNI作为连接Java世界和C/C++世界的桥梁，很有必要掌握。看完�
 ### 3.1 loadLibrary
 [System.java]
 
+```java
     public static void loadLibrary(String libName) {
         //接下来调用Runtime方法
         Runtime.getRuntime().loadLibrary(libName, VMStack.getCallingClassLoader());
     }
+```
 
 [Runtime.java]
 
+```java
     void loadLibrary(String libraryName, ClassLoader loader) {
         //loader不会空，则进入该分支
         if (loader != null) {
@@ -242,15 +263,18 @@ JNI作为连接Java世界和C/C++世界的桥梁，很有必要掌握。看完�
         }
         throw new UnsatisfiedLinkError("Library " + libraryName + " not found; tried " + candidates);
     }
+```
 
 真正加载的工作是由`doLoad()`，该方法内部增加同步锁，保证并发时一致性。
 
+```java
     private String doLoad(String name, ClassLoader loader) {
         ...
         synchronized (this) {
             return nativeLoad(name, loader, ldLibraryPath);
         }
     }
+```
 
 nativeLoad()这是一个native方法，再进入ART虚拟机`java_lang_Runtime.cc`，再细讲就要深入剖析虚拟机内部，这里就不再往下深入了，后续博主有空再展开art虚拟机系列的文章，这里直接说结论：
 
@@ -263,6 +287,7 @@ nativeLoad()这是一个native方法，再进入ART虚拟机`java_lang_Runtime.c
 ### 3.2 JNI_OnLoad
 [-> android_media_MediaPlayer.cpp]
 
+```java
     jint JNI_OnLoad(JavaVM* vm, void* reserved)
     {
         JNIEnv* env = NULL;
@@ -272,19 +297,23 @@ nativeLoad()这是一个native方法，再进入ART虚拟机`java_lang_Runtime.c
         }
         ...
     }
+```
 
 ### 3.3 register_android_media_MediaPlayer
 [-> android_media_MediaPlayer.cpp]
 
+```java
     static int register_android_media_MediaPlayer(JNIEnv *env)
     {
         //【见3.4】
         return AndroidRuntime::registerNativeMethods(env,
                     "android/media/MediaPlayer", gMethods, NELEM(gMethods));
     }
+```
 
 其中`gMethods`，记录java层和C/C++层方法的一一映射关系。
 
+```java
     static JNINativeMethod gMethods[] = {
         {"prepare",      "()V",  (void *)android_media_MediaPlayer_prepare},
         {"_start",       "()V",  (void *)android_media_MediaPlayer_start},
@@ -294,32 +323,38 @@ nativeLoad()这是一个native方法，再进入ART虚拟机`java_lang_Runtime.c
         {"native_init",  "()V",  (void *)android_media_MediaPlayer_native_init},
         ...
     };
+```
 
 这里涉及到结构体`JNINativeMethod`，其定义在`jni.h`文件：
 
+```java
     typedef struct {
         const char* name;  //Java层native函数名
         const char* signature; //Java函数签名，记录参数类型和个数，以及返回值类型
         void*       fnPtr; //Native层对应的函数指针
     } JNINativeMethod;
+```
 
 关于函数签名`signature`在下一小节展开说明。
 
 ### 3.4 registerNativeMethods
 [-> AndroidRuntime.cpp]
 
+```java
     int AndroidRuntime::registerNativeMethods(JNIEnv* env,
         const char* className, const JNINativeMethod* gMethods, int numMethods)
     {
         //【见3.5】
         return jniRegisterNativeMethods(env, className, gMethods, numMethods);
     }
+```
 
 jniRegisterNativeMethods该方法是由Android JNI帮助类`JNIHelp.cpp`来完成。
 
 ### 3.5 jniRegisterNativeMethods
 [-> JNIHelp.cpp]
 
+```java
     extern "C" int jniRegisterNativeMethods(C_JNIEnv* env, const char* className,
         const JNINativeMethod* gMethods, int numMethods)
     {
@@ -334,10 +369,12 @@ jniRegisterNativeMethods该方法是由Android JNI帮助类`JNIHelp.cpp`来完�
         }
         return 0;
     }
+```
 
 ### 3.6 RegisterNatives
 [-> jni.h]
 
+```java
     struct _JNIEnv {
         const struct JNINativeInterface* functions;
 
@@ -346,13 +383,16 @@ jniRegisterNativeMethods该方法是由Android JNI帮助类`JNIHelp.cpp`来完�
         { return functions->RegisterNatives(this, clazz, methods, nMethods); }
         ...
     }
+```
 
 functions是指向`JNINativeInterface`结构体指针，也就是将调用下面方法：
 
+```java
     struct JNINativeInterface {
         jint (*RegisterNatives)(JNIEnv*, jclass, const JNINativeMethod*,jint);
         ...
     }
+```
 
 再往下深入就到了虚拟机内部吧，这里就不再往下深入了。
 总之，这个过程完成了`gMethods`数组中的方法的映射关系，比如java层的native_init()方法，映射到native层的android_media_MediaPlayer_native_init()方法。

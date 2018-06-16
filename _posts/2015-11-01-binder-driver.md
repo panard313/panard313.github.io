@@ -40,6 +40,7 @@ Binder驱动是Android专用的，但底层的驱动架构与Linux驱动一样�
 
 主要工作是为了注册misc设备
 
+```java
     static int __init binder_init(void)
     {
         int ret;
@@ -60,6 +61,7 @@ Binder驱动是Android专用的，但底层的驱动架构与Linux驱动一样�
         return ret;
     }
 
+```
 
 `debugfs_create_dir`是指在debugfs文件系统中创建一个目录，返回值是指向dentry的指针。当kernel中禁用debugfs的话，返回值是-%ENODEV。默认是禁用的。如果需要打开，在目录`/kernel/arch/arm64/configs/`下找到目标defconfig文件中添加一行`CONFIG_DEBUG_FS=y`，再重新编译版本，即可打开debug_fs。
 
@@ -67,14 +69,17 @@ Binder驱动是Android专用的，但底层的驱动架构与Linux驱动一样�
 
 注册misc设备，`miscdevice`结构体，便是前面注册misc设备时传递进去的参数
 
+```java
     static struct miscdevice binder_miscdev = {
         .minor = MISC_DYNAMIC_MINOR, //次设备号 动态分配
         .name = "binder",     //设备名
         .fops = &binder_fops  //设备的文件操作结构，这是file_operations结构
     };
+```
 
 `file_operations`结构体,指定相应文件操作的方法
 
+```java
     static const struct file_operations binder_fops = {
         .owner = THIS_MODULE,
         .poll = binder_poll,
@@ -86,11 +91,13 @@ Binder驱动是Android专用的，但底层的驱动架构与Linux驱动一样�
         .release = binder_release,
     };
 
+```
 
 ### 2.2 binder_open
 
 打开binder驱动设备
 
+```java
     static int binder_open(struct inode *nodp, struct file *filp)
     {
         struct binder_proc *proc; // binder进程 【见附录3.1】
@@ -114,6 +121,7 @@ Binder驱动是Android专用的，但底层的驱动架构与Linux驱动一样�
 
         return 0;
     }
+```
 
 创建binder_proc对象，并把当前进程等信息保存到binder_proc对象，该对象管理IPC所需的各种信息并拥有其他结构体的根结构体；再把binder_proc对象保存到文件指针filp，以及把binder_proc加入到全局链表`binder_procs`。
 
@@ -128,6 +136,7 @@ Binder驱动中通过`static HLIST_HEAD(binder_procs);`，创建了全局的哈�
 
 主要功能：首先在内核虚拟地址空间，申请一块与用户虚拟内存相同大小的内存；然后再申请1个page大小的物理内存，再将同一块物理内存分别映射到内核虚拟地址空间和用户虚拟内存空间，从而实现了用户空间的Buffer和内核空间的Buffer同步操作的功能。
 
+```java
     static int binder_mmap(struct file *filp, struct vm_area_struct *vma)
     {
         int ret;
@@ -191,11 +200,13 @@ Binder驱动中通过`static HLIST_HEAD(binder_procs);`，创建了全局的哈�
         ...// 错误flags跳转处，free释放内存之类的操作
         return ret;
     }
+```
 
 binder_mmap通过加锁，保证一次只有一个进程分配内存，保证多进程间的并发访问。其中`user_buffer_offset`是虚拟进程地址与虚拟内核地址的差值(该值为负数)。也就是说同一物理地址，当内核地址为kernel_addr，则进程地址为proc_addr = kernel_addr + user_buffer_offset。
     
 #### 2.3.1 binder_update_page_range
 
+```java
     static int binder_update_page_range(struct binder_proc *proc, int allocate,
                 void *start, void *end,
                 struct vm_area_struct *vma)
@@ -246,6 +257,7 @@ binder_mmap通过加锁，保证一次只有一个进程分配内存，保证多
       
       return -ENOMEM;
     }
+```
 
 主要工作如下：
 
@@ -264,6 +276,7 @@ binder_update_page_range的调用时机：
 
 关于mm_struct结构体，定义在mm_types.h文件：
 
+```java
     struct mm_struct {
       struct vm_area_struct *mmap;  //VMA列表
       struct rb_root mm_rb;
@@ -274,6 +287,7 @@ binder_update_page_range的调用时机：
       unsigned long flags; 
       ...
     };
+```
     
 下面，再说一说binder_alloc_buf过程
 
@@ -281,6 +295,7 @@ binder_update_page_range的调用时机：
 
 通过binder_alloc_buf()方法来分配binder_buffer结构体, 只有在binder_transaction过程才需要分配buffer.
 
+```java
     static struct binder_buffer *binder_alloc_buf(struct binder_proc *proc,
                               size_t data_size, size_t offsets_size, int is_async)
     {
@@ -353,6 +368,7 @@ binder_update_page_range的调用时机：
         }
         return buffer;
     }
+```
 
 这里介绍的binder_alloc_buf是内存分配函数。除此之外，还有内存释放相关方法：
 
@@ -396,6 +412,7 @@ binder_ioctl()函数负责在两个进程间收发IPC数据和IPC reply数据。
 
 **源码：**
 
+```java
     static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     {
         int ret;
@@ -466,6 +483,7 @@ binder_ioctl()函数负责在两个进程间收发IPC数据和IPC reply数据。
         trace_binder_ioctl_done(ret);
         return ret;
     }
+```
 
 执行ioctl过程，便需要加上binder lock.
 
@@ -473,6 +491,7 @@ binder_ioctl()函数负责在两个进程间收发IPC数据和IPC reply数据。
 
 从binder_proc中查找binder_thread,如果当前线程已经加入到proc的线程队列则直接返回，如果不存在则创建binder_thread，并将当前线程添加到当前的proc
 
+```java
     static struct binder_thread *binder_get_thread(struct binder_proc *proc)
     {
         struct binder_thread *thread = NULL;
@@ -505,11 +524,13 @@ binder_ioctl()函数负责在两个进程间收发IPC数据和IPC reply数据。
         }
         return thread;
     }
+```
 
 #### 2.4.2 binder_ioctl_write_read
 
 对于ioctl()方法中，传递进来的命令是cmd = `BINDER_WRITE_READ`时执行该方法，arg是一个`binder_write_read`结构体
 
+```java
     static int binder_ioctl_write_read(struct file *filp,
                     unsigned int cmd, unsigned long arg,
                     struct binder_thread *thread)
@@ -563,6 +584,7 @@ binder_ioctl()函数负责在两个进程间收发IPC数据和IPC reply数据。
     out:
         return ret;
     }
+```
 
 对于`binder_ioctl_write_read`的流程图，如下：
 
@@ -694,6 +716,7 @@ binder_thread结构体代表当前binder操作所在的线程
 
 looper的状态如下：
 
+```java
     enum {
         BINDER_LOOPER_STATE_REGISTERED  = 0x01, // 创建注册线程BC_REGISTER_LOOPER
         BINDER_LOOPER_STATE_ENTERED     = 0x02, // 创建主线程BC_ENTER_LOOPER
@@ -702,6 +725,7 @@ looper的状态如下：
         BINDER_LOOPER_STATE_WAITING     = 0x10, // 等待中
         BINDER_LOOPER_STATE_NEED_RETURN = 0x20, // 需要返回
     };
+```
 
 binder_thread_write()过程:
 
@@ -748,10 +772,12 @@ binder_node代表一个binder实体
 
 binder_node有一个联合类型：
 
+```java
     union {
             struct rb_node rb_node;
             struct hlist_node dead_node;
         };
+```
 
 当Binder对象已销毁，但还存在该Binder节点引用，则采用dead_node，并加入到全局列表`binder_dead_nodes`；否则使用rb_node节点。
 
@@ -785,10 +811,12 @@ binder引用的查询方式如下：
 
 ### 3.5 binder_ref_death
 
+```java
     struct binder_ref_death {
         struct binder_work work;
         binder_uintptr_t cookie;
     };
+```
 
 cookie只是死亡通知的BpBinder代理对象的指针
 
@@ -818,6 +846,7 @@ write_buffer和read_buffer都是包含Binder协议命令和binder_transaction_da
 
 当BINDER_WRITE_READ命令的目标是本地Binder node时，target使用ptr，否则使用handle。只有当这是Binder node时，cookie才有意义，表示附加数据，由进程自己解释。
 
+```java
     struct binder_transaction_data {
         union {
             __u32    handle;       //binder_ref（即handle）
@@ -840,6 +869,7 @@ write_buffer和read_buffer都是包含Binder协议命令和binder_transaction_da
             __u8    buf[8];
         } data;   //RPC数据
     };
+```
 
 - `target`: 对于BpBinder则使用handle，对于BBinder则使用ptr，故使用union数据类型来表示；
 - `code`: 比如注册服务过程code为ADD_SERVICE_TRANSACTION，又比如获取服务code为CHECK_SERVICE_TRANSACTION
@@ -934,6 +964,7 @@ flat_binder_object结构体代表Binder对象在两个进程间传递的扁平�
 
 ### 3.11 binder_work
 
+```java
     struct binder_work {
         struct list_head entry;
         enum {
@@ -945,6 +976,7 @@ flat_binder_object结构体代表Binder对象在两个进程间传递的扁平�
             BINDER_WORK_CLEAR_DEATH_NOTIFICATION,
         } type;
     };
+```
 
 binder_work.type设置时机：
   - binder_transaction()

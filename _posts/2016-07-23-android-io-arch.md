@@ -90,6 +90,7 @@ Tips: 同一个模块可以运行在各个不同的进程/线程， 同一个进
 
 Android存储系统中涉及各个进程间通信，这个架构采用的socket，并没有采用Android binder IPC机制。这样的架构代码大量更少，整体架构逻辑也相对简单，在介绍通信过程前，先来看看MountService对象的实例化过程，那么也就基本明白进程架构中system_sever进程为了MountService服务而单独创建与共享使用到线程情况。
 
+```java
     public MountService(Context context) {
         sSelf = this;
 
@@ -149,6 +150,7 @@ Android存储系统中涉及各个进程间通信，这个架构采用的socket�
             Watchdog.getInstance().addMonitor(this);
         }
     }
+```
 
 其主要功能依次是：
 
@@ -170,6 +172,7 @@ system_server进程与vold守护进程间采用socket进行通信，这个通信
 
 #### 2.1.1 MS.mount
 
+```java
     class MountService extends IMountService.Stub
             implements INativeDaemonConnectorCallbacks, Watchdog.Monitor {
 
@@ -183,18 +186,22 @@ system_server进程与vold守护进程间采用socket进行通信，这个通信
             }
         }
     }
+```
 
 #### 2.1.2 NDC.execute
 
 [-> NativeDaemonConnector.java]
 
+```java
     public NativeDaemonEvent execute(String cmd, Object... args)
         throws NativeDaemonConnectorException {
         return execute(DEFAULT_TIMEOUT, cmd, args);
     }
+```
 
 其中`DEFAULT_TIMEOUT=1min`，即命令执行超时时长为1分钟。经过层层调用到executeForList()
 
+```java
     public NativeDaemonEvent[] executeForList(long timeoutMs, String cmd, Object... args)
             throws NativeDaemonConnectorException {
         final long startTime = SystemClock.elapsedRealtime();
@@ -237,6 +244,7 @@ system_server进程与vold守护进程间采用socket进行通信，这个通信
         ...
         return events.toArray(new NativeDaemonEvent[events.size()]);
     }
+```
 
 - 首先，将带执行的命令mSequenceNumber执行加1操作；
 - 再将cmd(例如`3 volume reset`)写入到socket的输出流；
@@ -252,6 +260,7 @@ MountService线程通过socket发送cmd事件给vold，对于vold守护进程在
 
 [-> FrameworkListener.cpp]
 
+```java
     bool FrameworkListener::onDataAvailable(SocketClient *c) {
         char buffer[CMD_BUF_SIZE];
         int len;
@@ -268,11 +277,13 @@ MountService线程通过socket发送cmd事件给vold，对于vold守护进程在
         }
         return true;
     }
+```
 
 #### 2.1.4 FL.dispatchCommand
 
 [-> FrameworkListener.cpp]
 
+```java
     void FrameworkListener::dispatchCommand(SocketClient *cli, char *data) {
         ...
         for (i = mCommands->begin(); i != mCommands->end(); ++i) {
@@ -288,6 +299,7 @@ MountService线程通过socket发送cmd事件给vold，对于vold守护进程在
         }
         ...
     }
+```
 
 这是用于分发从MountService发送过来的命令，针对不同的命令调用不同的类，总共有以下6类：
 
@@ -308,6 +320,7 @@ MountService线程通过socket发送cmd事件给vold，对于vold守护进程在
 
 例如前面发送过来的是`volume mount`，则会调用到CommandListener的内部类VolumeCmd的runCommand来处理该消息，并进入mount分支。
 
+```java
     int CommandListener::VolumeCmd::runCommand(SocketClient *cli,
                                                int argc, char **argv) {
         VolumeManager *vm = VolumeManager::Instance();
@@ -340,6 +353,7 @@ MountService线程通过socket发送cmd事件给vold，对于vold守护进程在
         // 省略其他的else if
         ...
     }
+```
 
 #### 2.1.6 mount
 
@@ -378,6 +392,7 @@ MountService向vold发送消息后，便阻塞在图中的MountService线程的N
 
 [-> CommandListener.cpp]
 
+```java
     int CommandListener::sendGenericOkFail(SocketClient *cli, int cond) {
         if (!cond) {
             //【见小节2.2.2】
@@ -386,6 +401,7 @@ MountService向vold发送消息后，便阻塞在图中的MountService线程的N
             return cli->sendMsg(ResponseCode::OperationFailed, "Command failed", false);
         }
     }
+```
 
 - 当执行成功，则发送响应码为200的成功应答消息；
 - 当执行失败，则发送响应码为400的失败应答消息。
@@ -397,12 +413,15 @@ MountService向vold发送消息后，便阻塞在图中的MountService线程的N
 #### 2.2.2 SC.sendMsg
 [-> SocketClient.cpp]
 
+```java
     int SocketClient::sendMsg(int code, const char *msg, bool addErrno) {
         return sendMsg(code, msg, addErrno, mUseCmdNum);
     }
+```
 
 sendMsg经过层层调用，进入sendDataLockedv方法
 
+```java
     int SocketClient::sendDataLockedv(struct iovec *iov, int iovcnt) {
         ...
         struct sigaction new_action, old_action;
@@ -436,6 +455,7 @@ sendMsg经过层层调用，进入sendDataLockedv方法
         ...
         return ret;
     }
+```
 
 #### 2.2.3 NDC.listenToSocket
 
@@ -443,6 +463,7 @@ sendMsg经过层层调用，进入sendDataLockedv方法
 
 [-> NativeDaemonConnector.java]
 
+```java
     private void listenToSocket() throws IOException {
         LocalSocket socket = null;
         try {
@@ -486,6 +507,7 @@ sendMsg经过层层调用，进入sendDataLockedv方法
             ...
         }
     }
+```
 
 监听也是阻塞的过程，当收到不同的消息相应码，采用不同的行为：
 
@@ -504,6 +526,7 @@ sendMsg经过层层调用，进入sendDataLockedv方法
 
 [-> system/vold/Main.cpp]
 
+```java
     int main(int argc, char** argv) {
         setenv("ANDROID_LOG_TAGS", "*:v", 1);
         android::base::InitLogging(argv, android::base::LogdLogger(android::base::SYSTEM));
@@ -570,6 +593,7 @@ sendMsg经过层层调用，进入sendDataLockedv方法
 
         exit(0);
     }
+```
 
 该方法的主要功能是创建并启动：VolumeManager，NetlinkManager ，NetlinkHandler，CommandListener，CryptCommandListener。
 
@@ -584,6 +608,7 @@ vold早已准备就绪等待着Kernel上报Uevent事件，接下来看看vold是
 #### 2.3.2 NM.start
 [-> NetlinkManager.java]
 
+```java
     int NetlinkManager::start() {
         struct sockaddr_nl nladdr;
         int sz = 64 * 1024;
@@ -626,12 +651,14 @@ vold早已准备就绪等待着Kernel上报Uevent事件，接下来看看vold是
         close(mSock);
         return -1;
     }
+```
 
 NetlinkManager启动的过程中，会创建并启动NetlinkHandler，在该过程会通过`pthrea_create`创建子线程专门用于接收Kernel发送过程的Uevent事件，当收到数据时会调用NetlinkListener的onDataAvailable方法。
 
 #### 2.3.3 NL.onDataAvailable
 [-> NetlinkListener.cpp]
 
+```java
     bool NetlinkListener::onDataAvailable(SocketClient *cli)
     {
         int socket = cli->getSocket();
@@ -653,11 +680,13 @@ NetlinkManager启动的过程中，会创建并启动NetlinkHandler，在该过�
         delete evt;
         return true;
     }
+```
 
 #### 2.3.4 NH.onEvent
 
 [-> NetlinkHandler.cpp]
 
+```java
     void NetlinkHandler::onEvent(NetlinkEvent *evt) {
         VolumeManager *vm = VolumeManager::Instance();
         const char *subsys = evt->getSubsystem();
@@ -667,12 +696,14 @@ NetlinkManager启动的过程中，会创建并启动NetlinkHandler，在该过�
             vm->handleBlockEvent(evt);
         }
     }
+```
 
 驱动设备分为字符设备、块设备、网络设备。对于字符设备按照字符流的方式被有序访问，字符设备也称为裸设备，可以直接读取物理磁盘，不经过系统缓存，例如键盘直接产生中断。而块设备是指系统中能够随机（不需要按顺序）访问固定大小数据片（chunks）的设备，例如硬盘；块设备则是通过系统缓存进行读取。
 
 #### 2.3.5 VM.handleBlockEvent
 [-> VolumeManager.cpp]
 
+```java
     void VolumeManager::handleBlockEvent(NetlinkEvent *evt) {
         std::lock_guard<std::mutex> lock(mLock);
 
@@ -716,6 +747,7 @@ NetlinkManager启动的过程中，会创建并启动NetlinkHandler，在该过�
         ...
         }
     }
+```
 
 #### 2.3.6 小节
 
@@ -736,6 +768,7 @@ NetlinkManager启动的过程中，会创建并启动NetlinkHandler，在该过�
 
 [-> NativeDaemonConnector.java]
 
+```java
     private void listenToSocket() throws IOException {
         LocalSocket socket = null;
         try {
@@ -779,11 +812,14 @@ NetlinkManager启动的过程中，会创建并启动NetlinkHandler，在该过�
             ...
         }
     }
+```
 
 通过handler消息机制，由mCallbackHandler处理，先来看看其初始化过程：
 
+```java
     mCallbackHandler = new Handler(mLooper, this);
     Looper=`FgThread.get().getLooper();
+```
 
 可以看出Looper采用的是线程`android.fg`的Looper，消息回调处理方法为NativeDaemonConnector的`handleMessage`来处理。那么这个过程就等价于向线程`android.fg`发送Handler消息，该线程收到消息后回调NativeDaemonConnector的`handleMessage`来处理。
 
@@ -791,6 +827,7 @@ NetlinkManager启动的过程中，会创建并启动NetlinkHandler，在该过�
 #### 2.4.2 NDC.handleMessage
 [-> NativeDaemonConnector.java]
 
+```java
     public boolean handleMessage(Message msg) {
         String event = (String) msg.obj;
         ...
@@ -799,17 +836,20 @@ NetlinkManager启动的过程中，会创建并启动NetlinkHandler，在该过�
         ...
         return true;
     }
+```
 
 此处的mCallbacks，是由实例化NativeDaemonConnector对象时传递进来的，在这里是指MountService。转了一圈，又回到MountService。
 
 #### 2.4.3 MS.onEvent
 [-> MountService.java]
 
+```java
     public boolean onEvent(int code, String raw, String[] cooked) {
         synchronized (mLock) {
             return onEventLocked(code, raw, cooked);
         }
     }
+```
 
 onEventLocked增加同步锁，用于多线程并发访问的控制。根据vold发送过来的不同响应码将采取不同的处理流程。
 
@@ -818,6 +858,7 @@ onEventLocked增加同步锁，用于多线程并发访问的控制。根据vold
 
 [-> MountService.java]
 
+```java
     private boolean onEventLocked(int code, String raw, String[] cooked) {
         switch (code) {
             case VoldResponseCode.VOLUME_CREATED: {
@@ -837,10 +878,12 @@ onEventLocked增加同步锁，用于多线程并发访问的控制。根据vold
         }
         return true;
     }
+```
 
 #### 2.4.5 MS.onVolumeCreatedLocked
 [-> MountService.java]
 
+```java
     private void onVolumeCreatedLocked(VolumeInfo vol) {
         if (vol.type == VolumeInfo.TYPE_EMULATED) {
             ...
@@ -862,13 +905,16 @@ onEventLocked增加同步锁，用于多线程并发访问的控制。根据vold
 
         }
     }
+```
 
 这里又遇到一个Handler类型的对象`mHandler`,再来看看其定义：
 
+```java
     private static final String TAG = "MountService";
     HandlerThread hthread = new HandlerThread(TAG);
     hthread.start();
     mHandler = new MountServiceHandler(hthread.getLooper());
+```
 
 该Handler用到Looper便是线程`MountService`中的Looper，回调方法handleMessage位于MountServiceHandler类：
 
@@ -876,6 +922,7 @@ onEventLocked增加同步锁，用于多线程并发访问的控制。根据vold
 
 [-> MountService]
 
+```java
     class MountServiceHandler extends Handler {
         public void handleMessage(Message msg) {
            switch (msg.what) {
@@ -893,6 +940,7 @@ onEventLocked增加同步锁，用于多线程并发访问的控制。根据vold
             }
         }
     }
+```
 
 当收到H_VOLUME_MOUNT消息后，线程`MountService`便开始向vold发送mount操作事件，再接下来的流程在前面小节【2.1】已经介绍过
 

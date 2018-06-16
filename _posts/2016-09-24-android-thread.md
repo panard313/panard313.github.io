@@ -15,11 +15,11 @@ tags:
     /art/runtime/native/java_lang_Thread.cc
     /art/runtime/native/java_lang_Object.cc
     /art/runtime/thread.cc
-    
+
     /system/core/libutils/Threads.cpp
     /system/core/include/utils/AndroidThreads.h
     /frameworks/base/core/jni/AndroidRuntime.cpp
-  
+
 ## 一.概述
 
 Android线程，一般地就是指Android虚拟机线程，而虚拟机线程由是通过系统调用而创建的Linux线程。纯粹的Linux线程与虚拟机线程的区别在于虚拟机线程具有运行Java代码的runtime. 除了虚拟机线程，还有Native线程，对于Native线程有分为是否具有访问Java代码的两类线程。接下来，本文分析介绍这3类线程的创建过程。
@@ -29,36 +29,45 @@ Android线程，一般地就是指Android虚拟机线程，而虚拟机线程由
 ### 2.1 Thread.start
 [-> Thread.java]
 
+```c++
     public synchronized void start() {
          checkNotStarted(); //保证线程只有启动一次
          hasBeenStarted = true;
          //[见流程2.2]
          nativeCreate(this, stackSize, daemon);
     }
+```
 
 `nativeCreate`()这是一个native方法，那么其所对应的JNI方法在哪呢？在java_lang_Thread.cc中通过gMethods是一个JNINativeMethod数组，其中一项为：
 
+```c++
     NATIVE_METHOD(Thread, nativeCreate, "(Ljava/lang/Thread;JZ)V"),
-    
+```
+
 这里的NATIVE_METHOD定义在java_lang_Object.cc文件，如下：
 
+```c++
     #define NATIVE_METHOD(className, functionName, signature) \
         { #functionName, signature, reinterpret_cast<void*>(className ## _ ## functionName) }
+```
 
 将宏定义展开并代入，可得所对应的方法名为`Thread_nativeCreate`,那么接下来进入该方法。
 
 ### 2.2 Thread_nativeCreate
 [-> java_lang_Thread.cc]
 
-    static void Thread_nativeCreate(JNIEnv* env, jclass, jobject java_thread, 
+```c++
+    static void Thread_nativeCreate(JNIEnv* env, jclass, jobject java_thread,
                                       jlong stack_size, jboolean daemon) {
       //【见小节2.3】
       Thread::CreateNativeThread(env, java_thread, stack_size, daemon == JNI_TRUE);
     }
+```
 
 ### 2.3 CreateNativeThread
 [-> thread.cc]
 
+```c++
     void Thread::CreateNativeThread(JNIEnv* env, jobject java_peer, size_t stack_size, bool is_daemon) {
       Thread* self = static_cast<JNIEnvExt*>(env)->self;
       Runtime* runtime = Runtime::Current();
@@ -88,9 +97,10 @@ Android线程，一般地就是指Android虚拟机线程，而虚拟机线程由
           return;
         }
       }
-      
+
       ...
     }
+```
 
 ### 2.4 pthread_create
 
@@ -112,6 +122,7 @@ pthread_create是pthread库中的函数，通过syscall再调用到clone来请�
 ### 3.1 Thread.run
 [-> Threads.cpp]
 
+```c++
     status_t Thread::run(const char* name, int32_t priority, size_t stack)
     {
         Mutex::Autolock _l(mLock);
@@ -123,7 +134,7 @@ pthread_create是pthread库中的函数，通过syscall再调用到clone来请�
         mRunning = true;
 
         bool res;
-        
+
         if (mCanCallJava) {
             //还能调用Java代码的Native线程【见小节4.1】
             res = createThreadEtc(_threadLoop,
@@ -140,6 +151,7 @@ pthread_create是pthread库中的函数，通过syscall再调用到clone来请�
         }
         return NO_ERROR;
     }
+```
 
 mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJava=true.
 
@@ -149,6 +161,7 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
 ### 3.2 androidCreateRawThreadEtc
 [-> Threads.cpp]
 
+```c++
     int androidCreateRawThreadEtc(android_thread_func_t entryFunction,
                                    void *userData,
                                    const char* threadName __android_unused,
@@ -186,16 +199,18 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
         }
 
         if (threadId != NULL) {
-            *threadId = (android_thread_id_t)thread; 
+            *threadId = (android_thread_id_t)thread;
         }
         return 1;
     }
+```
 
 此处entryFunction所指向的是由[小节3.1]传递进来的，其值为_threadLoop。
 
 ### 3.3 _threadLoop
 [-> Threads.cpp]
 
+```c++
     int Thread::_threadLoop(void* user)
     {
         //user是指Thread对象
@@ -241,6 +256,7 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
 
         return 0;
     }
+```
 
 不断循环地调用成员方法threadLoop()。当满足以下任一条件，则该线程将退出循环：
 
@@ -256,6 +272,7 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
 ### 4.1 createThreadEtc
 [-> AndroidThreads.h]
 
+```c++
     inline bool createThreadEtc(thread_func_t entryFunction,
                                 void *userData,
                                 const char* threadName = "android:unnamed_thread",
@@ -267,10 +284,12 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
         return androidCreateThreadEtc(entryFunction, userData, threadName,
             threadPriority, threadStackSize, threadId) ? true : false;
     }
+```
 
 ### 4.2 androidCreateThreadEtc
 [-> Threads.cpp]
 
+```c++
     int androidCreateThreadEtc(android_thread_func_t entryFunction,
                                 void *userData,
                                 const char* threadName,
@@ -282,13 +301,15 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
         return gCreateThreadFn(entryFunction, userData, threadName,
             threadPriority, threadStackSize, threadId);
     }
+```
 
 此处`gCreateThreadFn`默认指向androidCreateRawThreadEtc函数。 文章[Android系统启动-zygote篇](https://panard313.github.io/2016/02/13/android-zygote/)的小节[3.3.1]已介绍
 通过androidSetCreateThreadFunc()方法，gCreateThreadFn指向javaCreateThreadEtc函数。
-  
+
 ### 4.3 javaCreateThreadEtc
 [-> AndroidRuntime.cpp]
 
+```c++
     int AndroidRuntime::javaCreateThreadEtc(
                                    android_thread_func_t entryFunction,
                                    void* userData,
@@ -297,7 +318,7 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
                                    size_t threadStackSize,
                                    android_thread_id_t* threadId)
     {
-       void** args = (void**) malloc(3 * sizeof(void*)); 
+       void** args = (void**) malloc(3 * sizeof(void*));
        int result;
 
        if (!threadName)
@@ -305,17 +326,19 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
 
        args[0] = (void*) entryFunction;
        args[1] = userData;
-       args[2] = (void*) strdup(threadName); 
-       
+       args[2] = (void*) strdup(threadName);
+
        //【见小节4.4】
        result = androidCreateRawThreadEtc(AndroidRuntime::javaThreadShell, args,
            threadName, threadPriority, threadStackSize, threadId);
        return result;
     }
+```
 
 ### 4.4 androidCreateRawThreadEtc
 [-> Threads.cpp]
 
+```c++
     int androidCreateRawThreadEtc(android_thread_func_t entryFunction,
                                    void *userData,
                                    const char* threadName __android_unused,
@@ -327,26 +350,28 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
         if (threadStackSize) {
             pthread_attr_setstacksize(&attr, threadStackSize);
         }
-        
+
         ...
         //通过pthread_create创建线程
         int result = pthread_create(&thread, &attr,
                         (android_pthread_entry)entryFunction, userData);
         pthread_attr_destroy(&attr);
-        
+
         ...
         return 1;
     }
+```
 
 此处entryFunction所指向的是由[小节4.3]传递进来的AndroidRuntime::javaThreadShell，接下来，进入该方法。
 
 ### 4.5 javaThreadShell
 [-> AndroidRuntime.cpp]
 
+```c++
     int AndroidRuntime::javaThreadShell(void* args) {
         void* start = ((void**)args)[0]; //指向_threadLoop
         void* userData = ((void **)args)[1]; //线程对象
-        char* name = (char*) ((void **)args)[2]; //线程名    
+        char* name = (char*) ((void **)args)[2]; //线程名
         free(args);
         JNIEnv* env;
         int result;
@@ -364,7 +389,8 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
 
         return result;
     }
-    
+```
+
 该方法主要功能：
 
 1. 调用javaAttachThread()：将当前线程hook到当前进程所在的虚拟机，从而既能执行C/C++代码，也能执行Java代码。
@@ -374,6 +400,7 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
 #### 4.5.1 javaAttachThread
 [-> AndroidRuntime.cpp]
 
+```c++
     static int javaAttachThread(const char* threadName, JNIEnv** pEnv)
     {
         JavaVMAttachArgs args;
@@ -391,10 +418,12 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
         return result;
     }
 
+```
 
 #### 4.5.2 _threadLoop
 [-> Threads.cpp]
 
+```c++
     int Thread::_threadLoop(void* user)
     {
         ...
@@ -409,7 +438,7 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
             } else {
                 result = self->threadLoop();
             }
-            
+
             Mutex::Autolock _l(self->mLock);
             //当result=false则退出该线程
             if (result == false || self->mExitPending) {
@@ -428,12 +457,14 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
         } while(strong != 0);
         return 0;
     }
+```
 
 该过程与【小节3.3】完全一致，见上文。
 
 #### 4.5.3 javaDetachThread
 [-> AndroidRuntime.cpp]
 
+```c++
     static int javaDetachThread(void)
     {
         JavaVM* vm;
@@ -444,6 +475,7 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
         result = vm->DetachCurrentThread();
         return result;
     }
+```
 
 在创建Native进程的整个过程，涉及到JavaVM的AttachCurrentThread和DetachCurrentThread方法，都已深入虚拟机内部原理，本文就先讲到这里，不再深入，后续有精力再深入研究虚拟机，准备写一系列相关文章。
 
@@ -456,5 +488,5 @@ Native线程中是否可以执行Java代码的区别，在于通过javaThreadShe
 ![android_thread_create](/images/process/android-thread-create.jpg)
 
 1. Native线程(Java版)：该过程相对比较复杂，见如上流程图：
-2. Native线程： 相对简单，只有上图中的紫色部分：thread.run ->  androidCreateRawThreadEtc ->   _threadLoop        
+2. Native线程： 相对简单，只有上图中的紫色部分：thread.run ->  androidCreateRawThreadEtc ->   _threadLoop
 3. Java线程： Thread.start -> Thread_nativeCreate -> CreateNativeThread

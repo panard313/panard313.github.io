@@ -16,11 +16,13 @@ tags:
 
 接下来，主要讲解虚拟机的方法执行过程，对于Java虚拟机的解释器的执行模型（不考虑异常处理）：
 
+```java
     do {
         atomically calculate pc and fetch opcode at pc;
         if (operands) fetch operands;
         execute the action for the opcode;
     } while (there is more to do);
+```
 
 ##  对象创建
 对象创建，不包括数组和Class对象，例如

@@ -28,6 +28,7 @@ system_server进程以及各种app进程.
 
 #### 2.1 Init.main
 
+```java
     int main(int argc, char** argv) {
         ...
         klog_init();  //初始化kernel log
@@ -72,6 +73,7 @@ system_server进程以及各种app进程.
         return 0;
     }
 
+```
 
 init进程的主要功能点:
 
@@ -84,6 +86,7 @@ init进程的主要功能点:
 #### 2.2 启动Zygote
 当init解析到下面这条语句,便会启动Zygote进程
 
+```java
     service zygote /system/bin/app_process -Xzygote /system/bin --zygote --start-system-server
         class main //伴随着main class的启动而启动
         socket zygote stream 660 root system //创建socket
@@ -91,6 +94,7 @@ init进程的主要功能点:
         onrestart write /sys/power/state on
         onrestart restart media  //当zygote重启时,则会重启media
         onrestart restart netd  // 当zygote重启时,则会重启netd
+```
 
 当init子进程(Zygote)退出时，会产生SIGCHLD信号，并发送给init进程，通过socket套接字传递数据，调用到wait_for_one_process()方法，根据是否是oneshot，来决定是重启子进程，还是放弃启动。由于缺省模式oneshot=false,因此Zygote一旦被杀便会再次由init进程拉起.
 
@@ -103,6 +107,7 @@ init进程的主要功能点:
 
 当[Zygote](https://panard313.github.io/2016/02/13/android-zygote/)进程启动后, 便会执行到frameworks/base/cmds/app_process/App_main.cpp文件的main()方法. 整个调用流程:
 
+```java
     App_main.main
         AndroidRuntime.start
             AndroidRuntime.startVm
@@ -112,9 +117,11 @@ init进程的主要功能点:
                 preload
                 startSystemServer
                 runSelectLoop
+```
 
 #### 3.1 App_main.main
 
+```java
     int main(int argc, char* const argv[])
     {
         AppRuntime runtime(argv[0], computeArgBlockSize(argc, argv));
@@ -134,10 +141,12 @@ init进程的主要功能点:
         }
         ...
     }
+```
 
 #### 3.2 AndroidRuntime::start
 [-> AndroidRuntime.cpp]
 
+```java
     void AndroidRuntime::start(const char* className, const Vector<String8>& options)
     {
         ALOGD("\n>>>>>> AndroidRuntime START %s <<<<<<\n",
@@ -156,10 +165,12 @@ init进程的主要功能点:
         ...
         // 调用ZygoteInit.main()方法[见小节3.3]
         env->CallStaticVoidMethod(startClass, startMeth, strArray);
+```
 
 #### 3.3 ZygoteInit.main
 [-->ZygoteInit.java]
 
+```java
     public static void main(String argv[]) {
         try {
             ...
@@ -177,10 +188,12 @@ init进程的主要功能点:
         }
         ...
     }
+```
 
 #### 3.4 ZygoteInit.preload
 [-->ZygoteInit.java]
 
+```java
     static void preload() {
         Log.d(TAG, "begin preload");
         preloadClasses();
@@ -190,10 +203,12 @@ init进程的主要功能点:
         WebViewFactory.prepareWebViewInZygote();
         Log.d(TAG, "end preload");
     }
+```
 
 #### 3.5 ZygoteInit.runSelectLoop
 [-->ZygoteInit.java]
 
+```java
     private static void runSelectLoop(String abiList) throws MethodAndArgsCaller {
         ArrayList<FileDescriptor> fds = new ArrayList<FileDescriptor>();
         ArrayList<ZygoteConnection> peers = new ArrayList<ZygoteConnection>();
@@ -233,10 +248,12 @@ init进程的主要功能点:
             }
         }
     }
+```
 
 #### 3.6 ZygoteInit.startSystemServer
 [–>ZygoteInit.java]
 
+```java
     private static boolean startSystemServer(String abiList, String socketName)
             throws MethodAndArgsCaller, RuntimeException {
         ...
@@ -260,6 +277,7 @@ init进程的主要功能点:
         }
         return true;
     }
+```
 
 Zygote进程创建Java虚拟机,并注册JNI方法, 真正成为Java进程的母体,用于孵化Java进程. 在创建完[小节4.1]system_server进程后,zygote功成身退，调用runSelectLoop()，随时待命，当接收到请求创建新进程请求时立即唤醒并执行相应工作。
 
@@ -271,6 +289,7 @@ Zygote通过fork后创建[system_server](https://panard313.github.io/2016/02/14/
 #### 4.1 handleSystemServerProcess
 [-->ZygoteInit.java]
 
+```java
     private static void handleSystemServerProcess(
             ZygoteConnection.Arguments parsedArgs)
             throws ZygoteInit.MethodAndArgsCaller {
@@ -298,12 +317,14 @@ Zygote通过fork后创建[system_server](https://panard313.github.io/2016/02/14/
             RuntimeInit.zygoteInit(parsedArgs.targetSdkVersion, parsedArgs.remainingArgs, cl);
         }
     }
+```
 
 system_server进程创建PathClassLoader类加载器.
 
 #### 4.2 RuntimeInit.zygoteInit
 [--> RuntimeInit.java]
 
+```java
     public static final void zygoteInit(int targetSdkVersion, String[] argv, ClassLoader classLoader)
             throws ZygoteInit.MethodAndArgsCaller {
 
@@ -314,14 +335,17 @@ system_server进程创建PathClassLoader类加载器.
         nativeZygoteInit(); // zygote初始化
         applicationInit(targetSdkVersion, argv, classLoader); // [见小节3.4]
     }
+```
 
 nativeZygoteInit()方法经过层层调用,会进入app_main.cpp中的onZygoteInit()方法, Binder线程池的创建也是在这个过程,如下:
 
+```java
     virtual void onZygoteInit()
     {
         sp<ProcessState> proc = ProcessState::self();
         proc->startThreadPool(); //启动新binder线程
     }
+```
 
 applicationInit()方法经过层层调用,会抛出异常ZygoteInit.MethodAndArgsCaller(m, argv), ZygoteInit.main()
 会捕捉该异常, 见下文.
@@ -329,6 +353,7 @@ applicationInit()方法经过层层调用,会抛出异常ZygoteInit.MethodAndArg
 #### 4.3 ZygoteInit.main
 [–>ZygoteInit.java]
 
+```java
     public static void main(String argv[]) {
         try {
             startSystemServer(abiList, socketName); //抛出MethodAndArgsCaller异常
@@ -339,18 +364,22 @@ applicationInit()方法经过层层调用,会抛出异常ZygoteInit.MethodAndArg
             ...
         }
     }
+```
 
 采用抛出异常的方式,用于栈帧清空,提供利用率, 以至于现在大家看到的每个Java进程的调用栈如下:
 
+```java
     ...
     at com.android.server.SystemServer.main(SystemServer.java:175)
     at java.lang.reflect.Method.invoke!(Native method)
     at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:738)
     at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:628)
+```
 
 #### 4.4 SystemServer.main
 [-->SystemServer.java]
 
+```java
     public final class SystemServer {
         ...
         public static void main(String[] args) {
@@ -358,10 +387,12 @@ applicationInit()方法经过层层调用,会抛出异常ZygoteInit.MethodAndArg
             new SystemServer().run();
         }
     }
+```
 
 #### 4.5 SystemServer.run
 [-->SystemServer.java]
 
+```java
     private void run() {
         if (System.currentTimeMillis() < EARLIEST_SUPPORTED_TIME) {
             Slog.w(TAG, "System clock is before 1970; setting to 1970.");
@@ -401,9 +432,11 @@ applicationInit()方法经过层层调用,会抛出异常ZygoteInit.MethodAndArg
         throw new RuntimeException("Main thread loop unexpectedly exited");
     }
 
+```
 
 #### 4.6 服务启动
 
+```java
     public final class SystemServer {
 
         private void startBootstrapServices() {
@@ -435,6 +468,7 @@ applicationInit()方法经过层层调用,会抛出异常ZygoteInit.MethodAndArg
         }
     }
 
+```
 
 - start: 创建AMS, PMS, LightsService, DMS.
 - phase100: 进入Phase100, 创建PKMS, WMS, IMS, DBMS, LockSettingsService, JobSchedulerService, MmsService等服务;
@@ -447,6 +481,7 @@ applicationInit()方法经过层层调用,会抛出异常ZygoteInit.MethodAndArg
 
 #### 4.7 AMS.systemReady
 
+```java
     public final class ActivityManagerService extends ActivityManagerNative
         implements Watchdog.Monitor, BatteryStatsImpl.BatteryCallback {
 
@@ -469,6 +504,7 @@ applicationInit()方法经过层层调用,会抛出异常ZygoteInit.MethodAndArg
             mStackSupervisor.resumeTopActivitiesLocked();
         }
     }
+```
 
 System_server主线程的启动工作,总算完成, 进入Looper.loop()状态,等待其他线程通过handler发送消息再处理.
 
@@ -482,6 +518,7 @@ System_server主线程的启动工作,总算完成, 进入Looper.loop()状态,�
 
 #### 5.1 ActivityThread.main
 
+```java
     public static void main(String[] args) {
         ...
         Environment.initForCurrentUser();
@@ -501,26 +538,32 @@ System_server主线程的启动工作,总算完成, 进入Looper.loop()状态,�
         Looper.loop();
         throw new RuntimeException("Main thread loop unexpectedly exited");
     }
+```
 
 app进程的主线程调用栈的栈底如下:
 
+```java
     ...
     at android.app.ActivityThread.main(ActivityThread.java:5442)
     at java.lang.reflect.Method.invoke!(Native method)
     at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:738)
     at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:628)
+```
 
 跟前面介绍的system_server进程调用栈对比:
 
+```java
     at com.android.server.SystemServer.main(SystemServer.java:175)
     at java.lang.reflect.Method.invoke!(Native method)
     at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:738)
     at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:628)
+```
 
 ## 六. 实战分析
 
 以下列举启动部分重要进程以及关键节点会打印出的log
 
+```java
     /system/bin/vold: 383
     /system/bin/lmkd: 432
     /system/bin/surfaceflinger: 434
@@ -533,6 +576,7 @@ app进程的主线程调用栈的栈底如下:
     zygote: 558
     system_server: 1274
 
+```
 
 #### 1. before zygote
 

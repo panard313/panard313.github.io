@@ -82,6 +82,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
 
 ==> AndroidRuntime.cpp
 
+```java
     int AndroidRuntime::startReg(JNIEnv* env)
     {
         androidSetCreateThreadFunc((android_create_thread_fn) javaCreateThreadEtc);
@@ -97,6 +98,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
 
         return 0;
     }
+```
 
 注册JNI方法，其中`gRegJNI`是一个数组，记录所有需要注册的jni方法，其中有一项便是REG_JNI(register_android_os_Binder)，下面说说`register_android_os_Binder`过程。
 
@@ -104,6 +106,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
 
 ==> android_util_Binder.cpp
 
+```java
     int register_android_os_Binder(JNIEnv* env)
     {
         // 注册Binder类的jni方法【见2.3】
@@ -120,11 +123,13 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
         ...
         return 0;
     }
+```
 
 ### 2.3 注册Binder
 
 ==> android_util_Binder.cpp
 
+```java
     static int int_register_android_os_Binder(JNIEnv* env)
     {
         //其中kBinderPathName = "android/os/Binder";查找kBinderPathName路径所属类
@@ -142,6 +147,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
             NELEM(gBinderMethods));
     }
 
+```
 
 注册    Binder类的jni方法，其中：
 
@@ -155,6 +161,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
 
 `gBinderOffsets`是全局静态结构体(struct)，定义如下：
 
+```java
     static struct bindernative_offsets_t
     {
         jclass mClass; //记录Binder类
@@ -162,11 +169,13 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
         jfieldID mObject; //记录mObject属性
 
     } gBinderOffsets;
+```
 
 `gBinderOffsets`保存了`Binder.java`类本身以及其成员方法`execTransact()`和成员属性`mObject`，这为JNI层访问Java层提供通道。另外通过查询获取Java层 binder信息后保存到`gBinderOffsets`，而不再需要每次查找binder类信息的方式能大幅度提高效率，是由于每次查询需要花费较多的CPU时间，尤其是频繁访问时，但用额外的结构体来保存这些信息，是以空间换时间的方法。
 
 **(2)gBinderMethods**
 
+```java
     static const JNINativeMethod gBinderMethods[] = {
          /* 名称, 签名, 函数指针 */
         { "getCallingPid", "()I", (void*)android_os_Binder_getCallingPid },
@@ -180,6 +189,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
         { "destroy", "()V", (void*)android_os_Binder_destroy },
         { "blockUntilThreadAvailable", "()V", (void*)android_os_Binder_blockUntilThreadAvailable }
     };
+```
 
 通过RegisterMethodsOrDie()，将为gBinderMethods数组中的方法建立了一一映射关系，从而为Java层访问JNI层提供通道。
 
@@ -195,6 +205,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
 
 ==> android_util_Binder.cpp
 
+```java
     static int int_register_android_os_BinderInternal(JNIEnv* env)
     {
         //其中kBinderInternalPathName = "com/android/internal/os/BinderInternal"
@@ -208,17 +219,20 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
             gBinderInternalMethods, NELEM(gBinderInternalMethods));
     }
 
+```
 
 注册BinderInternal类的jni方法，`gBinderInternalOffsets`保存了BinderInternal的`forceBinderGc()`方法。
 
 下面是BinderInternal类的JNI方法注册：
 
+```java
     static const JNINativeMethod gBinderInternalMethods[] = {
         { "getContextObject", "()Landroid/os/IBinder;", (void*)android_os_BinderInternal_getContextObject },
         { "joinThreadPool", "()V", (void*)android_os_BinderInternal_joinThreadPool },
         { "disableBackgroundScheduling", "(Z)V", (void*)android_os_BinderInternal_disableBackgroundScheduling },
         { "handleGc", "()V", (void*)android_os_BinderInternal_handleGc }
     };
+```
 
 该过程其【2.3】非常类似，也就是说该过程建立了是BinderInternal类在Native层与framework层之间的相互调用的桥梁。
 
@@ -226,6 +240,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
 
 ==> android_util_Binder.cpp
 
+```java
     static int int_register_android_os_BinderProxy(JNIEnv* env)
     {
         //gErrorOffsets保存了Error类信息
@@ -250,11 +265,13 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
             env, kBinderProxyPathName,
             gBinderProxyMethods, NELEM(gBinderProxyMethods));
     }
+```
 
 注册BinderProxy类的jni方法，`gBinderProxyOffsets`保存了BinderProxy的<init>构造方法，sendDeathNotice(), mObject, mSelf, mOrgue信息。
 
 下面BinderProxy类的JNI方法注册：
 
+```java
     static const JNINativeMethod gBinderProxyMethods[] = {
          /* 名称, 签名, 函数指针 */
         {"pingBinder",          "()Z", (void*)android_os_BinderProxy_pingBinder},
@@ -265,6 +282,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
         {"unlinkToDeath",       "(Landroid/os/IBinder$DeathRecipient;I)Z", (void*)android_os_BinderProxy_unlinkToDeath},
         {"destroy",             "()V", (void*)android_os_BinderProxy_destroy},
     };
+```
 
 该过程其【2.3】非常类似，也就是说该过程建立了是BinderProxy类在Native层与framework层之间的相互调用的桥梁。
 
@@ -273,6 +291,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
 ### 3.1 SM.addService
 [-> ServiceManager.java]
 
+```java
     public static void addService(String name, IBinder service, boolean allowIsolated) {
         try {
             //先获取SMP对象，则执行注册服务操作【见小节3.2/3.4】
@@ -281,12 +300,14 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
             Log.e(TAG, "error in addService", e);
         }
     }
+```
 
 先来看看getIServiceManager()过程，如下：
 
 ### 3.2 getIServiceManager
 [-> ServiceManager.java]
 
+```java
     private static IServiceManager getIServiceManager() {
         if (sServiceManager != null) {
             return sServiceManager;
@@ -295,17 +316,20 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
         sServiceManager = ServiceManagerNative.asInterface(BinderInternal.getContextObject());
         return sServiceManager;
     }
+```
 
 采用了单例模式获取ServiceManager  getIServiceManager()返回的是ServiceManagerProxy(简称SMP)对象
 
 #### 3.2.1 getContextObject()
 [-> android_util_binder.cpp]
 
+```java
     static jobject android_os_BinderInternal_getContextObject(JNIEnv* env, jobject clazz)
     {
         sp<IBinder> b = ProcessState::self()->getContextObject(NULL);
         return javaObjectForIBinder(env, b);  //【见3.2.2】
     }
+```
 
 BinderInternal.java中有一个native方法getContextObject()，JNI调用执行上述方法。
 
@@ -314,6 +338,7 @@ BinderInternal.java中有一个native方法getContextObject()，JNI调用执行�
 #### 3.2.2 javaObjectForIBinder
 [-> android_util_binder.cpp]
 
+```java
     jobject javaObjectForIBinder(JNIEnv* env, const sp<IBinder>& val)
     {
         if (val == NULL) return NULL;
@@ -360,15 +385,19 @@ BinderInternal.java中有一个native方法getContextObject()，JNI调用执行�
         return object;
     }
 
+```
     
 根据BpBinder(C++)生成BinderProxy(Java)对象. 主要工作是创建BinderProxy对象,并把BpBinder对象地址保存到BinderProxy.mObject成员变量.
 到此，可知ServiceManagerNative.asInterface(BinderInternal.getContextObject()) 等价于
 
+```java
     ServiceManagerNative.asInterface(new BinderProxy())
+```
 
 ### 3.3  SMN.asInterface
 [-> ServiceManagerNative.java]
 
+```java
      static public IServiceManager asInterface(IBinder obj)
     {
         if (obj == null) { //obj为BpBinder
@@ -381,17 +410,20 @@ BinderInternal.java中有一个native方法getContextObject()，JNI调用执行�
         }
         return new ServiceManagerProxy(obj); //【见小节3.3.1】
     }
+```
 
 由此，可知ServiceManagerNative.asInterface(new BinderProxy()) 等价于`new ServiceManagerProxy(new BinderProxy())`. 为了方便，ServiceManagerProxy简称为SMP。
 
 #### 3.3.1 ServiceManagerProxy初始化
 [-> ServiceManagerNative.java  ::ServiceManagerProxy]
 
+```java
     class ServiceManagerProxy implements IServiceManager {
         public ServiceManagerProxy(IBinder remote) {
             mRemote = remote;
         }
     }
+```
 
 mRemote为BinderProxy对象，该BinderProxy对象对应于BpBinder(0)，其作为binder代理端，指向native层大管家service Manager。
 
@@ -402,6 +434,7 @@ framework层的ServiceManager的调用实际的工作确实交给SMP的成员变
 ### 3.4 SMP.addService
 [-> ServiceManagerNative.java  ::ServiceManagerProxy]
 
+```java
     public void addService(String name, IBinder service, boolean allowIsolated)
             throws RemoteException {
         Parcel data = Parcel.obtain();
@@ -416,18 +449,22 @@ framework层的ServiceManager的调用实际的工作确实交给SMP的成员变
         reply.recycle();
         data.recycle();
     }
+```
 
 ### 3.5 writeStrongBinder(Java)
 [-> Parcel.java]
 
+```java
     public writeStrongBinder(IBinder val){
         //此处为Native调用【见3.5.1】
         nativewriteStrongBinder(mNativePtr, val);
     }
+```
 
 #### 3.5.1 android_os_Parcel_writeStrongBinder
 [-> android_os_Parcel.cpp]
 
+```java
     static void android_os_Parcel_writeStrongBinder(JNIEnv* env, jclass clazz, jlong nativePtr, jobject object)
     {
         //将java层Parcel转换为native层Parcel
@@ -440,10 +477,12 @@ framework层的ServiceManager的调用实际的工作确实交给SMP的成员变
             }
         }
     }
+```
 
 #### 3.5.2 ibinderForJavaObject
 [-> android_util_Binder.cpp]
 
+```java
     sp<IBinder> ibinderForJavaObject(JNIEnv* env, jobject obj)
     {
         if (obj == NULL) return NULL;
@@ -460,12 +499,14 @@ framework层的ServiceManager的调用实际的工作确实交给SMP的成员变
         }
         return NULL;
     }
+```
 
 根据Binde(Java)生成JavaBBinderHolder(C++)对象. 主要工作是创建JavaBBinderHolder对象,并把JavaBBinderHolder对象地址保存到Binder.mObject成员变量.
 
 #### 3.5.3 JavaBBinderHolder.get()
 [-> android_util_Binder.cpp]
 
+```java
     sp<JavaBBinder> get(JNIEnv* env, jobject obj)
     {
         AutoMutex _l(mLock);
@@ -477,18 +518,21 @@ framework层的ServiceManager的调用实际的工作确实交给SMP的成员变
         }
         return b;
     }
+```
 
 JavaBBinderHolder有一个成员变量mBinder，保存当前创建的JavaBBinder对象，这是一个wp类型的，可能会被垃圾回收器给回收，所以每次使用前，都需要先判断是否存在。
 
 #### 3.5.4 JavaBBinder初始化
 ==> [-> android_util_Binder.cpp]
 
+```java
     JavaBBinder(JNIEnv* env, jobject object)
         : mVM(jnienv_to_javavm(env)), mObject(env->NewGlobalRef(object))
     {
         android_atomic_inc(&gNumLocalRefs);
         incRefsCreated(env);
     }
+```
 
 创建JavaBBinder，该对象继承于BBinder对象。
 
@@ -497,14 +541,17 @@ data.writeStrongBinder(service)最终等价于`parcel->writeStrongBinder(new Jav
 ### 3.6 writeStrongBinder(C++)
 [-> parcel.cpp]
 
+```java
     status_t Parcel::writeStrongBinder(const sp<IBinder>& val)
     {
         return flatten_binder(ProcessState::self(), val, this);
     }
+```
 
 #### 3.6.1 flatten_binder
 [-> parcel.cpp]
 
+```java
     status_t flatten_binder(const sp<ProcessState>& /*proc*/,
         const sp<IBinder>& binder, Parcel* out)
     {
@@ -533,6 +580,7 @@ data.writeStrongBinder(service)最终等价于`parcel->writeStrongBinder(new Jav
         //【见小节3.6.2】
         return finish_flatten_binder(binder, obj, out);
     }
+```
 
 将Binder对象扁平化，转换成flat_binder_object对象。
 
@@ -541,6 +589,7 @@ data.writeStrongBinder(service)最终等价于`parcel->writeStrongBinder(new Jav
 
 关于localBinder，代码见Binder.cpp。
 
+```java
     BBinder* BBinder::localBinder()
     {
         return this;
@@ -550,31 +599,39 @@ data.writeStrongBinder(service)最终等价于`parcel->writeStrongBinder(new Jav
     {
         return NULL;
     }
+```
+```java
+```
     
 #### 3.6.2 finish_flatten_binder
 
+```java
     inline static status_t finish_flatten_binder(
         const sp<IBinder>& , const flat_binder_object& flat, Parcel* out)
     {
         return out->writeObject(flat, false);
     }
+```
     
 再回到小节3.4的addService过程，则接下来进入transact。
 
 ### 3.7 BinderProxy.transact
 [-> Binder.java ::BinderProxy]
 
+```java
     public boolean transact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
         //用于检测Parcel大小是否大于800k
         Binder.checkParcel(this, code, data, "Unreasonably large binder buffer");
         return transactNative(code, data, reply, flags); //【见3.8】
     }
+```
 
 回到ServiceManagerProxy.addService，其成员变量mRemote是BinderProxy。transactNative经过jni调用，进入下面的方法
 
 ### 3.8 android_os_BinderProxy_transact
 [-> android_util_Binder.cpp]
 
+```java
     static jboolean android_os_BinderProxy_transact(JNIEnv* env, jobject obj,
         jint code, jobject dataObj, jobject replyObj, jint flags)
     {
@@ -594,6 +651,7 @@ data.writeStrongBinder(service)最终等价于`parcel->writeStrongBinder(new Jav
         ...
         return JNI_FALSE;
     }
+```
 
 Java层的BinderProxy.transact()最终交由Native层的BpBinder::transact()完成。Native Binder的[注册服务(addService)](https://panard313.github.io/2015/11/14/binder-add-service/)中有详细说明BpBinder执行过程。另外，该方法可抛出RemoteException。
 
@@ -601,6 +659,7 @@ Java层的BinderProxy.transact()最终交由Native层的BpBinder::transact()完�
 
 addService的核心过程：
 
+```java
     public void addService(String name, IBinder service, boolean allowIsolated)
             throws RemoteException {
         ...
@@ -609,6 +668,7 @@ addService的核心过程：
         BpBinder::transact(ADD_SERVICE_TRANSACTION, *data, reply, 0); //与Binder驱动交互
         ...
     }
+```
 
 注册服务过程就是通过BpBinder来发送`ADD_SERVICE_TRANSACTION`命令，与实现与binder驱动进行数据交互。
 
@@ -617,6 +677,7 @@ addService的核心过程：
 ### 4.1 SM.getService
 [-> ServiceManager.java]
 
+```java
     public static IBinder getService(String name) {
         try {
             IBinder service = sCache.get(name); //先从缓存中查看
@@ -630,6 +691,7 @@ addService的核心过程：
         }
         return null;
     }
+```
 
 关于getIServiceManager()，在前面[小节3.2](https://panard313.github.io/2015/11/21/binder-framework/#getiservicemanager)已经讲述了，等价于new ServiceManagerProxy(new BinderProxy())。
 其中sCache = new HashMap<String, IBinder>()以hashmap格式缓存已组成的名称。请求获取服务过程中，先从缓存中查询是否存在，如果缓存中不存在的话，再通过binder交互来查询相应的服务。
@@ -637,6 +699,7 @@ addService的核心过程：
 ### 4.2 SMP.getService
 [-> ServiceManagerNative.java ::ServiceManagerProxy]
 
+```java
     class ServiceManagerProxy implements IServiceManager {
         public IBinder getService(String name) throws RemoteException {
             Parcel data = Parcel.obtain();
@@ -652,20 +715,24 @@ addService的核心过程：
             return binder;
         }
     }
+```
 
 ### 4.3  BinderProxy.transact
 [-> Binder.java]
 
+```java
     final class BinderProxy implements IBinder {
         public boolean transact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
             Binder.checkParcel(this, code, data, "Unreasonably large binder buffer");
             return transactNative(code, data, reply, flags);
         }
     }
+```
 
 ### 4.4 android_os_BinderProxy_transact
 [-> android_util_Binder.cpp]
 
+```java
     static jboolean android_os_BinderProxy_transact(JNIEnv* env, jobject obj,
         jint code, jobject dataObj, jobject replyObj, jint flags)
     {
@@ -685,10 +752,12 @@ addService的核心过程：
         ...
         return JNI_FALSE;
     }
+```
 
 ### 4.5  BpBinder.transact
 [-> BpBinder.cpp]
 
+```java
     status_t BpBinder::transact(
         uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags)
     {
@@ -702,10 +771,12 @@ addService的核心过程：
 
         return DEAD_OBJECT;
     }
+```
 
 ### 4.6 IPC.transact
 [-> IPCThreadState.cpp]
 
+```java
     status_t IPCThreadState::transact(int32_t handle,
                                       uint32_t code, const Parcel& data,
                                       Parcel* reply, uint32_t flags)
@@ -733,9 +804,11 @@ addService的核心过程：
         }
         return err;
     }
+```
 
 ### 4.7 IPC.waitForResponse
 
+```java
     status_t IPCThreadState::waitForResponse(Parcel *reply, status_t *acquireResult)
     {
         int32_t cmd;
@@ -769,12 +842,14 @@ addService的核心过程：
         ...
         return err;
     }
+```
 
 那么这个reply是哪来的呢，在文章[Binder系列3—启动ServiceManager](https://panard313.github.io/2015/11/07/binder-start-sm/)
 
 #### 4.7.1 binder_send_reply
 [-> servicemanager/binder.c]
 
+```java
     void binder_send_reply(struct binder_state *bs,
                            struct binder_io *reply,
                            binder_uintptr_t buffer_to_free,
@@ -806,6 +881,7 @@ addService的核心过程：
         //向Binder驱动通信
         binder_write(bs, &data, sizeof(data));
     }
+```
 
 binder_write将BC_FREE_BUFFER和BC_REPLY命令协议发送给驱动，进入驱动。binder_ioctl ->
 binder_ioctl_write_read -> binder_thread_write，由于是BC_REPLY命令协议，则进入binder_transaction，
@@ -818,6 +894,7 @@ binder_ioctl_write_read -> binder_thread_write，由于是BC_REPLY命令协议�
 
 readStrongBinder的过程基本是writeStrongBinder逆过程。
 
+```java
     static jobject android_os_Parcel_readStrongBinder(JNIEnv* env, jclass clazz, jlong nativePtr)
     {
         Parcel* parcel = reinterpret_cast<Parcel*>(nativePtr);
@@ -827,12 +904,14 @@ readStrongBinder的过程基本是writeStrongBinder逆过程。
         }
         return NULL;
     }
+```
 
 javaObjectForIBinder 将native层BpBinder对象转换为Java层BinderProxy对象。
 
 #### 4.8.1 readStrongBinder(C++)
 [-> Parcel.cpp]
 
+```java
     sp<IBinder> Parcel::readStrongBinder() const
     {
         sp<IBinder> val;
@@ -840,10 +919,12 @@ javaObjectForIBinder 将native层BpBinder对象转换为Java层BinderProxy对象
         unflatten_binder(ProcessState::self(), *this, &val);
         return val;
     }
+```
 
 #### 4.8.2 unflatten_binder
 [-> Parcel.cpp]
 
+```java
     status_t unflatten_binder(const sp<ProcessState>& proc,
         const Parcel& in, sp<IBinder>* out)
     {
@@ -863,10 +944,12 @@ javaObjectForIBinder 将native层BpBinder对象转换为Java层BinderProxy对象
         }
         return BAD_TYPE;
     }
+```
 
 #### 4.8.3 getStrongProxyForHandle
 [-> ProcessState.cpp]
 
+```java
     sp<IBinder> ProcessState::getStrongProxyForHandle(int32_t handle)
     {
         sp<IBinder> result;
@@ -891,6 +974,7 @@ javaObjectForIBinder 将native层BpBinder对象转换为Java层BinderProxy对象
         }
         return result;
     }
+```
 
 经过该方法，最终创建了指向Binder服务端的BpBinder代理对象。回到[小节4.8] 经过javaObjectForIBinder将native层BpBinder对象转换为Java层BinderProxy对象。 也就是说通过getService()最终获取了指向目标Binder服务端的代理对象BinderProxy。
 
@@ -899,6 +983,7 @@ javaObjectForIBinder 将native层BpBinder对象转换为Java层BinderProxy对象
 
 getService的核心过程：
 
+```java
     public static IBinder getService(String name) {
         ...
         Parcel reply = Parcel.obtain(); //此处还需要将java层的Parcel转为Native层的Parcel
@@ -906,6 +991,7 @@ getService的核心过程：
         IBinder binder = javaObjectForIBinder(env, new BpBinder(handle));
         ...
     }
+```
 
 javaObjectForIBinder作用是创建BinderProxy对象，并将BpBinder对象的地址保存到BinderProxy对象的mObjects中。
 获取服务过程就是通过BpBinder来发送`GET_SERVICE_TRANSACTION`命令，与实现与binder驱动进行数据交互。
@@ -914,6 +1000,7 @@ javaObjectForIBinder作用是创建BinderProxy对象，并将BpBinder对象的�
 
 以IWindowManager为例
 
+```java
     public interface IWindowManager extends android.os.IInterface {
 
         public static abstract class Stub extends android.os.Binder implements android.view.IWindowManager {
@@ -953,10 +1040,12 @@ javaObjectForIBinder作用是创建BinderProxy对象，并将BpBinder对象的�
         }
     }
 
+```
 
 ### 5.1 Binder
 [-> Binder.java]
 
+```java
     public class Binder implements IBinder {
         public void attachInterface(IInterface owner, String descriptor) {
             mOwner = owner;
@@ -970,9 +1059,11 @@ javaObjectForIBinder作用是创建BinderProxy对象，并将BpBinder对象的�
             return null;
         }
     }
+```
 
 ### 5.2 BinderProxy
 
+```java
     final class BinderProxy implements IBinder {
         public IInterface queryLocalInterface(String descriptor) {
             return null;

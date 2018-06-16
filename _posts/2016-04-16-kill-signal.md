@@ -71,19 +71,23 @@ tags:
 #### 1.2.1  killProcessQuiet
 [-> Process.java]
 
+```java
     public static final void killProcessQuiet(int pid) {
         sendSignalQuiet(pid, SIGNAL_KILL); //【见小节1.2.2】
     }
+```
 
 #### 1.2.2 android_os_Process_sendSignalQuiet
 [- >android_util_Process.cpp]
 
+```java
     void android_os_Process_sendSignalQuiet(JNIEnv* env, jobject clazz, jint pid, jint sig)
     {
         if (pid > 0) {
             kill(pid, sig);
         }
     }
+```
 
 可见`killProcess`和`killProcessQuiet`的唯一区别在于是否输出log。最终杀进程的实现方法都是调用`kill(pid, sig)`方法。
 
@@ -92,21 +96,26 @@ tags:
 #### 1.3.1  killProcessGroup
 [-> Process.java]
 
+```java
     public static final native int killProcessGroup(int uid, int pid);
+```
 
 该Native方法所对应的Jni方法如下：
 
 #### 1.3.2  android_os_Process_killProcessGroup
 [-> android_util_Process.cpp]
 
+```java
     jint android_os_Process_killProcessGroup(JNIEnv* env, jobject clazz, jint uid, jint pid)
     {
         return killProcessGroup(uid, pid, SIGKILL);  //【见小节1.3.3】
     }
+```
 
 #### 1.3.3 killProcessGroup
 [-> processgroup.cpp]
 
+```java
     int killProcessGroup(uid_t uid, int initialPid, int signal)
     {
         int processes;
@@ -130,10 +139,12 @@ tags:
             return -1;
         }
     }
+```
 
 #### 1.3.3.1 killProcessGroupOnce
 [-> processgroup.cpp]
 
+```java
     static int killProcessGroupOnce(uid_t uid, int initialPid, int signal)
     {
         int processes = 0;
@@ -153,6 +164,7 @@ tags:
         //processes代表总共杀死了进程组中的进程个数
         return processes;
     }
+```
 
 其中`getOneAppProcess`方法的作用是从节点`/acct/uid_<uid>/pid_<pid>/cgroup.procs`中获取相应pid，这里是进程，而非线程。
 
@@ -163,6 +175,7 @@ tags:
 #### 1.3.3.2 removeProcessGroup
 [-> processgroup.cpp]
 
+```java
     static int removeProcessGroup(uid_t uid, int pid)
     {
         int ret;
@@ -177,6 +190,7 @@ tags:
         rmdir(path);
         return ret;
     }
+```
 
 ### 1.4 小结
 
@@ -201,12 +215,15 @@ tags:
 ### 2.1. sys_kill
 [-> syscalls.h]
 
+```java
     asmlinkage long sys_kill(int pid, int sig);
 
  `sys_kill()`方法在linux内核中没有直接定义，而是通过宏定义`SYSCALL_DEFINE2`的方式来实现的。Android内核（Linux）会为每个syscall分配唯一的系统调用号，当执行系统调用时会根据系统调用号从系统调用表中来查看目标函数的入口地址，在calls.S文件中声明了入口地址信息(这里已经追溯到汇编语言了，就不再介绍)。另外，其中asmlinkage是gcc标签，表明该函数读取的参数位于栈中，而不是寄存器。
+```
 
 [-> signal.c]
 
+```java
     SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
     {
         struct siginfo info;
@@ -217,6 +234,7 @@ tags:
         info.si_uid = from_kuid_munged(current_user_ns(), current_uid());
         return kill_something_info(sig, &info, pid); //【见流程2.2】
     }
+```
 
 `SYSCALL_DEFINE2`是系统调用的宏定义，方法在此处经层层展开，等价于`asmlinkage long sys_kill(int pid, int sig)`。关于宏展开细节就不多说了，就说一点`SYSCALL_DEFINE2`中的2是指sys_kill方法有两个参数。
 
@@ -226,6 +244,7 @@ tags:
 
 [-> signal.c]
 
+```java
     static int kill_something_info(int sig, struct siginfo *info, pid_t pid)
     {
         int ret;
@@ -260,6 +279,7 @@ tags:
         read_unlock(&tasklist_lock);
         return ret;
     }
+```
 
 功能：
 
@@ -272,6 +292,7 @@ tags:
 
 [-> signal.c]
 
+```java
     int kill_pid_info(int sig, struct siginfo *info, struct pid *pid)
     {
         int error = -ESRCH;
@@ -289,11 +310,13 @@ tags:
         return error;
     }
 
+```
 
 ### 2.4 group_send_sig_info
 
 [-> signal.c]
 
+```java
     int group_send_sig_info(int sig, struct siginfo *info, struct task_struct *p)
     {
         int ret;
@@ -305,11 +328,13 @@ tags:
             ret = do_send_sig_info(sig, info, p, true); //【见流程2.5】
         return ret;
     }
+```
 
 ### 2.5 do_send_sig_info
 
 [-> signal.c]
 
+```java
     int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p,
                 bool group)
     {
@@ -321,11 +346,13 @@ tags:
         }
         return ret;
     }
+```
 
 ### 2.6 send_signal
 
 [-> signal.c]
 
+```java
     static int send_signal(int sig, struct siginfo *info, struct task_struct *t,
                 int group)
     {
@@ -336,11 +363,13 @@ tags:
     #endif
         return __send_signal(sig, info, t, group, from_ancestor_ns); //【见流程2.7】
     }
+```
 
 ### 2.7 __send_signal
 
 [-> signal.c]
 
+```java
     static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
                 int group, int from_ancestor_ns)
     {
@@ -414,11 +443,13 @@ tags:
         trace_signal_generate(sig, info, t, group, result);
         return ret;
     }
+```
 
 ### 2.8 complete_signal
 
 [-> signal.c]
 
+```java
     static void complete_signal(int sig, struct task_struct *p, int group)
     {
         struct signal_struct *signal = p->signal;
@@ -467,6 +498,7 @@ tags:
         return;
     }
 
+```
 
 ### 2.9 小结
 
@@ -481,9 +513,11 @@ tags:
 
 再回到信号，在Process.java中定义了如下3个信号：
 
+```java
     public static final int SIGNAL_QUIT = 3;  //用于输出线程trace
     public static final int SIGNAL_KILL = 9;  //用于杀进程/线程
     public static final int SIGNAL_USR1 = 10; //用于强制执行GC
+```
 
 对于`kill -9`，信号SIGKILL的处理过程，这是因为SIGKILL是不能被忽略同时也不能被捕获，故不会由目标线程的signal Catcher线程来处理，而是由内核直接处理，到此便完成。
 
@@ -503,6 +537,7 @@ tags:
 
 [-> com_android_internal_os_Zygote.cpp]
 
+```java
     static pid_t ForkAndSpecializeCommon(...) {
         //设置子进程的signal信号处理函数 //【见流程3.2】
         SetSigChldHandler();
@@ -519,11 +554,13 @@ tags:
         }
         return pid;
     }
+```
 
 ### 3.2 SetSigChldHandler
 
 [-> com_android_internal_os_Zygote.cpp]
 
+```java
     static void SetSigChldHandler() {
       struct sigaction sa;
       memset(&sa, 0, sizeof(sa)); //对sa地址内容进行清零操作
@@ -534,6 +571,7 @@ tags:
         ALOGW("Error setting SIGCHLD handler: %s", strerror(errno));
       }
     }
+```
 
 进程处理某个信号前，需要先在进程中安装此信号，安装过程主要是建立信号值和进程对相应信息值的动作。此处
 SIGCHLD=17，代表子进程退出时所相应的操作动作为`SigChldHandler`。
@@ -543,6 +581,7 @@ SIGCHLD=17，代表子进程退出时所相应的操作动作为`SigChldHandler`
 
 [-> com_android_internal_os_Zygote.cpp]
 
+```java
     static void UnsetSigChldHandler() {
       struct sigaction sa;
       memset(&sa, 0, sizeof(sa));
@@ -554,6 +593,7 @@ SIGCHLD=17，代表子进程退出时所相应的操作动作为`SigChldHandler`
       }
     }
 
+```
 
 ### 3.4 DidForkFromZygote
 
@@ -561,6 +601,7 @@ SIGCHLD=17，代表子进程退出时所相应的操作动作为`SigChldHandler`
 
 [-> Runtime.cc]
 
+```java
     void Runtime::DidForkFromZygote(JNIEnv* env, NativeBridgeAction action, const char* isa) {
         ...
         //创建Java堆处理的线程池
@@ -574,17 +615,20 @@ SIGCHLD=17，代表子进程退出时所相应的操作动作为`SigChldHandler`
         //启动JDWP线程，当命令debuger的flags指定"suspend=y"时，则暂停runtime
         Dbg::StartJdwp();
     }
+```
 
 ### 3.5 StartSignalCatcher
 
 [-> Runtime.cc]
 
+```java
     void Runtime::StartSignalCatcher() {
       if (!is_zygote_) {
         //【见流程3.6】
         signal_catcher_ = new SignalCatcher(stack_trace_file_);
       }
     }
+```
 
 对于非Zygote进程才会启动SignalCatcher线程。
 
@@ -594,6 +638,7 @@ SIGCHLD=17，代表子进程退出时所相应的操作动作为`SigChldHandler`
 
 创建SignalCatcher对象
 
+```java
     SignalCatcher::SignalCatcher(const std::string& stack_trace_file)
         : stack_trace_file_(stack_trace_file),
           lock_("SignalCatcher lock"),
@@ -608,6 +653,7 @@ SIGCHLD=17，代表子进程退出时所相应的操作动作为`SigChldHandler`
         cond_.Wait(self);
       }
     }
+```
 
 SignalCatcher是一个守护线程，用于捕获SIGQUIT、SIGUSR1信号，并采取相应的行为。
 
@@ -621,6 +667,7 @@ Android系统中，由Zygote孵化而来的子进程，包含system_server进程
 
 [-> signal_catcher.cc]
 
+```java
     void* SignalCatcher::Run(void* arg) {
       SignalCatcher* signal_catcher = reinterpret_cast<SignalCatcher*>(arg);
       CHECK(signal_catcher != nullptr);
@@ -660,6 +707,7 @@ Android系统中，由Zygote孵化而来的子进程，包含system_server进程
         }
       }
     }
+```
 
 这个方法中，只有信号SIGQUIT和SIGUSR1的处理过程，并没有信号SIGKILL的处理过程，这是因为SIGKILL是不能被忽略同时也不能被捕获，所以不会出现在Signal Catcher线程。
 

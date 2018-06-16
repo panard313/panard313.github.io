@@ -31,6 +31,7 @@ Android系统源码中framework/native/cmds/bugreport目录通过Android.mk定�
 
 [-> bugreport.cpp]
 
+```java
     int main() {
       //启动dumpstate服务
       property_set("ctl.start", "dumpstate");
@@ -83,6 +84,7 @@ Android系统源码中framework/native/cmds/bugreport目录通过Android.mk定�
       close(s);
       return 0;
     }
+```
 
 property_set("ctl.start", "dumpstate")会触发init进程,来fork进程`/system/bin/dumpstate`, 作为dumpstate服务的进程.
 Bugreport再通过socket建立于dumpstate的通信，这个过程会尝试20次socket连接建立直到成功连接。 在socket通道中如果持续3分钟没有任何数据可读，则超时停止读取并退出。由于dumpstate服务中不存在大于1分钟的timetout，因而不可预见的超时的情况下留有很大的回旋余地。
@@ -93,6 +95,7 @@ Bugreport再通过socket建立于dumpstate的通信，这个过程会尝试20次
 
 [-> dumpstate.cpp]
 
+```java
     int main(int argc, char *argv[]) {
         struct sigaction sigact;
         int do_add_date = 0;
@@ -241,6 +244,7 @@ Bugreport再通过socket建立于dumpstate的通信，这个过程会尝试20次
         ALOGI("done\n");
         return 0;
     }
+```
 
 整个过程的工作流程：
 
@@ -262,6 +266,7 @@ Bugreport再通过socket建立于dumpstate的通信，这个过程会尝试20次
 
 [-> dumpstate.cpp ]
 
+```java
     static void dumpstate() {
         ...
         property_get("ro.build.display.id", build, "(unknown)");
@@ -498,6 +503,7 @@ Bugreport再通过socket建立于dumpstate的通信，这个过程会尝试20次
         printf("== dumpstate: done\n");
         printf("========================================================\n");
     }
+```
 
 该方法涉及run_command其他几个方法见下方：
 
@@ -505,6 +511,7 @@ Bugreport再通过socket建立于dumpstate的通信，这个过程会尝试20次
 
 [-> utils.c]
 
+```java
     int run_command(const char *title, int timeout_seconds, const char *command, ...) {
         fflush(stdout);
         uint64_t start = nanotime();
@@ -572,6 +579,7 @@ Bugreport再通过socket建立于dumpstate的通信，这个过程会尝试20次
         if (title) printf("[%s: %.3fs elapsed]\n\n", command, (float)elapsed / NANOS_PER_SEC);
         return status;
     }
+```
 
 功能是fork子进程并等待它执行完成，或者超时退出。当命令`title`不为空时，每次输出结果，都分别以下面作为开头和结尾:
 
@@ -582,6 +590,7 @@ Bugreport再通过socket建立于dumpstate的通信，这个过程会尝试20次
 
 [-> utils.c]
 
+```java
     int dump_file(const char *title, const char *path) {
         //尝试打开文件
         int fd = TEMP_FAILURE_RETRY(open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC));
@@ -596,9 +605,11 @@ Bugreport再通过socket建立于dumpstate的通信，这个过程会尝试20次
         //输出文件内容
         return _dump_file_from_fd(title, path, fd);
     }
+```
 
 当可以正确打开文件时，则执行_dump_file_from_fd，输出文件内容
 
+```java
     static int _dump_file_from_fd(const char *title, const char *path, int fd) {
         if (title) printf("------ %s (%s", title, path);
         if (title) {
@@ -654,6 +665,7 @@ Bugreport再通过socket建立于dumpstate的通信，这个过程会尝试20次
         if (title) printf("\n");
         return 0;
     }
+```
 
 当打不开文件或者出错则输出：
 
@@ -670,6 +682,7 @@ dump_files("UPTIME MMC PERF", mmcblk0, skip_not_stat, dump_stat_from_fd);
 
 其中skip_not_stat是指忽略mmcblk0目录下的非stat文件，dump_files该方法遍历输出mmcblk0(即"/sys/block/mmcblk0/")目录下所有stat文件，具体的输出调用dump_stat_from_fd方法来完成，该方法输出每个分区的读写速度：
 
+```java
     static int dump_stat_from_fd(const char *title __unused, const char *path, int fd) {
         unsigned long fields[11], read_perf, write_perf;
         bool z;
@@ -723,6 +736,7 @@ dump_files("UPTIME MMC PERF", mmcblk0, skip_not_stat, dump_stat_from_fd);
         }
         return 0;
     }
+```
 
 例如：stat文件共有11个数据：
 
@@ -734,6 +748,7 @@ dump_files("UPTIME MMC PERF", mmcblk0, skip_not_stat, dump_stat_from_fd);
 
 dump虚拟机和native的stack traces，并返回trace文件位置
 
+```java
     const char *dump_traces() {
         const char* result = NULL;
         char traces_path[PROPERTY_VALUE_MAX] = "";
@@ -874,6 +889,7 @@ dump虚拟机和native的stack traces，并返回trace文件位置
         ...
         return result;
     }
+```
 
 此处有多次文件名的拷贝/连接/重命名操作, 主要逻辑如下:
 
@@ -891,6 +907,7 @@ dump_traces主要完成如下两个功能的输出:
 
 #### 2.3.5 do_dmesg()
 
+```java
     void do_dmesg() {
         printf("------ KERNEL LOG (dmesg) ------\n");
         //获取kernel buffer的大小
@@ -916,6 +933,7 @@ dump_traces主要完成如下两个功能的输出:
         free(buf);
         return;
     }
+```
 
 ### 2.4 总结
 

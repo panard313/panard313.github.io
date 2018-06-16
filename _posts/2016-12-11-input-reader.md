@@ -30,6 +30,7 @@ threadLoop返回值true代表的是会不断地循环调用loopOnce()。另外�
 #### 1.2 loopOnce
 [-> InputReader.cpp]
 
+```c++
     void InputReader::loopOnce() {
         ...
         {
@@ -68,12 +69,14 @@ threadLoop返回值true代表的是会不断地循环调用loopOnce()。另外�
         mQueuedListener->flush();
     }
 
+```
 
 ## 二. EventHub
 
 ### 2.1 getEvents
 [-> EventHub.cpp]
 
+```c++
     size_t EventHub::getEvents(int timeoutMillis, RawEvent* buffer, size_t bufferSize) {
         AutoMutex _l(mLock); //加锁
 
@@ -169,12 +172,14 @@ threadLoop返回值true代表的是会不断地循环调用loopOnce()。另外�
 
         return event - buffer; //返回所读取的事件个数
     }
+```
 
 EventHub采用INotify + epoll机制实现监听目录`/dev/input`下的设备节点，经过EventHub将input_event结构体 + deviceId 转换成RawEvent结构体，如下：
 
 #### 2.1.1 RawEvent
 [-> InputEventReader.h]
 
+```c++
     struct input_event {
      struct timeval time; //事件发生的时间点
      __u16 type;
@@ -189,6 +194,7 @@ EventHub采用INotify + epoll机制实现监听目录`/dev/input`下的设备节
         int32_t code;
         int32_t value;
     };
+```
 
 此处事件类型:
 
@@ -204,14 +210,17 @@ getEvents()已完成转换事件转换工作, 接下来,顺便看看设备扫描
 
 #### 2.2.1 scanDevicesLocked
 
+```c++
     void EventHub::scanDevicesLocked() {
         //此处DEVICE_PATH="/dev/input"【见小节2.3】
         status_t res = scanDirLocked(DEVICE_PATH);
         ...
     }
+```
 
 #### 2.2.2 scanDirLocked
 
+```c++
     status_t EventHub::scanDirLocked(const char *dirname)
     {
         char devname[PATH_MAX];
@@ -236,9 +245,11 @@ getEvents()已完成转换事件转换工作, 接下来,顺便看看设备扫描
         closedir(dir);
         return 0;
     }
+```
 
 #### 2.2.3 openDeviceLocked
 
+```c++
     status_t EventHub::openDeviceLocked(const char *devicePath) {
         char buffer[80];
         //打开设备文件
@@ -295,15 +306,18 @@ getEvents()已完成转换事件转换工作, 接下来,顺便看看设备扫描
         //【见小节2.2.4】
         addDeviceLocked(device);
     }
+```
 
 #### 2.2.4 addDeviceLocked
 
+```c++
     void EventHub::addDeviceLocked(Device* device) {
         mDevices.add(device->id, device); //添加到mDevices队列
         device->next = mOpeningDevices;
         mOpeningDevices = device;
     }
 
+```
 
 介绍了EventHub从设备节点获取事件的流程，当收到事件后接下里便开始处理事件。
 
@@ -312,6 +326,7 @@ getEvents()已完成转换事件转换工作, 接下来,顺便看看设备扫描
 ### 3.1 processEventsLocked
 [-> InputReader.cpp]
 
+```c++
     void InputReader::processEventsLocked(const RawEvent* rawEvents, size_t count) {
         for (const RawEvent* rawEvent = rawEvents; count;) {
             int32_t type = rawEvent->type;
@@ -350,6 +365,7 @@ getEvents()已完成转换事件转换工作, 接下来,顺便看看设备扫描
             rawEvent += batchSize;
         }
     }
+```
 
 事件处理总共有下几类类型：
 
@@ -364,6 +380,7 @@ getEvents()已完成转换事件转换工作, 接下来,顺便看看设备扫描
 
 #### 3.2.1 addDeviceLocked
 
+```c++
     void InputReader::addDeviceLocked(nsecs_t when, int32_t deviceId) {
         ssize_t deviceIndex = mDevices.indexOfKey(deviceId);
         if (deviceIndex >= 0) {
@@ -380,9 +397,11 @@ getEvents()已完成转换事件转换工作, 接下来,顺便看看设备扫描
         mDevices.add(deviceId, device); //添加设备到mDevices
         ...
     }
+```
 
 #### 3.2.2 createDeviceLocked
 
+```c++
     InputDevice* InputReader::createDeviceLocked(int32_t deviceId, int32_t controllerNumber,
             const InputDeviceIdentifier& identifier, uint32_t classes) {
         //创建InputDevice对象
@@ -425,6 +444,7 @@ getEvents()已完成转换事件转换工作, 接下来,顺便看看设备扫描
         ...
         return device;
     }
+```
 
 该方法主要功能：
 
@@ -444,6 +464,7 @@ input设备类型有很多种，以上代码只列举部分常见的设备以及
 
 #### 3.3.1 processEventsForDeviceLocked
 
+```c++
     void InputReader::processEventsForDeviceLocked(int32_t deviceId,
             const RawEvent* rawEvents, size_t count) {
         ssize_t deviceIndex = mDevices.indexOfKey(deviceId);
@@ -456,9 +477,11 @@ input设备类型有很多种，以上代码只列举部分常见的设备以及
         //【见小节3.3.2】
         device->process(rawEvents, count);
     }
+```
 
 #### 3.3.2 InputDevice.process
 
+```c++
     void InputDevice::process(const RawEvent* rawEvents, size_t count) {
         size_t numMappers = mMappers.size();
         for (const RawEvent* rawEvent = rawEvents; count--; rawEvent++) {
@@ -478,6 +501,7 @@ input设备类型有很多种，以上代码只列举部分常见的设备以及
             }
         }
     }
+```
 
 小节[3.2]createDeviceLocked创建设备并添加InputMapper，提到会有多种InputMapper。
 这里以KeyboardInputMapper(按键事件)为例来展开说明
@@ -487,6 +511,7 @@ input设备类型有很多种，以上代码只列举部分常见的设备以及
 #### 3.4.1 KeyboardInputMapper.process
 [-> InputReader.cpp ::KeyboardInputMapper]
 
+```c++
     void KeyboardInputMapper::process(const RawEvent* rawEvent) {
         switch (rawEvent->type) {
         case EV_KEY: {
@@ -510,10 +535,12 @@ input设备类型有很多种，以上代码只列举部分常见的设备以及
         case EV_SYN: ...
         }
     }
+```
 
 #### 3.4.2 EventHub::mapKey
 [-> EventHub.cpp]
 
+```c++
     status_t EventHub::mapKey(int32_t deviceId,
             int32_t scanCode, int32_t usageCode, int32_t metaState,
             int32_t* outKeycode, int32_t* outMetaState, uint32_t* outFlags) const {
@@ -534,12 +561,14 @@ input设备类型有很多种，以上代码只列举部分常见的设备以及
         ...
         return status;
     }
+```
 
 将事件的扫描码(scanCode)转换成键盘码(Keycode)
 
 #### 3.4.3 KeyCharacterMap::mapKey
 [-> KeyCharacterMap.cpp]
 
+```c++
     status_t KeyCharacterMap::mapKey(int32_t scanCode, int32_t usageCode, int32_t* outKeyCode) const {
         ...
         if (scanCode) {
@@ -553,12 +582,14 @@ input设备类型有很多种，以上代码只列举部分常见的设备以及
         *outKeyCode = AKEYCODE_UNKNOWN;
         return NAME_NOT_FOUND;
     }
+```
 
 再回到[3.4.1],接下来进入如下过程:
 
 #### 3.4.4 InputMapper.processKey
 [-> InputReader.cpp]
 
+```c++
     void KeyboardInputMapper::processKey(nsecs_t when, bool down, int32_t keyCode,
             int32_t scanCode, uint32_t policyFlags) {
 
@@ -600,6 +631,7 @@ input设备类型有很多种，以上代码只列举部分常见的设备以及
         //通知key事件【见小节3.4.5】
         getListener()->notifyKey(&args);
     }
+```
 
 参数说明：
 
@@ -611,9 +643,11 @@ input设备类型有很多种，以上代码只列举部分常见的设备以及
 #### 3.4.5 QueuedInputListener.notifyKey
 [-> InputListener.cpp]
 
+```c++
     void QueuedInputListener::notifyKey(const NotifyKeyArgs* args) {
         mArgsQueue.push(new NotifyKeyArgs(*args));
     }
+```
 
 mArgsQueue的数据类型为Vector<NotifyArgs*>，将该key事件压人该栈顶。 到此,整个事件加工完成,
 再然后就是将事件发送给InputDispatcher线程.
@@ -626,6 +660,7 @@ mArgsQueue的数据类型为Vector<NotifyArgs*>，将该key事件压人该栈顶
 ### 4.1 QueuedInputListener.flush
 [-> InputListener.cpp]
 
+```c++
     void QueuedInputListener::flush() {
         size_t count = mArgsQueue.size();
         for (size_t i = 0; i < count; i++) {
@@ -636,6 +671,7 @@ mArgsQueue的数据类型为Vector<NotifyArgs*>，将该key事件压人该栈顶
         }
         mArgsQueue.clear();
     }
+```
 
 遍历整个mArgsQueue数组, 在input架构中NotifyArgs的实现子类主要有以下几类:
 
@@ -651,13 +687,16 @@ mArgsQueue的数据类型为Vector<NotifyArgs*>，将该key事件压人该栈顶
 ### 4.2 NotifyKeyArgs.notify
 [-> InputListener.cpp]
 
+```c++
     void NotifyKeyArgs::notify(const sp<InputListenerInterface>& listener) const {
         listener->notifyKey(this); // this是指NotifyKeyArgs【见小节4.3】
     }
+```
 
 ### 4.3 InputDispatcher.notifyKey
 [-> InputDispatcher.cpp]
 
+```c++
     void InputDispatcher::notifyKey(const NotifyKeyArgs* args) {
         if (!validateKeyEvent(args->action)) {
             return;
@@ -716,6 +755,7 @@ mArgsQueue的数据类型为Vector<NotifyArgs*>，将该key事件压人该栈顶
         }
     }
 
+```
 
 该方法的主要功能：
 
@@ -731,6 +771,7 @@ mArgsQueue的数据类型为Vector<NotifyArgs*>，将该key事件压人该栈顶
 
 #### 4.3.1 interceptKeyBeforeQueueing
 
+```c++
     void NativeInputManager::interceptKeyBeforeQueueing(const KeyEvent* keyEvent,
             uint32_t& policyFlags) {
         ...
@@ -752,11 +793,13 @@ mArgsQueue的数据类型为Vector<NotifyArgs*>，将该key事件压人该栈顶
             ...
         }
     }
+```
 
 该方法会调用Java层的InputManagerService的interceptKeyBeforeQueueing()方法。
 
 #### 4.3.2 filterInputEvent
 
+```c++
     bool NativeInputManager::filterInputEvent(const InputEvent* inputEvent, uint32_t policyFlags) {
         jobject inputEventObj;
 
@@ -787,6 +830,7 @@ mArgsQueue的数据类型为Vector<NotifyArgs*>，将该key事件压人该栈顶
         env->DeleteLocalRef(inputEventObj);
         return pass;
     }
+```
 
 当inputEventObj不为空,则调用Java层的IMS.filterInputEvent(). 经过层层调用后,
 最终会再调用InputDispatcher.injectInputEvent(),该基本等效于该方法的后半段:
@@ -796,6 +840,7 @@ mArgsQueue的数据类型为Vector<NotifyArgs*>，将该key事件压人该栈顶
 
 #### 4.3.3 enqueueInboundEventLocked
 
+```c++
     bool InputDispatcher::enqueueInboundEventLocked(EventEntry* entry) {
         bool needWake = mInboundQueue.isEmpty();
         mInboundQueue.enqueueAtTail(entry); //将该事件放入mInboundQueue队列尾部
@@ -845,6 +890,7 @@ mArgsQueue的数据类型为Vector<NotifyArgs*>，将该key事件压人该栈顶
 
         return needWake;
     }
+```
 
 AppSwitchKeyEvent是指keyCode等于以下值：
 
@@ -856,6 +902,7 @@ AppSwitchKeyEvent是指keyCode等于以下值：
 #### 4.3.4 findTouchedWindowAtLocked
 [-> InputDispatcher.cpp]
 
+```c++
     sp<InputWindowHandle> InputDispatcher::findTouchedWindowAtLocked(int32_t displayId,
             int32_t x, int32_t y) {
         //从前台到后台来遍历查询可触摸的窗口
@@ -879,6 +926,7 @@ AppSwitchKeyEvent是指keyCode等于以下值：
         }
         return NULL;
     }
+```
 
 此处mWindowHandles的赋值过程是由Java层的InputMonitor.setInputWindows(),经过JNI调用后进入InputDispatcher::setInputWindows()方法完成.
 进一步说, 就是WMS执行addWindow()过程或许UI改变等场景,都会触发该方法的修改.
@@ -886,6 +934,7 @@ AppSwitchKeyEvent是指keyCode等于以下值：
 #### 4.3.5 Looper.wake
 [-> system/core/libutils/Looper.cpp]
 
+```c++
     void Looper::wake() {
         uint64_t inc = 1;
 
@@ -896,6 +945,7 @@ AppSwitchKeyEvent是指keyCode等于以下值：
             }
         }
     }
+```
 
 [小节4.3]的过程会调用enqueueInboundEventLocked()方法来决定是否需要将数字1写入句柄mWakeEventFd来唤醒InputDispatcher线程.
 满足唤醒的条件:
@@ -930,6 +980,7 @@ InputReader的核心工作就是从EventHub获取数据后生成EventEntry事件
 
 - IMS.filterInputEvent可以过滤无需上报的事件，当该方法返回值为false则代表是需要被过滤掉的事件，无机会交给InputDispatcher来分发。
 - 节点/dev/input的event事件所对应的输入设备信息位于`/proc/bus/input/devices`，也可以通过`getevent`来获取事件. 不同的input事件所对应的物理input节点，比如常见的情形：
+```c++
     - 屏幕触摸和(MENU,HOME,BACK)3按键：对应同一个input设备节点；
     - POWER和音量(下)键：对应同一个input设备节点；
     - 音量(上)键：对应同一个input设备节点；

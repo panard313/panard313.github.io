@@ -41,6 +41,7 @@ ServiceManager本身工作相对简单，其功能：查询和注册服务。 �
 
 ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-init/)通过解析init.rc文件而创建的，其所对应的可执行程序/system/bin/servicemanager，所对应的源文件是service_manager.c，进程名为/system/bin/servicemanager。
 
+```shell
     service servicemanager /system/bin/servicemanager
         class core
         user system
@@ -51,12 +52,14 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         onrestart restart media
         onrestart restart surfaceflinger
         onrestart restart drm
+```
 
 启动Service Manager的入口函数是service_manager.c中的main()方法，代码如下：
 
 ### 2.1 main
 [ -> service_manager.c]
 
+```c
     int main(int argc, char **argv)
     {
         struct binder_state *bs;
@@ -87,10 +90,12 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         binder_loop(bs, svcmgr_handler);
         return 0;
     }
+```
 
 ### 2.2 binder_open
 [-> servicemanager/binder.c]
 
+```c
     struct binder_state *binder_open(size_t mapsize)
     {
         struct binder_state *bs;【见小节2.2.1】
@@ -129,6 +134,7 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         free(bs);
         return NULL;
     }
+```
 
 打开binder驱动相关操作:
 
@@ -139,21 +145,25 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
 #### 2.2.1 binder_state
 [-> servicemanager/binder.c]
 
+```c
     struct binder_state
     {
         int fd; // dev/binder的文件描述符
         void *mapped; //指向mmap的内存地址
         size_t mapsize; //分配的内存大小，默认为128KB
     };
+```
     
 ### 2.3 binder_become_context_manager
 [-> servicemanager/binder.c]
 
+```c
     int binder_become_context_manager(struct binder_state *bs)
     {
         //通过ioctl，传递BINDER_SET_CONTEXT_MGR指令【见小节2.3.1】
         return ioctl(bs->fd, BINDER_SET_CONTEXT_MGR, 0);
     }
+```
 
 成为上下文的管理者，整个系统中只有一个这样的管理者。
 通过ioctl()方法经过系统调用，对应于Binder驱动层的[binder_ioctl()](https://panard313.github.io/2015/11/01/binder-driver/#binderioctl)方法.
@@ -161,6 +171,7 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
 #### 2.3.1 binder_ioctl
 [-> kernel/drivers/android/binder.c]
 
+```c
     static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     {
         binder_lock(__func__);
@@ -173,12 +184,14 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         }
         binder_unlock(__func__);
     }
+```
 
 根据参数`BINDER_SET_CONTEXT_MGR`，最终调用binder_ioctl_set_ctx_mgr()方法，这个过程会持有binder_main_lock。
 
 #### 2.3.2 binder_ioctl_set_ctx_mgr
 [-> kernel/drivers/android/binder.c]
 
+```c
     static int binder_ioctl_set_ctx_mgr(struct file *filp)
     {
         int ret = 0;
@@ -209,19 +222,23 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         return ret;
     }
 
+```
 
 进入binder驱动，在Binder驱动中定义的静态变量
 
+```c
     // service manager所对应的binder_node;
     static struct binder_node *binder_context_mgr_node;
     // 运行service manager的线程uid
     static kuid_t binder_context_mgr_uid = INVALID_UID;
+```
 
 创建了全局的binder_node对象`binder_context_mgr_node`，并将binder_context_mgr_node的强弱引用各加1.
 
 #### 2.3.3 binder_new_node
 [-> kernel/drivers/android/binder.c]
 
+```c
     static struct binder_node *binder_new_node(struct binder_proc *proc,
                            binder_uintptr_t ptr,
                            binder_uintptr_t cookie)
@@ -259,12 +276,14 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         INIT_LIST_HEAD(&node->async_todo);
         return node;
     }
+```
 
 在Binder驱动层创建[binder_node结构体](https://panard313.github.io/2015/11/01/binder-driver/#bindernode)对象，并将当前binder_proc加入到`binder_node`的`node->proc`。并创建binder_node的async_todo和binder_work两个队列。
 
 ### 2.4 binder_loop
 [-> servicemanager/binder.c]
 
+```c
     void binder_loop(struct binder_state *bs, binder_handler func)
     {
         int res;
@@ -299,6 +318,7 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
             }
         }
     }
+```
 
 进入循环读写操作，由main()方法传递过来的参数func指向svcmgr_handler。
 
@@ -308,6 +328,7 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
 #### 2.4.1 binder_write
 [-> servicemanager/binder.c]
 
+```c
     int binder_write(struct binder_state *bs, void *data, size_t len)
     {
         struct binder_write_read bwr;
@@ -323,12 +344,14 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         res = ioctl(bs->fd, BINDER_WRITE_READ, &bwr);
         return res;
     }
+```
 
 根据传递进来的参数，初始化bwr，其中write_size大小为4，write_buffer指向缓冲区的起始地址，其内容为BC_ENTER_LOOPER请求协议号。通过ioctl将bwr数据发送给binder驱动，则调用其binder_ioctl方法，如下：
 
 #### 2.4.2 binder_ioctl
 [-> kernel/drivers/android/binder.c]
 
+```c
     static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     {
         int ret;
@@ -356,10 +379,12 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
          ...
         return ret;
     }
+```
 
 #### 2.4.3 binder_ioctl_write_read
 [-> kernel/drivers/android/binder.c]
 
+```c
     static int binder_ioctl_write_read(struct file *filp,
                     unsigned int cmd, unsigned long arg,
                     struct binder_thread *thread)
@@ -391,12 +416,14 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
     out:
         return ret;
     }
+```
 
 此处将用户空间的binder_write_read结构体 拷贝到内核空间.
 
 #### 2.4.4 binder_thread_write
 [-> kernel/drivers/android/binder.c]
 
+```c
     static int binder_thread_write(struct binder_proc *proc,
           struct binder_thread *thread,
           binder_uintptr_t binder_buffer, size_t size,
@@ -418,12 +445,14 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         }
       }
    }
+```
 
 从bwr.write_buffer拿出cmd数据,此处为BC_ENTER_LOOPER. 可见上层本次调用binder_write()方法，主要是完成设置当前线程的looper状态为BINDER_LOOPER_STATE_ENTERED。
 
 ### 2.5 binder_parse
 [-> servicemanager/binder.c]
 
+```c
     int binder_parse(struct binder_state *bs, struct binder_io *bio,
                      uintptr_t ptr, size_t size, binder_handler func)
     {
@@ -495,12 +524,14 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         }
         return r;
     }
+```
 
 解析binder信息，此处参数ptr指向BC_ENTER_LOOPER，func指向svcmgr_handler。故有请求到来，则调用svcmgr_handler。
 
 #### 2.5.1 bio_init
 [-> servicemanager/binder.c]
 
+```c
     void bio_init(struct binder_io *bio, void *data,
                   size_t maxdata, size_t maxoffs)
     {
@@ -515,9 +546,11 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         bio->offs_avail = maxoffs;
         bio->flags = 0;
     }
+```
 
 其中
 
+```c
     struct binder_io
     {
         char *data;            /* pointer to read/write from */
@@ -530,10 +563,12 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         uint32_t flags;
         uint32_t unused;
     };
+```
 
 #### 2.5.2 bio_init_from_txn
 [-> servicemanager/binder.c]
 
+```c
     void bio_init_from_txn(struct binder_io *bio, struct binder_transaction_data *txn)
     {
         bio->data = bio->data0 = (char *)(intptr_t)txn->data.ptr.buffer;
@@ -542,12 +577,14 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         bio->offs_avail = txn->offsets_size / sizeof(size_t);
         bio->flags = BIO_F_SHARED;
     }
+```
 
 将readbuf的数据赋给bio对象的data
 
 ### 2.6 svcmgr_handler
 [-> service_manager.c]
 
+```c
     int svcmgr_handler(struct binder_state *bs,
                        struct binder_transaction_data *txn,
                        struct binder_io *msg,
@@ -607,11 +644,13 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         bio_put_uint32(reply, 0);
         return 0;
     }
+```
 
 该方法的功能：查询服务，注册服务，以及列举所有服务
 
 #### 2.6.1  svcinfo
 
+```c
     struct svcinfo
     {
         struct svcinfo *next;
@@ -621,6 +660,7 @@ ServiceManager是由[init进程](https://panard313.github.io/2016/02/05/android-
         size_t len; //名字长度
         uint16_t name[0]; //服务名
     };
+```
 
 每一个服务用svcinfo结构体来表示，该handle值是在注册服务的过程中，由服务所在进程那一端所确定的。
 
@@ -631,6 +671,7 @@ servicemanager的核心工作就是注册服务和查询服务。
 ### 3.1 do_find_service
 [-> service_manager.c]
 
+```c
     uint32_t do_find_service(struct binder_state *bs, const uint16_t *s, size_t len, uid_t uid, pid_t spid)
     {
         //查询相应的服务 【见小节3.1.1】
@@ -654,11 +695,13 @@ servicemanager的核心工作就是注册服务和查询服务。
         }
         return si->handle;
     }
+```
 
 查询到目标服务，并返回该服务所对应的handle
 
 #### 3.1.1 find_svc
 
+```c
     struct svcinfo *find_svc(const uint16_t *s16, size_t len)
     {
         struct svcinfo *si;
@@ -672,6 +715,7 @@ servicemanager的核心工作就是注册服务和查询服务。
         }
         return NULL;
     }
+```
 
 从svclist服务列表中，根据服务名遍历查找是否已经注册。当服务已存在`svclist`，则返回相应的服务名，否则返回NULL。
 
@@ -679,6 +723,7 @@ servicemanager的核心工作就是注册服务和查询服务。
 
 #### 3.1.2 bio_put_ref
 
+```c
     void bio_put_ref(struct binder_io *bio, uint32_t handle)
     {
         struct flat_binder_object *obj;
@@ -696,9 +741,11 @@ servicemanager的核心工作就是注册服务和查询服务。
         obj->handle = handle;
         obj->cookie = 0;
     }
+```
 
 #### 3.1.3 bio_alloc_obj
 
+```c
     static struct flat_binder_object *bio_alloc_obj(struct binder_io *bio)
     {
         struct flat_binder_object *obj;
@@ -712,8 +759,10 @@ servicemanager的核心工作就是注册服务和查询服务。
         bio->flags |= BIO_F_OVERFLOW;
         return NULL;
     }
+```
 
 #### 3.1.4 bio_alloc
+```c
     static void *bio_alloc(struct binder_io *bio, size_t size)
     {
         size = (size + 3) & (~3);
@@ -727,10 +776,12 @@ servicemanager的核心工作就是注册服务和查询服务。
             return ptr;
         }
     }
+```
 
 ### 3.2 do_add_service
 [-> service_manager.c]
 
+```c
     int do_add_service(struct binder_state *bs,
                        const uint16_t *s, size_t len,
                        uint32_t handle, uid_t uid, int allow_isolated,
@@ -775,6 +826,7 @@ servicemanager的核心工作就是注册服务和查询服务。
         binder_link_to_death(bs, handle, &si->death);
         return 0;
     }
+```
 
 注册服务的分以下3部分工作：
 
@@ -785,16 +837,19 @@ servicemanager的核心工作就是注册服务和查询服务。
 #### 3.2.1 svc_can_register
 [-> service_manager.c]
 
+```c
     static int svc_can_register(const uint16_t *name, size_t name_len, pid_t spid)
     {
         const char *perm = "add";
         //检查selinux权限是否满足
         return check_mac_perms_from_lookup(spid, perm, str8(name, name_len)) ? 1 : 0;
     }
+```
 
 #### 3.2.2 svcinfo_death
 [-> service_manager.c]
 
+```c
     void svcinfo_death(struct binder_state *bs, void *ptr)
     {
         struct svcinfo *si = (struct svcinfo* ) ptr;
@@ -804,10 +859,12 @@ servicemanager的核心工作就是注册服务和查询服务。
             si->handle = 0;
         }
     }
+```
 
 #### 3.2.3 bio_get_ref
 [-> servicemanager/binder.c]
 
+```c
     uint32_t bio_get_ref(struct binder_io *bio)
     {
         struct flat_binder_object *obj;
@@ -821,10 +878,12 @@ servicemanager的核心工作就是注册服务和查询服务。
 
         return 0;
     }
+```
     
 ### 3.3 binder_link_to_death
 [-> servicemanager/binder.c]
 
+```c
     void binder_link_to_death(struct binder_state *bs, uint32_t target, struct binder_death *death)
     {
         struct {
@@ -837,6 +896,7 @@ servicemanager的核心工作就是注册服务和查询服务。
         data.payload.cookie = (uintptr_t) death;
         binder_write(bs, &data, sizeof(data)); //[见小节3.3.1]
     }
+```
 
 binder_write经过跟小节2.4.1一样的方式, 进入Binder driver后,直接调用后进入binder_thread_write, 处理BC_REQUEST_DEATH_NOTIFICATION命令
 
@@ -844,6 +904,7 @@ binder_write经过跟小节2.4.1一样的方式, 进入Binder driver后,直接�
 #### 3.3.1 binder_ioctl_write_read
 [-> kernel/drivers/android/binder.c]
 
+```c
     static int binder_ioctl_write_read(struct file *filp,
                     unsigned int cmd, unsigned long arg,
                     struct binder_thread *thread)
@@ -889,10 +950,12 @@ binder_write经过跟小节2.4.1一样的方式, 进入Binder driver后,直接�
     out:
         return ret;
     }
+```
 
 #### 3.3.2 binder_thread_write
 [-> kernel/drivers/android/binder.c]
 
+```c
     static int binder_thread_write(struct binder_proc *proc,
           struct binder_thread *thread,
           binder_uintptr_t binder_buffer, size_t size,
@@ -948,6 +1011,7 @@ binder_write经过跟小节2.4.1一样的方式, 进入Binder driver后,直接�
         *consumed = ptr - buffer;
       }
    }
+```
 
 此方法中的proc, thread都是指当前servicemanager进程的信息. 此时TODO队列有数据,则进入binder_thread_read.
 
@@ -956,6 +1020,7 @@ binder_write经过跟小节2.4.1一样的方式, 进入Binder driver后,直接�
 
 #### 3.3.3 binder_thread_read
 
+```c
     static int binder_thread_read(struct binder_proc *proc,
                       struct binder_thread *thread,
                       binder_uintptr_t binder_buffer, size_t size,
@@ -1019,6 +1084,7 @@ binder_write经过跟小节2.4.1一样的方式, 进入Binder driver后,直接�
         ...
         return 0;
     }
+```
 
 将命令BR_DEAD_BINDER写到用户空间, 此处的cookie是前面传递的svcinfo_death. 当binder_loop下一次
 执行binder_parse的过程便会处理该消息。
@@ -1026,6 +1092,7 @@ binder_write经过跟小节2.4.1一样的方式, 进入Binder driver后,直接�
 #### 3.3.4 binder_parse
 [-> servicemanager/binder.c]
 
+```c
     int binder_parse(struct binder_state *bs, struct binder_io *bio,
                      uintptr_t ptr, size_t size, binder_handler func)
     {
@@ -1048,12 +1115,14 @@ binder_write经过跟小节2.4.1一样的方式, 进入Binder driver后,直接�
         }
         return r;
     }
+```
 
 由小节3.2的 si->death.func = (void*) svcinfo_death; 可知此处 death->func便是执行svcinfo_death()方法.
 
 #### 3.3.5 svcinfo_death
 [-> service_manager.c]
 
+```c
     void svcinfo_death(struct binder_state *bs, void *ptr)
     {
         struct svcinfo *si = (struct svcinfo* ) ptr;
@@ -1063,10 +1132,12 @@ binder_write经过跟小节2.4.1一样的方式, 进入Binder driver后,直接�
             si->handle = 0;
         }
     }
+```
 
 #### 3.3.6 binder_release
 [-> service_manager.c]
 
+```c
     void binder_release(struct binder_state *bs, uint32_t target)
     {
         uint32_t cmd[2];
@@ -1074,12 +1145,14 @@ binder_write经过跟小节2.4.1一样的方式, 进入Binder driver后,直接�
         cmd[1] = target;
         binder_write(bs, cmd, sizeof(cmd));
     }
+```
 
 向Binder Driver写入BC_RELEASE命令, 最终进入Binder Driver后执行binder_dec_ref(ref, 1)来减少binder node的引用.
 
 ### 3.4 binder_send_reply
 [-> servicemanager/binder.c]
 
+```c
     void binder_send_reply(struct binder_state *bs,
                            struct binder_io *reply,
                            binder_uintptr_t buffer_to_free,
@@ -1114,6 +1187,7 @@ binder_write经过跟小节2.4.1一样的方式, 进入Binder driver后,直接�
         //向Binder驱动通信
         binder_write(bs, &data, sizeof(data));
     }
+```
     
 当小节2.5执行binder_parse方法，先调用svcmgr_handler()，再然后执行binder_send_reply过程。该方法会调用
 [小节2.4.1] binder_write进入binder驱动后，将BC_FREE_BUFFER和BC_REPLY命令协议发送给Binder驱动，向client端发送reply.

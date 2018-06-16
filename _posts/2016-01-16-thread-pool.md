@@ -29,6 +29,7 @@ Java API针对不同需求，利用`Executors`类提供了4种不同的线程池
 
 创建一个可缓存的无界线程池，该方法无参数。当线程池中的线程空闲时间超过60s则会自动回收该线程，当任务超过线程池的线程数则创建新线程。线程池的大小上限为Integer.MAX_VALUE，可看做是无限大。
 
+```java
     public void cachedThreadPoolDemo(){
         ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
         for (int i = 0; i < 5; i++) {
@@ -49,14 +50,17 @@ Java API针对不同需求，利用`Executors`类提供了4种不同的线程池
             }
         }
     }
+```
 
 运行结果：
 
+```java
     pool-1-thread-1, index=0
     pool-1-thread-1, index=1
     pool-1-thread-1, index=2
     pool-1-thread-1, index=3
     pool-1-thread-1, index=4
+```
 
 从运行结果可以看出，整个过程都在同一个线程`pool-1-thread-1`中运行，后面线程复用前面的线程。
 
@@ -64,6 +68,7 @@ Java API针对不同需求，利用`Executors`类提供了4种不同的线程池
 
 创建一个固定大小的线程池，该方法可指定线程池的固定大小，对于超出的线程会在`LinkedBlockingQueue`队列中等待。
 
+```java
     public void fixedThreadPoolDemo(){
         ExecutorService fixedThreadPool = Executors.newFixedThreadPool(3);
         for (int i = 0; i < 6; i++) {
@@ -84,15 +89,18 @@ Java API针对不同需求，利用`Executors`类提供了4种不同的线程池
             }
         }
     }
+```
 
 运行结果：
 
+```java
     pool-1-thread-1, index=0
     pool-1-thread-2, index=1
     pool-1-thread-3, index=2
     pool-1-thread-1, index=3
     pool-1-thread-2, index=4
     pool-1-thread-3, index=5
+```
 
 从运行结果可以看出，线程池大小为3，每休眠1s后将任务提交给线程池的各个线程轮番交错地执行。线程池的大小设置，可参数Runtime.getRuntime().availableProcessors()。
 
@@ -100,6 +108,7 @@ Java API针对不同需求，利用`Executors`类提供了4种不同的线程池
 
 创建一个只有线程的线程池，该方法无参数，所有任务都保存队列LinkedBlockingQueue中，等待唯一的单线程来执行任务，并保证所有任务按照指定顺序(FIFO或优先级)执行。
 
+```java
     public void singleThreadExecutorDemo(){
         ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor();
         for (int i = 0; i < 3; i++) {
@@ -120,12 +129,15 @@ Java API针对不同需求，利用`Executors`类提供了4种不同的线程池
             }
         }
     }
+```
 
 运行结果：
 
+```java
     pool-1-thread-1, index=0
     pool-1-thread-1, index=1
     pool-1-thread-1, index=2
+```
 
 从运行结果可以看出，所有任务都是在单一线程运行的。
 
@@ -133,6 +145,7 @@ Java API针对不同需求，利用`Executors`类提供了4种不同的线程池
 
 创建一个可定时执行或周期执行任务的线程池，该方法可指定线程池的核心线程个数。
 
+```java
     public void scheduledThreadPoolDemo(){
         ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(3);
         //定时执行一次的任务，延迟1s后执行
@@ -153,14 +166,17 @@ Java API针对不同需求，利用`Executors`类提供了4种不同的线程池
             }
         }, 2, 3, TimeUnit.SECONDS);
     }
+```
 
 运行结果：
 
+```java
     pool-1-thread-1, delay 1s
     pool-1-thread-1, every 3s
     pool-1-thread-2, every 3s
     pool-1-thread-2, every 3s
     ...
+```
 
 - schedule(Runnable command, long delay, TimeUnit unit)，延迟一定时间后执行Runnable任务；
 - schedule(Callable<V> callable, long delay, TimeUnit unit)，延迟一定时间后执行Callable任务；
@@ -189,6 +205,7 @@ Executors类提供4个静态工厂方法：newCachedThreadPool()、newFixedThrea
 
 ### 3.1 ThreadPoolExecutor
 
+```java
     public ThreadPoolExecutor(int corePoolSize,
                               int maximumPoolSize,
                               long keepAliveTime,
@@ -197,6 +214,7 @@ Executors类提供4个静态工厂方法：newCachedThreadPool()、newFixedThrea
         this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
              Executors.defaultThreadFactory(), defaultHandler);
     }
+```
 
 创建线程池，在构造一个新的线程池时，必须满足下面的条件：
 
@@ -211,6 +229,7 @@ Executors类提供4个静态工厂方法：newCachedThreadPool()、newFixedThrea
 
 ### 3.2 参数详解
 
+```java
     public ThreadPoolExecutor(int corePoolSize,
                               int maximumPoolSize,
                               long keepAliveTime,
@@ -232,6 +251,7 @@ Executors类提供4个静态工厂方法：newCachedThreadPool()、newFixedThrea
         this.threadFactory = threadFactory;
         this.handler = handler;
     }
+```
 
 **参数说明：**
 

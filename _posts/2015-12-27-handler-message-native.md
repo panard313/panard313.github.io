@@ -40,12 +40,14 @@ tags:
 
 在MessageQueue中的native方法如下：
 
+```java
     private native static long nativeInit();
     private native static void nativeDestroy(long ptr);
     private native void nativePollOnce(long ptr, int timeoutMillis);
     private native static void nativeWake(long ptr);
     private native static boolean nativeIsPolling(long ptr);
     private native static void nativeSetFileDescriptorEvents(long ptr, int fd, int events);
+```
 
 ### 2.1 nativeInit()
 
@@ -59,15 +61,18 @@ tags:
 
 ==> MessageQueue.java
 
+```java
     MessageQueue(boolean quitAllowed) {
         mQuitAllowed = quitAllowed;
         mPtr = nativeInit();  //mPtr记录native消息队列的信息 【2】
     }
+```
 
 **【2】android_os_MessageQueue_nativeInit()**
 
 ==> android_os_MessageQueue.cpp
 
+```java
     static jlong android_os_MessageQueue_nativeInit(JNIEnv* env, jclass clazz) {
         NativeMessageQueue* nativeMessageQueue = new NativeMessageQueue(); //初始化native消息队列 【3】
         if (!nativeMessageQueue) {
@@ -77,11 +82,13 @@ tags:
         nativeMessageQueue->incStrong(env);
         return reinterpret_cast<jlong>(nativeMessageQueue);
     }
+```
 
 **【3】new NativeMessageQueue()**
 
 ==> android_os_MessageQueue.cpp
 
+```java
     NativeMessageQueue::NativeMessageQueue() : mPollEnv(NULL), mPollObj(NULL), mExceptionObj(NULL) {
         mLooper = Looper::getForThread(); //获取TLS中的Looper对象
         if (mLooper == NULL) {
@@ -89,6 +96,7 @@ tags:
             Looper::setForThread(mLooper); //保存native层的Looper到TLS中
         }
     }
+```
 
 - Looper::getForThread()，功能类比于Java层的Looper.myLooper();
 - Looper::setForThread(mLooper)，功能类比于Java层的ThreadLocal.set();
@@ -100,6 +108,7 @@ MessageQueue是在Java层与Native层有着紧密的联系，但是此次Native�
 
 ==> Looper.cpp
 
+```java
     Looper::Looper(bool allowNonCallbacks) :
             mAllowNonCallbacks(allowNonCallbacks), mSendingMessage(false),
             mPolling(false), mEpollFd(-1), mEpollRebuildRequired(false),
@@ -109,11 +118,13 @@ MessageQueue是在Java层与Native层有着紧密的联系，但是此次Native�
         rebuildEpollLocked();  //重建Epoll事件【5】
     }
 
+```
 
 **【5】epoll_create/epoll_ctl**
 
 ==> Looper.cpp
 
+```java
     void Looper::rebuildEpollLocked() {
         if (mEpollFd >= 0) {
             close(mEpollFd); //关闭旧的epoll实例
@@ -137,6 +148,7 @@ MessageQueue是在Java层与Native层有着紧密的联系，但是此次Native�
             }
         }
     }
+```
 
 关于epoll的原理以及为什么选择epoll的方式，可查看文章[select/poll/epoll对比分析](https://panard313.github.io/2015/12/06/linux_epoll/)。
 
@@ -155,21 +167,25 @@ MessageQueue是在Java层与Native层有着紧密的联系，但是此次Native�
 
 ==> MessageQueue.java
 
+```java
     private void dispose() {
         if (mPtr != 0) {
             nativeDestroy(mPtr); 【2】
             mPtr = 0;
         }
     }
+```
 
 **【2】android_os_MessageQueue_nativeDestroy()**
 
 ==> android_os_MessageQueue.cpp
 
+```java
     static void android_os_MessageQueue_nativeDestroy(JNIEnv* env, jclass clazz, jlong ptr) {
         NativeMessageQueue* nativeMessageQueue = reinterpret_cast<NativeMessageQueue*>(ptr);
         nativeMessageQueue->decStrong(env); 【3】
     }
+```
 
 nativeMessageQueue继承自RefBase类，所以decStrong最终调用的是RefBase.decStrong().
 
@@ -177,6 +193,7 @@ nativeMessageQueue继承自RefBase类，所以decStrong最终调用的是RefBase
 
 ==> RefBase.cpp
 
+```java
     void RefBase::decStrong(const void* id) const
     {
         weakref_impl* const refs = mRefs;
@@ -191,6 +208,7 @@ nativeMessageQueue继承自RefBase类，所以decStrong最终调用的是RefBase
         refs->decWeak(id); // 移除弱引用
     }
 
+```
 
 ### 2.3 nativePollOnce()
 
@@ -204,6 +222,7 @@ nativePollOnce用于提取消息队列中的消息，提取消息的调用链，
 
 ==> MessageQueue.java
 
+```java
     Message next() {
         final long ptr = mPtr;
         if (ptr == 0) {
@@ -215,21 +234,25 @@ nativePollOnce用于提取消息队列中的消息，提取消息的调用链，
             nativePollOnce(ptr, nextPollTimeoutMillis); //阻塞操作 【2】
             ...
         }
+```
 
 **【2】android_os_MessageQueue_nativePollOnce()**
 
 ==> android_os_MessageQueue.cpp
 
+```java
     static void android_os_MessageQueue_nativePollOnce(JNIEnv* env, jobject obj, jlong ptr, jint timeoutMillis) {
         //将Java层传递下来的mPtr转换为nativeMessageQueue
         NativeMessageQueue* nativeMessageQueue = reinterpret_cast<NativeMessageQueue*>(ptr);
         nativeMessageQueue->pollOnce(env, obj, timeoutMillis); 【3】
     }
+```
 
 **【3】NativeMessageQueue::pollOnce()**
 
 ==> android_os_MessageQueue.cpp
 
+```java
     void NativeMessageQueue::pollOnce(JNIEnv* env, jobject pollObj, int timeoutMillis) {
         mPollEnv = env;
         mPollObj = pollObj;
@@ -242,19 +265,23 @@ nativePollOnce用于提取消息队列中的消息，提取消息的调用链，
             mExceptionObj = NULL;
         }
     }
+```
 
 **【4】Looper::pollOnce()**
 
 ==> Looper.h
 
+```java
     inline int pollOnce(int timeoutMillis) {
         return pollOnce(timeoutMillis, NULL, NULL, NULL); 【5】
     }
+```
 
 **【5】 Looper::pollOnce()**
 
 ==> Looper.cpp
 
+```java
     int Looper::pollOnce(int timeoutMillis, int* outFd, int* outEvents, void** outData) {
         int result = 0;
         for (;;) {
@@ -282,6 +309,7 @@ nativePollOnce用于提取消息队列中的消息，提取消息的调用链，
             result = pollInner(timeoutMillis); 【6】
         }
     }
+```
 
 参数说明：
 
@@ -299,6 +327,7 @@ nativePollOnce用于提取消息队列中的消息，提取消息的调用链，
 
 ==> Looper.cpp
 
+```java
     int Looper::pollInner(int timeoutMillis) {
         ...
         int result = POLL_WAKE;
@@ -392,6 +421,7 @@ nativePollOnce用于提取消息队列中的消息，提取消息的调用链，
         }
         return result;
     }
+```
 
 pollOnce返回值说明：
 
@@ -402,11 +432,13 @@ pollOnce返回值说明：
 
 **【7】Looper::awoken()**
 
+```java
     void Looper::awoken() {
         uint64_t counter;
         //不断读取管道数据，目的就是为了清空管道内容
         TEMP_FAILURE_RETRY(read(mWakeEventFd, &counter, sizeof(uint64_t)));
     }
+```
 
 **poll小结**
 
@@ -442,12 +474,14 @@ nativeWake用于唤醒功能，在添加消息到消息队列`enqueueMessage()`,
 
 ==> MessageQueue.java
 
+```java
     boolean enqueueMessage(Message msg, long when) {
         ... //将Message按时间顺序插入MessageQueue
         if (needWake) {
                 nativeWake(mPtr); 【2】
             }
     }
+```
 
 往消息队列添加Message时，需要根据mBlocked情况来决定是否需要调用nativeWake。
 
@@ -456,23 +490,28 @@ nativeWake用于唤醒功能，在添加消息到消息队列`enqueueMessage()`,
 
 ==> android_os_MessageQueue.cpp
 
+```java
     static void android_os_MessageQueue_nativeWake(JNIEnv* env, jclass clazz, jlong ptr) {
         NativeMessageQueue* nativeMessageQueue = reinterpret_cast<NativeMessageQueue*>(ptr);
         nativeMessageQueue->wake(); 【3】
     }
+```
 
 **【3】NativeMessageQueue::wake()**
 
 ==> android_os_MessageQueue.cpp
 
+```java
     void NativeMessageQueue::wake() {
         mLooper->wake();  【4】
     }
+```
 
 **【4】Looper::wake()**
 
 ==> Looper.cpp
 
+```java
     void Looper::wake() {
         uint64_t inc = 1;
         // 向管道mWakeEventFd写入字符1
@@ -483,6 +522,7 @@ nativeWake用于唤醒功能，在添加消息到消息队列`enqueueMessage()`,
             }
         }
     }
+```
 
 其中`TEMP_FAILURE_RETRY` 是一个宏定义， 当执行`write`失败后，会不断重复执行，直到执行成功为止。
 
@@ -493,23 +533,28 @@ nativeWake用于唤醒功能，在添加消息到消息队列`enqueueMessage()`,
 
 **【1】sendMessage**
 
+```java
     void Looper::sendMessage(const sp<MessageHandler>& handler, const Message& message) {
         nsecs_t now = systemTime(SYSTEM_TIME_MONOTONIC);
         sendMessageAtTime(now, handler, message);
     }
+```
 
 **【2】sendMessageDelayed**
 
+```java
     void Looper::sendMessageDelayed(nsecs_t uptimeDelay, const sp<MessageHandler>& handler,
             const Message& message) {
         nsecs_t now = systemTime(SYSTEM_TIME_MONOTONIC);
         sendMessageAtTime(now + uptimeDelay, handler, message);
     }
+```
 
 sendMessage(),sendMessageDelayed() 都是调用sendMessageAtTime()来完成消息插入。
 
 **【3】sendMessageAtTime**
 
+```java
     void Looper::sendMessageAtTime(nsecs_t uptime, const sp<MessageHandler>& handler,
             const Message& message) {
         size_t i = 0;
@@ -532,6 +577,7 @@ sendMessage(),sendMessageDelayed() 都是调用sendMessageAtTime()来完成消�
             wake();
         }
     }
+```
 
 ### 2.6 小结
 
@@ -550,25 +596,30 @@ Looper.h/ Looper.cpp文件中，定义了Message结构体，消息处理类，�
 
 ### 3.1 Message结构体
 
+```java
     struct Message {
         Message() : what(0) { }
         Message(int what) : what(what) { }
         int what; // 消息类型
     };
+```
 
 ### 3.2 消息处理类
 
 MessageHandler类
 
+```java
     class MessageHandler : public virtual RefBase {
     protected:
         virtual ~MessageHandler() { }
     public:
         virtual void handleMessage(const Message& message) = 0;
     };
+```
 
 WeakMessageHandler类，继承于MessageHandler类
 
+```java
     class WeakMessageHandler : public MessageHandler {
     protected:
         virtual ~WeakMessageHandler();
@@ -585,11 +636,13 @@ WeakMessageHandler类，继承于MessageHandler类
             handler->handleMessage(message); //调用MessageHandler类的处理方法()
         }
     }
+```
 
 ### 3.3 回调类
 
 LooperCallback类
 
+```java
     class LooperCallback : public virtual RefBase {
     protected:
         virtual ~LooperCallback() { }
@@ -597,9 +650,11 @@ LooperCallback类
         //用于处理指定的文件描述符的poll事件
         virtual int handleEvent(int fd, int events, void* data) = 0;
     };
+```
 
 SimpleLooperCallback类， 继承于LooperCallback类
 
+```java
     class SimpleLooperCallback : public LooperCallback {
     protected:
         virtual ~SimpleLooperCallback();
@@ -614,20 +669,24 @@ SimpleLooperCallback类， 继承于LooperCallback类
         return mCallback(fd, events, data); //调用回调方法
     }
 
+```
 
 ### 3.4 Looper类
 
 
 
+```java
     static const int EPOLL_SIZE_HINT = 8; //每个epoll实例默认的文件描述符个数
     static const int EPOLL_MAX_EVENTS = 16; //轮询事件的文件描述符的个数上限
+```
 
- 其中Looper类的内部定义了Request，Response，MessageEnvelope这3个结构体，关系图如下：
+其中Looper类的内部定义了Request，Response，MessageEnvelope这3个结构体，关系图如下：
 
 ![handler_struct](/images/handler/handler_struct.png)
 
 代码如下：
 
+```java
     struct Request { //请求结构体
         int fd;
         int ident;
@@ -653,6 +712,7 @@ SimpleLooperCallback类， 继承于LooperCallback类
         Message message;
     };
 
+```
 
 MessageEnvelope正如其名字，信封。MessageEnvelope里面记录着收信人(handler)，发信时间(uptime)，信件内容(message)
 
@@ -660,12 +720,14 @@ MessageEnvelope正如其名字，信封。MessageEnvelope里面记录着收信�
 
 ALooper类定义在通过looper.cpp/looper.h（注意此文件是小写字母开头，与Looper.cpp不同，具体源码路径，可通过查看文章最开头的 相关源码）
 
+```java
     static inline Looper* ALooper_to_Looper(ALooper* alooper) {
         return reinterpret_cast<Looper*>(alooper);
     }
     static inline ALooper* Looper_to_ALooper(Looper* looper) {
         return reinterpret_cast<ALooper*>(looper);
     }
+```
 
 ALooper类 与前面介绍的Looper类，更多的操作是通过ALooper_to_Looper(), Looper_to_ALooper()这两个方法转换完成的，也就是说ALooper类中定义的所有方法，都是通过转换为Looper类，再执行Looper中的方法。
 

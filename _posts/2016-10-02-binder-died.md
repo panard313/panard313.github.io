@@ -19,6 +19,7 @@ tags:
 
 当进程死亡后, 系统是如何知道的呢, 答案就在进程创建之后,会调用AMS.attachApplicationLocked()
 
+```java
     private final boolean attachApplicationLocked(IApplicationThread thread,
             int pid) {
         ...
@@ -32,6 +33,7 @@ tags:
         }
         ...
     }
+```
 
 在这个过程中,会创建AppDeathRecipient死亡通告对象,通过binder机制绑定, 当新创建的应用进程死亡后,便会回调binderDied()方法. 关于[binder](https://panard313.github.io/2015/10/31/binder-prepare/)前面有大量文章深入介绍过. 其中关于binder死亡回调,是指binder server端挂了之后通过binder driver会通知binder client端. 那么对于进程死亡过程, binder server端是指应用进程的ApplicationThread, binder client端是指system_server进程中的ApplicationThreadProxy对象. 接下来从binderDied()方法说起.
 
@@ -41,6 +43,7 @@ tags:
 ### 2.1 binderDied
 [-> ActivityManagerService.java]
 
+```java
     private final class AppDeathRecipient implements IBinder.DeathRecipient {
         final ProcessRecord mApp;
         final int mPid;
@@ -60,12 +63,14 @@ tags:
             }
         }
     }
+```
 
 当进程死亡后便会回调binderDied()方法.该方法是由ActivityManagerService对象锁保护.
 
 ### 2.2 AMS.appDiedLocked
 [-> ActivityManagerService.java]
 
+```java
     final void appDiedLocked(ProcessRecord app, int pid, IApplicationThread thread,
             boolean fromBinderDied) {
         //检查pid与app是否匹配,不匹配则直接返回
@@ -130,6 +135,7 @@ tags:
         }
     }
 
+```
 
 - `mPidsSelfLocked`: 数据类型为SparseArray<ProcessRecord>, 以pid为key, ProcessRecord为value的结构体.
 - app.killed: 当进程是由AMS杀掉的则killed=true, 当进程是由底层lmkd所杀或者是底层signal 9信号所杀则killed=false;
@@ -139,6 +145,7 @@ tags:
 ### 2.3 AMS.handleAppDiedLocked
 [-> ActivityManagerService.java]
 
+```java
     // restarting = false,  allowRestart = true
     private final void handleAppDiedLocked(ProcessRecord app,
             boolean restarting, boolean allowRestart) {
@@ -165,6 +172,7 @@ tags:
            mStackSupervisor.ensureActivitiesVisibleLocked(null, 0);
        }
     }
+```
 
 **主要功能:**
 
@@ -201,6 +209,7 @@ tags:
 #### part 1 清理service
 
 
+```java
     private final boolean cleanUpApplicationRecordLocked(ProcessRecord app,
             boolean restarting, boolean allowRestart, int index) {
         ...
@@ -240,6 +249,7 @@ tags:
         mServices.killServicesLocked(app, allowRestart);
         boolean restart = false;
     }
+```
 
 - mProcessesToGc：记录着需要尽快执行gc的进程列表
 - mPendingPssProcesses：记录着需要收集内存信息的进程列表
@@ -247,6 +257,7 @@ tags:
 #### part 1-1 ActiveServices.killServicesLocked
 [-> ActiveServices.java]
 
+```java
     final void killServicesLocked(ProcessRecord app, boolean allowRestart) {
           //移除应用跟其他service的所有连接对象
          for (int i = app.connections.size() - 1; i >= 0; i--) {
@@ -371,9 +382,11 @@ tags:
          app.executingServices.clear();
      }
 
+```
 
 #### part 2 清理ContentProvider
 
+```java
     private final boolean cleanUpApplicationRecordLocked(...) {
         ...
         for (int i = app.pubProviders.size() - 1; i >= 0; i--) {
@@ -408,9 +421,11 @@ tags:
             }
             app.conProviders.clear();
         }
+```
 
 #### part 3 清理BroadcastReceiver
 
+```java
     private final boolean cleanUpApplicationRecordLocked(...) {
         ...
         skipCurrentReceiverLocked(app);
@@ -421,9 +436,11 @@ tags:
         }
         app.receivers.clear();
     }
+```
 
 #### part 4 清理Process
 
+```java
     private final boolean cleanUpApplicationRecordLocked(...) {
         ...
         //当app正在备份时的处理方式
@@ -491,9 +508,11 @@ tags:
         }
         return false;
     }
+```
 
 ### 2.5  ASS.handleAppDiedLocked
 
+```java
     boolean handleAppDiedLocked(ProcessRecord app) {
         boolean hasVisibleActivities = false;
         for (int displayNdx = mActivityDisplays.size() - 1; displayNdx >= 0; --displayNdx) {
@@ -505,9 +524,11 @@ tags:
         }
         return hasVisibleActivities;
     }
+```
 
 ### 2.6 AS.handleAppDiedLocked
 
+```java
     boolean handleAppDiedLocked(ProcessRecord app) {
         //Activity暂停的过程中进程已死则无需走暂停流程
         if (mPausingActivity != null && mPausingActivity.app == app) {
@@ -521,6 +542,7 @@ tags:
         //[见流程2.7]
         return removeHistoryRecordsForAppLocked(app);
     }
+```
 
 当以下Activity运行在app进程,则置空.
 
@@ -530,6 +552,7 @@ tags:
 
 ### 2.7 AS.removeHistoryRecordsForAppLocked
 
+```java
     boolean removeHistoryRecordsForAppLocked(ProcessRecord app) {
       removeHistoryRecordsForAppLocked(mLRUActivities, app, "mLRUActivities");
       removeHistoryRecordsForAppLocked(mStackSupervisor.mStoppingActivities, app,
@@ -591,6 +614,7 @@ tags:
       return hasVisibleActivities;
     }
 
+```
 
 从以下5个队列中移除该activity的信息:
 
@@ -602,6 +626,7 @@ tags:
 
 #### 2.7.1 AS.cleanUpActivityLocked
 
+```java
     final void cleanUpActivityLocked(ActivityRecord r, boolean cleanServices,
             boolean setState) {
         //重置resume和pause信息
@@ -646,6 +671,7 @@ tags:
             mStackSupervisor.requestVisibleBehindLocked(r, false);
         }
     }
+```
 
 主要功能:
 
@@ -655,6 +681,7 @@ tags:
 
 #### 2.7.2 AS.removeActivityFromHistoryLocked
 
+```java
     private void removeActivityFromHistoryLocked(ActivityRecord r, String reason) {
          mStackSupervisor.removeChildActivityContainers(r);
          finishActivityResultsLocked(r, Activity.RESULT_CANCELED, null);
@@ -681,6 +708,7 @@ tags:
          cleanUpActivityServicesLocked(r);
          r.removeUriPermissionsLocked();
      }
+```
 
 - 设置Activity的finishing = true, 状态为destroyed, 并且从mTaskHistory中移除该task.
 - 此时当mTaskHistory为空,则将home所在栈移至前台.

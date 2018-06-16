@@ -34,6 +34,7 @@ tags:
 
 **用法：**
 
+```java
     //创建Runable对象
     Runnable runnable = new Runnable() {
             @Override
@@ -49,53 +50,70 @@ tags:
 
     //执行runnable
     threadPoolExecutor.execute(runnable);
+```
 
 对于corePoolSize，一般往往可以设置为`Runtime.getRuntime().availableProcessors()`，代表当前系统活跃的CPU个数。
 
 另外系统采用工厂模式，通过设置ThreadPoolExecutor的不同参数，提供四种默认线程池：
 **(1) newCachedThreadPool**
 可缓存线程池，若线程空闲60s则回收，若无空闲线程可无限创建新线程，定义如下：
+```java
     `new ThreadPoolExecutor(0, Integer.MAX_VALUE,
                               60L, TimeUnit.SECONDS,
                               new SynchronousQueue<Runnable>());`
+```
 
 调用方法：
 
+```java
     ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
     cachedThreadPool.execute(runnable);
+```
 
 **(2) newFixedThreadPool**
 定长线程，固定线程池大小，定义如下：
+```java
     `new ThreadPoolExecutor(nThreads, nThreads,
                                       0L, TimeUnit.MILLISECONDS,
                                       new LinkedBlockingQueue<Runnable>());`
+```
 
 调用方法：
 
+```java
     ExecutorService fixedThreadPool = Executors.newFixedThreadPool(nThreads);
     fixedThreadPool.execute(runnable);
+```
 
 **(3) newSingleThreadExecutor**
 只有一个线程的线程池，定义如下：
+```java
     `new FinalizableDelegatedExecutorService
             (new ThreadPoolExecutor(1, 1,
                                     0L, TimeUnit.MILLISECONDS,
                                     new LinkedBlockingQueue<Runnable>()));`
+```
 
 调用方法：
 
+```java
     ExecutorService singleThreadPool = Executors.newSingleThreadExecutor();
     newSingleThreadExecutor.execute(runnable);
+```
 
 **(4) newScheduledThreadPool**
 可定时周期执行的线程池，定义如下：
+```java
     `new ThreadPoolExecutor(corePoolSize, Integer.MAX_VALUE, 0, NANOSECONDS,
               new DelayedWorkQueue());`
+```
 
 调用方法：
 
+```java
     ExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(corePoolSize);
     scheduledThreadPool.schedule(runnable, delay, TimeUnit.SECONDS);
+```
 
 ## 3.  ArrayList Vs LinkedList
 ArrayList基于动态数组的数据结构， 对于随机访问(get/set)，ArrayList效率比LinkedList高；
@@ -107,40 +125,48 @@ LinkedList基于链表的数据结构，对于新增和删除(add/remove)，Line
 
 LinkedList采用foreach方式， 效率最高。for循环方式效率大幅度降低。
 
+```java
     List<Integer> list = new LinkedList<Integer>();
     for (Integer j : list) {
         ... //TODO
     }
+```
 
 ArrayList采用for循环+临时变量保存size，效率最高。 foreach方式效率略微降低。
 
+```java
     List<Integer> list = new ArrayList<Integer>();
     int len = list.size();
     for (int j = 0; j < len; j++) {
         list.get(j);
     }
 
+```
 
 (3)采用new ArrayList()方式，初始大小为0，首次增加数组时，扩充大小到12，以后到数组需要增长时，会将大小增加50%，并将原来的成员全部复制到新的数组内。所以尽可能将ArrayList提前设置成目标大小，或者接近目标大小，以减少数组不断创建与复制的过程，提高效率。
 
 ## 4.  HashMap Vs SparseArray
 
-(1)同时需要key和value，采用如下遍历方法：
+### (1)同时需要key和value，采用如下遍历方法：
 
+```java
     Map<String, String> map = new HashMap<String, String>();
     for (Map.Entry<String, String> entry : map.entrySet()) {
             entry.getKey();
             entry.getValue();
     }
+```
 
-(2)只需要获取key，采用如下遍历方法：
+### (2)只需要获取key，采用如下遍历方法：
 
+```java
     Map<String, String> map = new HashMap<String, String>();
     for (String key : map.keySet()) {
         // key process
     }
+```
 
- (3) 当HashMap的key是整型时，采用SparseArray，效率更高。避免了对key与value的自动装箱与解箱操作。
+### (3) 当HashMap的key是整型时，采用SparseArray，效率更高。避免了对key与value的自动装箱与解箱操作。
 
 
 

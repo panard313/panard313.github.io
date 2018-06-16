@@ -18,6 +18,7 @@ tags:
 #### 1.1 threadLoop
 先来回顾一下InputDispatcher对象的初始化过程:
 
+```java
     InputDispatcher::InputDispatcher(const sp<InputDispatcherPolicyInterface>& policy) :
         mPolicy(policy),
         mPendingEvent(NULL), mLastDropReason(DROP_REASON_NOT_DROPPED),
@@ -32,6 +33,7 @@ tags:
         //获取分发超时参数
         policy->getDispatcherConfiguration(&mConfig);
     }
+```
 
 该方法主要工作：
 
@@ -41,16 +43,19 @@ tags:
 
 [-> InputDispatcher.cpp]
 
+```java
     bool InputDispatcherThread::threadLoop() {
         mDispatcher->dispatchOnce(); //【见小节1.2】
         return true;
     }
+```
 
 整个过程不断循环地调用InputDispatcher的dispatchOnce()来分发事件
 
 #### 1.2 dispatchOnce
 [-> InputDispatcher.cpp]
 
+```java
     void InputDispatcher::dispatchOnce() {
         nsecs_t nextWakeupTime = LONG_LONG_MAX;
         {
@@ -73,6 +78,7 @@ tags:
         int timeoutMillis = toMillisecondTimeoutDelay(currentTime, nextWakeupTime);
         mLooper->pollOnce(timeoutMillis); //进入epoll_wait
     }
+```
 
 线程执行Looper->pollOnce，进入epoll_wait等待状态，当发生以下任一情况则退出等待状态：
 
@@ -85,6 +91,7 @@ tags:
 
 ### 2.1 dispatchOnceInnerLocked
 
+```java
     void InputDispatcher::dispatchOnceInnerLocked(nsecs_t* nextWakeupTime) {
         nsecs_t currentTime = now(); //当前时间
 
@@ -158,10 +165,13 @@ tags:
             *nextWakeupTime = LONG_LONG_MIN; //强制立刻执行轮询
         }
     }
+```
 
 在enqueueInboundEventLocked()的过程中已设置mAppSwitchDueTime等于eventTime加上500ms:
 
+```java
     mAppSwitchDueTime = keyEntry->eventTime + APP_SWITCH_TIMEOUT;
+```
 
 该方法主要功能:
 
@@ -188,14 +198,17 @@ tags:
 
 #### 2.1.1 resetANRTimeoutsLocked
 
+```java
     void InputDispatcher::resetANRTimeoutsLocked() {
         // 重置等待超时cause和handle
         mInputTargetWaitCause = INPUT_TARGET_WAIT_CAUSE_NONE;
         mInputTargetWaitApplicationHandle.clear();
     }
+```
 
 #### 2.1.2 dropInboundEventLocked
 
+```java
     void InputDispatcher::dropInboundEventLocked(EventEntry* entry, DropReason dropReason) {
         const char* reason;
         switch (dropReason) {
@@ -235,9 +248,11 @@ tags:
         ...
         }
     }
+```
 
 ### 2.2 dispatchKeyLocked
 
+```java
     bool InputDispatcher::dispatchKeyLocked(nsecs_t currentTime, KeyEntry* entry,
             DropReason* dropReason, nsecs_t* nextWakeupTime) {
         ...
@@ -298,6 +313,7 @@ tags:
         dispatchEventLocked(currentTime, entry, inputTargets);
         return true;
     }
+```
 
 在以下场景下，有可能无法分发事件：
 
@@ -310,6 +326,7 @@ tags:
 
 ### 2.3 findFocusedWindowTargetsLocked
 
+```java
     int32_t InputDispatcher::findFocusedWindowTargetsLocked(nsecs_t currentTime,
             const EventEntry* entry, Vector<InputTarget>& inputTargets, nsecs_t* nextWakeupTime) {
         int32_t injectionResult;
@@ -361,6 +378,7 @@ tags:
               injectionResult, timeSpentWaitingForApplication);
         return injectionResult;
     }
+```
 
 此处mFocusedWindowHandle是何处赋值呢？是在InputDispatcher.setInputWindows()方法，具体见下一篇文章[Input系统—UI线程]().
 
@@ -373,6 +391,7 @@ tags:
 
 #### 2.3.1 checkWindowReadyForMoreInputLocked
 
+```java
     String8 InputDispatcher::checkWindowReadyForMoreInputLocked(nsecs_t currentTime,
             const sp<InputWindowHandle>& windowHandle, const EventEntry* eventEntry,
             const char* targetType) {
@@ -428,9 +447,11 @@ tags:
         }
         return String8::empty();
     }
+```
 
 #### 2.3.2 handleTargetsNotReadyLocked
 
+```java
     int32_t InputDispatcher::handleTargetsNotReadyLocked(nsecs_t currentTime,
         const EventEntry* entry,
         const sp<InputApplicationHandle>& applicationHandle,
@@ -488,6 +509,7 @@ tags:
             return INPUT_EVENT_INJECTION_PENDING;
         }
     }
+```
 
 此处mInputTargetWaitTimeoutTime是由当前时间戳+5s, 并设置mInputTargetWaitCause等于INPUT_TARGET_WAIT_CAUSE_APPLICATION_NOT_READY.
 也就是说ANR时间段是指input等待理由处于INPUT_TARGET_WAIT_CAUSE_APPLICATION_NOT_READY(应用没有准备就绪)的时间长达5s的场景.而前面resetANRTimeoutsLocked()
@@ -511,6 +533,7 @@ tags:
 
 #### 2.3.3 addWindowTargetLocked
 
+```java
     void InputDispatcher::addWindowTargetLocked(const sp<InputWindowHandle>& windowHandle,
             int32_t targetFlags, BitSet32 pointerIds, Vector<InputTarget>& inputTargets) {
         inputTargets.push();
@@ -524,6 +547,7 @@ tags:
         target.scaleFactor = windowInfo->scaleFactor;
         target.pointerIds = pointerIds;
     }
+```
 
 将当前聚焦窗口mFocusedWindowHandle的inputChannel传递到inputTargets。
 

@@ -52,6 +52,7 @@ BroadcastReceiver分为两类：
 
 广播在系统中以BroadcastRecord对象来记录, 该对象有几个时间相关的成员变量.
 
+```java
     final class BroadcastRecord extends Binder {
         final ProcessRecord callerApp; //广播发送者所在进程
         final String callerPackage; //广播发送者所在包名
@@ -71,6 +72,7 @@ BroadcastReceiver分为两类：
         long finishTime;        //广播完成时间
 
     }
+```
 
 - enqueueClockTime 伴随着 scheduleBroadcastsLocked
 - dispatchClockTime伴随着 deliverToRegisteredReceiverLocked
@@ -83,6 +85,7 @@ BroadcastReceiver分为两类：
 ### 2.1 registerReceiver
 [ContextImpl.java]
 
+```java
     public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter) {
         return registerReceiver(receiver, filter, null, null);
     }
@@ -92,12 +95,14 @@ BroadcastReceiver分为两类：
         return registerReceiverInternal(receiver, getUserId(),
                 filter, broadcastPermission, scheduler, getOuterContext());
     }
+```
 
 其中broadcastPermission拥有广播的权限控制，scheduler用于指定接收到广播时onRecive执行线程，当scheduler=null则默认代表在主线程中执行，这也是最常见的用法
 
 ### 2.2 registerReceiverInternal
 [ContextImpl.java]
 
+```java
     private Intent registerReceiverInternal(BroadcastReceiver receiver, int userId,
             IntentFilter filter, String broadcastPermission,
             Handler scheduler, Context context) {
@@ -129,6 +134,7 @@ BroadcastReceiver分为两类：
             return null;
         }
     }
+```
 
 ActivityManagerNative.getDefault()返回的是ActivityManagerProxy对象，简称AMP.   
 该方法中参数有mMainThread.getApplicationThread()返回的是ApplicationThread，这是Binder的Bn端，用于system_server进程与该进程的通信。
@@ -137,6 +143,7 @@ ActivityManagerNative.getDefault()返回的是ActivityManagerProxy对象，简�
 
 [-> LoadedApk.java]
 
+```java
     public IIntentReceiver getReceiverDispatcher(BroadcastReceiver r,
             Context context, Handler handler,
             Instrumentation instrumentation, boolean registered) {
@@ -171,11 +178,13 @@ ActivityManagerNative.getDefault()返回的是ActivityManagerProxy对象，简�
             return rd.getIIntentReceiver();
         }
     }
+```
 
 不妨令 以BroadcastReceiver(广播接收者)为key，LoadedApk.ReceiverDispatcher(分发者)为value的ArrayMap 记为`A`。此处`mReceivers`是一个以`Context`为key，以`A`为value的ArrayMap。对于ReceiverDispatcher(广播分发者)，当不存在时则创建一个。
 
 #### 2.3.1 创建ReceiverDispatcher
 
+```java
     ReceiverDispatcher(BroadcastReceiver receiver, Context context,
             Handler activityThread, Instrumentation instrumentation,
             boolean registered) {
@@ -189,11 +198,13 @@ ActivityManagerNative.getDefault()返回的是ActivityManagerProxy对象，简�
         mLocation = new IntentReceiverLeaked(null);
         mLocation.fillInStackTrace();
     }
+```
 
 此处mActivityThread便是前面传递过来的当前主线程的Handler.
 
 #### 2.3.2 创建InnerReceiver
 
+```java
     final static class InnerReceiver extends IIntentReceiver.Stub {
         final WeakReference<LoadedApk.ReceiverDispatcher> mDispatcher;
         final LoadedApk.ReceiverDispatcher mStrongRef;
@@ -204,6 +215,7 @@ ActivityManagerNative.getDefault()返回的是ActivityManagerProxy对象，简�
         }
         ...
     }
+```
 
 ReceiverDispatcher(广播分发者)有一个内部类`InnerReceiver`，该类继承于`IIntentReceiver.Stub`。显然，这是一个Binder服务端，广播分发者通过rd.getIIntentReceiver()可获取该Binder服务端对象`InnerReceiver`，用于Binder IPC通信。
 
@@ -211,6 +223,7 @@ ReceiverDispatcher(广播分发者)有一个内部类`InnerReceiver`，该类继
 
 [-> ActivityManagerNative.java]
 
+```java
     public Intent registerReceiver(IApplicationThread caller, String packageName,
             IIntentReceiver receiver,
             IntentFilter filter, String perm, int userId) throws RemoteException
@@ -237,6 +250,7 @@ ReceiverDispatcher(广播分发者)有一个内部类`InnerReceiver`，该类继
         data.recycle();
         return intent;
     }
+```
 
 这里有两个Binder服务端对象`caller`和`receiver`，都代表执行注册广播动作所在的进程.
 AMP通过Binder驱动将这些信息发送给system_server进程中的AMS对象，接下来进入AMS.registerReceiver。
@@ -245,6 +259,7 @@ AMP通过Binder驱动将这些信息发送给system_server进程中的AMS对象�
 
 [-> ActivityManagerService.java]
 
+```java
     public Intent registerReceiver(IApplicationThread caller, String callerPackage,
             IIntentReceiver receiver, IntentFilter filter, String permission, int userId) {
         ArrayList<Intent> stickyIntents = null;
@@ -368,6 +383,7 @@ AMP通过Binder驱动将这些信息发送给system_server进程中的AMS对象�
             return sticky;
         }
     }
+```
 
 其中`mRegisteredReceivers`记录着所有已注册的广播，以receiver IBinder为key, ReceiverList为value为HashMap。
 
@@ -378,6 +394,7 @@ AMP通过Binder驱动将这些信息发送给system_server进程中的AMS对象�
 
 #### 2.5.1 AMS.getRecordForAppLocked
 
+```java
     final ProcessRecord getRecordForAppLocked(
             IApplicationThread thread) {
         if (thread == null) {
@@ -387,11 +404,13 @@ AMP通过Binder驱动将这些信息发送给system_server进程中的AMS对象�
         int appIndex = getLRURecordIndexForAppLocked(thread);
         return appIndex >= 0 ? mLruProcesses.get(appIndex) : null;
     }
+```
 
 mLruProcesses数据类型为`ArrayList<ProcessRecord>`，而ProcessRecord对象有一个IApplicationThread字段，根据该字段查找出满足条件的ProcessRecord对象。
 
 #### 2.5.2 IntentFilter.match
 
+```java
     public final int match(ContentResolver resolver, Intent intent,
             boolean resolve, String logTag) {
         String type = resolve ? intent.resolveType(resolver) : intent.getType();
@@ -419,15 +438,18 @@ mLruProcesses数据类型为`ArrayList<ProcessRecord>`，而ProcessRecord对象�
         }
         return dataMatch;
     }
+```
 
 该方法用于匹配发起的Intent数据是否匹配成功，匹配项共有4项action, type, data, category，任何一项匹配不成功都会失败。
 
 #### 2.5.3 AMS.broadcastQueueForIntent
 
+```java
     BroadcastQueue broadcastQueueForIntent(Intent intent) {
         final boolean isFg = (intent.getFlags() & Intent.FLAG_RECEIVER_FOREGROUND) != 0;
         return (isFg) ? mFgBroadcastQueue : mBgBroadcastQueue;
     }
+```
 
 broadcastQueueForIntent(Intent intent)通过判断intent.getFlags()是否包含FLAG_RECEIVER_FOREGROUND
 来决定是前台或后台广播，进而返回相应的广播队列mFgBroadcastQueue或者mBgBroadcastQueue。
@@ -461,6 +483,7 @@ broadcastQueueForIntent(Intent intent)通过判断intent.getFlags()是否包含F
 
 [ContextImpl.java]
 
+```java
     public void sendBroadcast(Intent intent) {
         warnIfCallingFromSystemProcess();
         String resolvedType = intent.resolveTypeIfNeeded(getContentResolver());
@@ -475,10 +498,12 @@ broadcastQueueForIntent(Intent intent)通过判断intent.getFlags()是否包含F
             ...
         }
     }
+```
 
 ### 3.2 AMP.broadcastIntent
 [-> ActivityManagerNative.java]
 
+```java
     public int broadcastIntent(IApplicationThread caller,
             Intent intent, String resolvedType, IIntentReceiver resultTo,
             int resultCode, String resultData, Bundle map,
@@ -510,10 +535,12 @@ broadcastQueueForIntent(Intent intent)通过判断intent.getFlags()是否包含F
         data.recycle();
         return res;
     }
+```
 
 ### 3.3 AMS.broadcastIntent
 [-> ActivityManagerService.java]
 
+```java
     public final int broadcastIntent(IApplicationThread caller,
             Intent intent, String resolvedType, IIntentReceiver resultTo,
             int resultCode, String resultData, Bundle resultExtras,
@@ -538,6 +565,7 @@ broadcastQueueForIntent(Intent intent)通过判断intent.getFlags()是否包含F
             return res;
         }
     }
+```
 
 broadcastIntent()方法有两个布尔参数serialized和sticky来共同决定是普通广播，有序广播，还是Sticky广播，参数如下：
 
@@ -549,6 +577,7 @@ broadcastIntent()方法有两个布尔参数serialized和sticky来共同决定�
 
 ### 3.4 AMS.broadcastIntentLocked
 
+```java
     private final int broadcastIntentLocked(ProcessRecord callerApp,
             String callerPackage, Intent intent, String resolvedType,
             IIntentReceiver resultTo, int resultCode, String resultData,
@@ -566,11 +595,13 @@ broadcastIntent()方法有两个布尔参数serialized和sticky来共同决定�
 
         return ActivityManager.BROADCAST_SUCCESS;
     }
+```
 
 broadcastIntentLocked方法比较长，这里划分为8个部分来分别说明。
 
 #### 3.4.1 设置广播flag
 
+```java
     intent = new Intent(intent);
     //增加该flag，则广播不会发送给已停止的package
     intent.addFlags(Intent.FLAG_EXCLUDE_STOPPED_PACKAGES);
@@ -590,6 +621,7 @@ broadcastIntentLocked方法比较长，这里划分为8个部分来分别说明�
             return ActivityManager.BROADCAST_FAILED_USER_STOPPED;
         }
     }
+```
 
 这个过程最重要的工作是：
 
@@ -599,6 +631,7 @@ broadcastIntentLocked方法比较长，这里划分为8个部分来分别说明�
 
 BroadcastReceiver还有其他flag，位于Intent.java常量:
 
+```java
     FLAG_RECEIVER_REGISTERED_ONLY //只允许已注册receiver接收广播
     FLAG_RECEIVER_REPLACE_PENDING //新广播会替代相同广播
     FLAG_RECEIVER_FOREGROUND //只允许前台receiver接收广播
@@ -606,9 +639,11 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
     FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT //Boot完成之前，只允许已注册receiver接收广播
     FLAG_RECEIVER_BOOT_UPGRADE //升级模式下，允许系统准备就绪前可以发送广播
 
+```
 
 #### 3.4.2 广播权限验证
 
+```java
     int callingAppId = UserHandle.getAppId(callingUid);
     if (callingAppId == Process.SYSTEM_UID || callingAppId == Process.PHONE_UID
         || callingAppId == Process.SHELL_UID || callingAppId == Process.BLUETOOTH_UID
@@ -627,6 +662,7 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
             return ActivityManager.BROADCAST_SUCCESS;
         }
     }
+```
 
 主要功能：
 
@@ -638,6 +674,7 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
 
 #### 3.4.3 处理系统相关广播
 
+```java
     final String action = intent.getAction();
     if (action != null) {
         switch (action) {
@@ -656,11 +693,13 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
             case Proxy.PROXY_CHANGE_ACTION: //网络代理改变
         }
     }
+```
 
 这个过主要处于系统相关的10类广播,这里不就展开讲解了.
 
 #### 3.4.4 增加sticky广播
 
+```java
     if (sticky) {
         if (checkPermission(android.Manifest.permission.BROADCAST_STICKY,
                 callingPid, callingUid)
@@ -702,11 +741,13 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
             list.add(new Intent(intent));
         }
     }
+```
 
 这个过程主要是将sticky广播增加到list，并放入mStickyBroadcasts里面。
 
 #### 3.4.5 查询receivers和registeredReceivers
 
+```java
     List receivers = null;
     List<BroadcastFilter> registeredReceivers = null;
     //当允许静态接收者处理该广播，则通过PKMS根据Intent查询相应的静态receivers
@@ -722,6 +763,7 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
                     resolvedType, false, userId);
         }
     }
+```
 
 - receivers：记录着匹配当前intent的所有静态注册广播接收者；
 - registeredReceivers：记录着匹配当前的所有动态注册的广播接收者。
@@ -733,6 +775,7 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
 
 **AMS.collectReceiverComponents**：
 
+```java
     private List<ResolveInfo> collectReceiverComponents(Intent intent, String resolvedType,
             int callingUid, int[] users) {
         List<ResolveInfo> receivers = null;
@@ -749,9 +792,11 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
          }
         return receivers;
     }
+```
 
 #### 3.4.6 处理并行广播
 
+```java
     //用于标识是否需要用新intent替换旧的intent。
     final boolean replacePending = (intent.getFlags()&Intent.FLAG_RECEIVER_REPLACE_PENDING) != 0;
     //处理并行广播
@@ -775,17 +820,21 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
         registeredReceivers = null;
         NR = 0;
     }
+```
 
 广播队列中有一个成员变量`mParallelBroadcasts`，类型为ArrayList<BroadcastRecord>，记录着所有的并行广播。
 
+```java
     // 并行广播,加入mParallelBroadcasts队列
     public void enqueueParallelBroadcastLocked(BroadcastRecord r) {
         mParallelBroadcasts.add(r);
         r.enqueueClockTime = System.currentTimeMillis();
     }
+```
 
 #### 3.4.7 合并registeredReceivers到receivers
 
+```java
     int ir = 0;
     if (receivers != null) {
         //防止应用监听该广播，在安装时直接运行。
@@ -840,11 +889,13 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
         receivers.add(registeredReceivers.get(ir));
         ir++;
     }
+```
 
 动态注册的registeredReceivers，全部合并都receivers，再统一按串行方式处理。
 
 #### 3.4.8 处理串行广播
 
+```java
     if ((receivers != null && receivers.size() > 0)
             || resultTo != null) {
         BroadcastQueue queue = broadcastQueueForIntent(intent);
@@ -862,14 +913,17 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
             queue.scheduleBroadcastsLocked();
         }
     }
+```
 
 广播队列中有一个成员变量`mOrderedBroadcasts`，类型为ArrayList<BroadcastRecord>，记录着所有的有序广播。
 
+```java
     // 串行广播 加入mOrderedBroadcasts队列
     public void enqueueOrderedBroadcastLocked(BroadcastRecord r) {
         mOrderedBroadcasts.add(r);
         r.enqueueClockTime = System.currentTimeMillis();
     }
+```
 
 ### 3.5 小结
 
@@ -908,6 +962,7 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
 
 [-> BroadcastQueue.java]
 
+```java
     public void scheduleBroadcastsLocked() {
         // 正在处理BROADCAST_INTENT_MSG消息
         if (mBroadcastsScheduled) {
@@ -917,11 +972,13 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
         mHandler.sendMessage(mHandler.obtainMessage(BROADCAST_INTENT_MSG, this));
         mBroadcastsScheduled = true;
     }
+```
 
 在BroadcastQueue对象创建时，mHandler=new BroadcastHandler(handler.getLooper());那么此处交由mHandler的handleMessage来处理：
 
 #### 4.1.1 BroadcastHandler
 
+```java
     public ActivityManagerService(Context systemContext) {
         //名为"ActivityManager"的线程
         mHandlerThread = new ServiceThread(TAG,
@@ -947,9 +1004,11 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
         mTimeoutPeriod = timeoutPeriod;
         mDelayBehindServices = allowDelayBehindServices;
     }
+```
 
 由此可见BroadcastHandler采用的是"ActivityManager"线程的Looper
 
+```java
     private final class BroadcastHandler extends Handler {
 
         public void handleMessage(Message msg) {
@@ -960,11 +1019,13 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
                 ...
         }
     }
+```
 
 ### 4.2 processNextBroadcast
 
 [-> BroadcastQueue.java]
 
+```java
     final void processNextBroadcast(boolean fromMsg) {
         synchronized(mService) {
             //part1: 处理并行广播
@@ -1050,6 +1111,7 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
             }
         }
     }
+```
 
 此处mService为AMS，整个流程还是比较长的，全程持有AMS锁，所以广播效率低的情况下，直接会严重影响这个手机的性能与流畅度，这里应该考虑细化同步锁的粒度。
 
@@ -1059,6 +1121,7 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
 
 #### 4.2.1 处理并行广播
 
+```java
     BroadcastRecord r;
     mService.updateCpuStats(); //更新CPU统计信息
     if (fromMsg)  mBroadcastsScheduled = false;
@@ -1075,10 +1138,12 @@ BroadcastReceiver还有其他flag，位于Intent.java常量:
         }
         addBroadcastToHistoryLocked(r);//将广播添加历史统计
     }
+```
 
 通过while循环, 一次性分发完所有的并发广播后,则分发完成后则添加到历史广播队列.
 fromMsg是指processNextBroadcast()是否由BroadcastHandler所调用的.
 
+```java
     private final void addBroadcastToHistoryLocked(BroadcastRecord r) {
         if (r.callingUid < 0) {
             return;
@@ -1094,9 +1159,11 @@ fromMsg是指processNextBroadcast()是否由BroadcastHandler所调用的.
         mSummaryHistoryFinishTime[mSummaryHistoryNext] = System.currentTimeMillis();
         mSummaryHistoryNext = ringAdvance(mSummaryHistoryNext, 1, MAX_BROADCAST_SUMMARY_HISTORY);
     }
+```
 
 #### 4.2.2 处理串行广播
 
+```java
     if (mPendingBroadcast != null) {
         boolean isDead;
         synchronized (mService.mPidsSelfLocked) {
@@ -1162,11 +1229,13 @@ fromMsg是指processNextBroadcast()是否由BroadcastHandler所调用的.
             continue;
         }
     } while (r == null);
+```
 
 mTimeoutPeriod，对于前台广播则为10s，对于后台广播则为60s。广播超时为`2*mTimeoutPeriod*numReceivers`，接收者个数numReceivers越多则广播超时总时长越大。
 
 #### 4.2.3 获取下条有序广播
 
+```java
     //获取下一个receiver的index
     int recIdx = r.nextReceiver++;
 
@@ -1228,9 +1297,11 @@ mTimeoutPeriod，对于前台广播则为10s，对于后台广播则为60s。广
     //Broadcast正在执行中，stopped状态设置成false
     AppGlobals.getPackageManager().setPackageStoppedState(
             r.curComponent.getPackageName(), false, UserHandle.getUserId(r.callingUid));
+```
 
 #### 4.2.4 处理下条有序广播
 
+```java
     //该receiver所对应的进程已经运行，则直接处理
     ProcessRecord app = mService.getProcessRecordLocked(targetProcess,
             info.activityInfo.applicationInfo.uid, false);
@@ -1265,6 +1336,7 @@ mTimeoutPeriod，对于前台广播则为10s，对于后台广播则为60s。广
     }
     mPendingBroadcast = r;
     mPendingBroadcastRecvIndex = recIdx;
+```
 
 - 如果是动态广播接收者，则调用deliverToRegisteredReceiverLocked处理；
 - 如果是静态广播接收者，且对应进程已经创建，则调用processCurBroadcastLocked处理；
@@ -1276,6 +1348,7 @@ mTimeoutPeriod，对于前台广播则为10s，对于后台广播则为60s。广
 
 [-> BroadcastQueue.java]
 
+```java
     private void deliverToRegisteredReceiverLocked(BroadcastRecord r,
             BroadcastFilter filter, boolean ordered) {
         ...
@@ -1306,11 +1379,13 @@ mTimeoutPeriod，对于前台广播则为10s，对于后台广播则为60s。广
             ...
         }
     }
+```
 
 ### 4.4 performReceiveLocked
 
 [-> BroadcastQueue.java]
 
+```java
     private static void performReceiveLocked(ProcessRecord app, IIntentReceiver receiver,
             Intent intent, int resultCode, String data, Bundle extras,
             boolean ordered, boolean sticky, int sendingUser) throws RemoteException {
@@ -1330,10 +1405,12 @@ mTimeoutPeriod，对于前台广播则为10s，对于后台广播则为60s。广
                     sticky, sendingUser);
         }
     }
+```
 
 ### 4.5 ATP.scheduleRegisteredReceiver
 [-> ApplicationThreadNative.java  ::ApplicationThreadProxy]
 
+```java
     public void scheduleRegisteredReceiver(IIntentReceiver receiver, Intent intent,
             int resultCode, String dataStr, Bundle extras, boolean ordered,
             boolean sticky, int sendingUser, int processState) throws RemoteException {
@@ -1354,12 +1431,14 @@ mTimeoutPeriod，对于前台广播则为10s，对于后台广播则为60s。广
                 IBinder.FLAG_ONEWAY);
         data.recycle();
     }
+```
 
 ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端发送消息(oneway调用方式), ATP所对应的Bn端位于发送广播调用端所在进程的ApplicationThread，即进入AT.scheduleRegisteredReceiver， 接下来说明该方法。
 
 ### 4.6 AT.scheduleRegisteredReceiver
 [-> ActivityThread.java ::ApplicationThread]
 
+```java
     public void scheduleRegisteredReceiver(IIntentReceiver receiver, Intent intent,
             int resultCode, String dataStr, Bundle extras, boolean ordered,
             boolean sticky, int sendingUser, int processState) throws RemoteException {
@@ -1369,12 +1448,14 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
         receiver.performReceive(intent, resultCode, dataStr, extras, ordered,
                 sticky, sendingUser);
     }
+```
 
 此处receiver是注册广播时创建的，见小节[2.3]，可知该`receiver`=`LoadedApk.ReceiverDispatcher.InnerReceiver`。
 
 ### 4.7 InnerReceiver.performReceive
 [-> LoadedApk.java]
 
+```java
     public void performReceive(Intent intent, int resultCode, String data,
             Bundle extras, boolean ordered, boolean sticky, int sendingUser) {
         LoadedApk.ReceiverDispatcher rd = mDispatcher.get();
@@ -1385,12 +1466,14 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
            ...
         }
     }
+```
 
 此处方法LoadedApk()属于LoadedApk.ReceiverDispatcher.InnerReceiver, 也就是LoadedApk内部类的内部类InnerReceiver.
 
 ### 4.8 ReceiverDispatcher.performReceive
 [-> LoadedApk.java]
 
+```java
     public void performReceive(Intent intent, int resultCode, String data,
             Bundle extras, boolean ordered, boolean sticky, int sendingUser) {
         Args args = new Args(intent, resultCode, data, extras, ordered,
@@ -1404,6 +1487,7 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
             }
         }
     }
+```
 
 其中`Args`继承于`BroadcastReceiver.PendingResult`，实现了接口`Runnable`; 其中mActivityThread是当前进程的主线程, 是由[小节2.3.1]完成赋值过程.
 
@@ -1414,6 +1498,7 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
 
 [-> LoadedApk.java]
 
+```java
     public final class LoadedApk {
       static final class ReceiverDispatcher {
         final class Args extends BroadcastReceiver.PendingResult implements Runnable {
@@ -1450,12 +1535,14 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
             }
           }
         }
+```
 
 接下来,便进入主线程,最终调用`BroadcastReceiver`具体实现类的`onReceive()`方法。
 
 ### 4.10 PendingResult.finish
 [-> BroadcastReceiver.java ::PendingResult]
 
+```java
     public final void finish() {
       if (mType == TYPE_COMPONENT) { //代表是静态注册的广播
           final IActivityManager mgr = ActivityManagerNative.getDefault();
@@ -1473,6 +1560,7 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
           sendFinished(mgr); //[见小节4.10.1]
       }
     }
+```
 
 主要功能:
 
@@ -1491,6 +1579,7 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
 #### 4.10.1 sendFinished
 [-> BroadcastReceiver.java ::PendingResult]
 
+```java
     public void sendFinished(IActivityManager am) {
         synchronized (this) {
             mFinished = true;
@@ -1507,11 +1596,13 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
         }
     }
 
+```
 
 此处AMP.finishReceiver，经过binder调用，进入AMS.finishReceiver方法
 
 #### 4.10.2 AMS.finishReceiver
 
+```java
     public void finishReceiver(IBinder who, int resultCode, String resultData,
             Bundle resultExtras, boolean resultAbort, int flags) {
         ...
@@ -1540,10 +1631,12 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
             Binder.restoreCallingIdentity(origId);
         }
     }
+```
 
 #### 4.10.3 BQ.finishReceiverLocked
 [-> BroadcastQueue.java]
 
+```java
     public boolean finishReceiverLocked(BroadcastRecord r, int resultCode,
             String resultData, Bundle resultExtras, boolean resultAbort, boolean waitForServices) {
         final int state = r.state;
@@ -1597,6 +1690,7 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
         return state == BroadcastRecord.APP_RECEIVE
                 || state == BroadcastRecord.CALL_DONE_RECEIVE;
     }
+```
 
 ## 五、总结
 

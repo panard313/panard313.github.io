@@ -64,6 +64,7 @@ debuggerd输出traces信息。
 ### 2.1 dump_backtrace
 [-> debuggerd/backtrace.cpp]
 
+```java
     void dump_backtrace(int fd, BacktraceMap* map, pid_t pid, pid_t tid,
                         const std::set<pid_t>& siblings, std::string* amfd_data) {
       log_t log;
@@ -79,10 +80,12 @@ debuggerd输出traces信息。
 
       dump_process_footer(&log, pid);//【见小节2.4】
     }
+```
 
 ### 2.2 dump_process_header
 [-> debuggerd/backtrace.cpp]
 
+```java
     static void dump_process_header(log_t* log, pid_t pid) {
       char path[PATH_MAX];
       char procnamebuf[1024];
@@ -108,6 +111,7 @@ debuggerd输出traces信息。
       }
       _LOG(log, logtype::BACKTRACE, "ABI: '%s'\n", ABI_STRING);
     }
+```
 
 例如：
 
@@ -118,6 +122,7 @@ debuggerd输出traces信息。
 ### 2.3 dump_thread
 [-> debuggerd/backtrace.cpp]
 
+```java
     static void dump_thread(log_t* log, BacktraceMap* map, pid_t pid, pid_t tid) {
       char path[PATH_MAX];
       char threadnamebuf[1024];
@@ -145,10 +150,12 @@ debuggerd输出traces信息。
         dump_backtrace_to_log(backtrace.get(), log, "  ");
       }
     }
+```
 
 ### 2.4 dump_backtrace_to_log
 [-> debuggerd/Backtrace.cpp]
 
+```java
     void dump_backtrace_to_log(Backtrace* backtrace, log_t* log, const char* prefix) {
       //NumFrames是backtrace中的栈帧数
       for (size_t i = 0; i < backtrace->NumFrames(); i++) {
@@ -156,12 +163,14 @@ debuggerd输出traces信息。
         _LOG(log, logtype::BACKTRACE, "%s%s\n", prefix, backtrace->FormatFrameData(i).c_str());
       }
     }
+```
 
 通过循环遍历输出整个backtrace中的每一栈帧FormatFrameData的信息.
 
 ### 2.5 FormatFrameData
 [-> debuggerd/Backtrace.cpp]
 
+```java
     std::string Backtrace::FormatFrameData(size_t frame_num) {
       if (frame_num >= frames_.size()) {
         return "";
@@ -196,6 +205,7 @@ debuggerd输出traces信息。
 
       return line;
     }
+```
 
 例如：(这些map信息是由/proc/%d/maps解析出来的)
 
@@ -207,9 +217,11 @@ debuggerd输出traces信息。
 ### 2.6 dump_process_footer
 [-> debuggerd/backtrace.cpp]
 
+```java
     static void dump_process_footer(log_t* log, pid_t pid) {
       _LOG(log, logtype::BACKTRACE, "\n----- end %d -----\n", pid);
     }
+```
 
 例如：`----- end 1789 -----`
 

@@ -33,6 +33,7 @@ Android系统中的耗电统计分为软件排行榜和硬件排行榜，软件�
 
 processAppUsage统计每个App的耗电情况
 
+```java
     private void processAppUsage(SparseArray<UserHandle> asUsers) {
         //判断是否统计所有用户的App耗电使用情况，目前该参数为true
         final boolean forAllUsers = (asUsers.get(UserHandle.USER_ALL) != null);
@@ -89,13 +90,16 @@ processAppUsage统计每个App的耗电情况
             osSipper.sumPower();
         }
     }
+```
 
 流程分析：
 
 **mTypeBatteryRealtime**
 
+```java
     mTypeBatteryRealtime = mStats.computeBatteryRealtime(rawRealtimeUs, mStatsType);
     private int mStatsType = BatteryStats.STATS_SINCE_CHARGED;
+```
 
 BatteryStats.STATS_SINCE_CHARGED，计算规则是从上次充满电后数据；另外STATS_SINCE_UNPLUGGED是拔掉USB线后的数据。说明充电时间的计算是从上一次拔掉设备到现在的耗电量统计。
 
@@ -142,6 +146,7 @@ CPU功耗项的计算是通过CpuPowerCalculator类
 
 **初始化**
 
+```java
     public CpuPowerCalculator(PowerProfile profile) {
         final int speedSteps = profile.getNumSpeedSteps(); //获取cpu的主频等级的级数
         mPowerCpuNormal = new double[speedSteps]; //用于记录不同频率下的功耗值
@@ -150,6 +155,7 @@ CPU功耗项的计算是通过CpuPowerCalculator类
             mPowerCpuNormal[p] = profile.getAveragePower(PowerProfile.POWER_CPU_ACTIVE, p);
         }
     }
+```
 
 从对象的构造方法，可以看出PowerProfile类提供相应所需的基础功耗值，而真正的功耗值数据来源于power_profile.xml文件，故可以通过配置合理的基础功耗值，来达到较为精准的功耗统计结果。后续所有的`PowerCalculator`子类在构造方法中都有会相应所需的功耗配置项。
 
@@ -160,6 +166,7 @@ CPU功耗可配置项：
 
 **功耗计算**
 
+```java
     public void calculateApp(BatterySipper app, BatteryStats.Uid u, long rawRealtimeUs,
                                  long rawUptimeUs, int statsType) {
             final int speedSteps = mSpeedStepTimes.length;
@@ -209,6 +216,7 @@ CPU功耗可配置项：
             app.cpuPowerMah = cpuPowerMaMs / (60 * 60 * 1000); //转换为mAh
         }
     }
+```
 
 **子公式**
 
@@ -223,9 +231,11 @@ Wakelock功耗项的计算是通过WakelockPowerCalculator类
 
 **初始化**
 
+```java
     public WakelockPowerCalculator(PowerProfile profile) {
         mPowerWakelock = profile.getAveragePower(PowerProfile.POWER_CPU_AWAKE);
     }
+```
 
 Wakelock功耗可配置项：
 
@@ -237,6 +247,7 @@ power_profile.xml文件：
 
 **功耗计算**
 
+```java
     public void calculateApp(BatterySipper app, BatteryStats.Uid u, long rawRealtimeUs,
                              long rawUptimeUs, int statsType) {
         long wakeLockTimeUs = 0;
@@ -256,6 +267,7 @@ power_profile.xml文件：
         //计算唤醒功耗
         app.wakeLockPowerMah = (app.wakeLockTimeMs * mPowerWakelock) / (1000*60*60);
     }
+```
 
 **子公式**
 
@@ -270,11 +282,13 @@ Wifi功耗项的计算是通过WifiPowerCalculator类
 
 **初始化**
 
+```java
     public WifiPowerCalculator(PowerProfile profile) {
             mIdleCurrentMa = profile.getAveragePower(PowerProfile.POWER_WIFI_CONTROLLER_IDLE);
             mTxCurrentMa = profile.getAveragePower(PowerProfile.POWER_WIFI_CONTROLLER_TX);
             mRxCurrentMa = profile.getAveragePower(PowerProfile.POWER_WIFI_CONTROLLER_RX);
         }
+```
 
 Wifi功耗可配置项：
 
@@ -284,6 +298,7 @@ Wifi功耗可配置项：
 
 **功耗计算**
 
+```java
     public void calculateApp(BatterySipper app, BatteryStats.Uid u, long rawRealtimeUs,
                              long rawUptimeUs, int statsType) {
         final long idleTime = u.getWifiControllerActivity(BatteryStats.CONTROLLER_IDLE_TIME, statsType);
@@ -301,6 +316,7 @@ Wifi功耗可配置项：
         app.wifiTxBytes = u.getNetworkActivityBytes(BatteryStats.NETWORK_WIFI_TX_DATA,
                 statsType);
     }
+```
 
 **子公式**
 
@@ -317,6 +333,7 @@ wifiPowerMah = ((idleTime * mIdleCurrentMa) + (txTime * mTxCurrentMa) + (rxTime 
 
 **功耗计算**-
 
+```java
     public void calculateApp(BatterySipper app, BatteryStats.Uid u, long rawRealtimeUs,
                              long rawUptimeUs, int statsType) {
         app.wifiRxPackets = u.getNetworkActivityPackets(BatteryStats.NETWORK_WIFI_RX_DATA,
@@ -343,11 +360,13 @@ wifiPowerMah = ((idleTime * mIdleCurrentMa) + (txTime * mTxCurrentMa) + (rxTime 
         }
         app.wifiPowerMah = wifiPacketPower + wifiLockPower + wifiScanPower + wifiBatchScanPower;
     }
+```
 
 其中 `BatteryStats.Uid.NUM_WIFI_BATCHED_SCAN_BINS=5`
 
 另外
 
+```java
     private static double getWifiPowerPerPacket(PowerProfile profile) {
         final long WIFI_BPS = 1000000; //初略估算每秒的收发1000000bit
         final double WIFI_POWER = profile.getAveragePower(PowerProfile.POWER_WIFI_ACTIVE)
@@ -355,6 +374,7 @@ wifiPowerMah = ((idleTime * mIdleCurrentMa) + (txTime * mTxCurrentMa) + (rxTime 
         return (WIFI_POWER / (((double)WIFI_BPS) / 8 / 2048)) / (60*60);
     }
 
+```
 
 **子公式**
 
@@ -372,11 +392,13 @@ Bluetooth功耗项的计算是通过BluetoothPowerCalculator类
 
 **初始化**
 
+```java
     public BluetoothPowerCalculator(PowerProfile profile) {
         mIdleMa = profile.getAveragePower(PowerProfile.POWER_BLUETOOTH_CONTROLLER_IDLE);
         mRxMa = profile.getAveragePower(PowerProfile.POWER_BLUETOOTH_CONTROLLER_RX);
         mTxMa = profile.getAveragePower(PowerProfile.POWER_BLUETOOTH_CONTROLLER_TX);
     }
+```
 
 Bluetooth功耗可配置项(目前蓝牙功耗计算的方法为空，此配置暂可忽略)：
 
@@ -388,10 +410,12 @@ Bluetooth功耗可配置项(目前蓝牙功耗计算的方法为空，此配置�
 
 **功耗计算**
 
+```java
     public void calculateApp(BatterySipper app, BatteryStats.Uid u, long rawRealtimeUs,
                              long rawUptimeUs, int statsType) {
         // No per-app distribution yet.
     }
+```
 
 **子公式**
 
@@ -407,9 +431,11 @@ Camera功耗项的计算是通过CameraPowerCalculator类
 
 **初始化**
 
+```java
     public CameraPowerCalculator(PowerProfile profile) {
         mCameraPowerOnAvg = profile.getAveragePower(PowerProfile.POWER_CAMERA);
     }
+```
 
 Camera功耗可配置项：
 
@@ -417,6 +443,7 @@ Camera功耗可配置项：
 
 **功耗计算**
 
+```java
      public void calculateApp(BatterySipper app, BatteryStats.Uid u, long rawRealtimeUs,
                              long rawUptimeUs, int statsType) {
         //对于camera功耗的评估比较粗，camera打开认定功耗一致
@@ -430,6 +457,7 @@ Camera功耗可配置项：
             app.cameraPowerMah = 0;
         }
     }
+```
 
 **子公式**
 
@@ -442,9 +470,11 @@ cameraPowerMah = (totalTime * mCameraPowerOnAvg) / (1000*60*60);
 
 **初始化**
 
+```java
     public FlashlightPowerCalculator(PowerProfile profile) {
         mFlashlightPowerOnAvg = profile.getAveragePower(PowerProfile.POWER_FLASHLIGHT);
     }
+```
 
 Flashlight功耗可配置项：
 
@@ -452,6 +482,7 @@ Flashlight功耗可配置项：
 
 **功耗计算**
 
+```java
     public void calculateApp(BatterySipper app, BatteryStats.Uid u, long rawRealtimeUs,
                              long rawUptimeUs, int statsType) {
         final BatteryStats.Timer timer = u.getFlashlightTurnedOnTimer();
@@ -464,6 +495,7 @@ Flashlight功耗可配置项：
             app.flashlightPowerMah = 0;
         }
     }
+```
 
 **子公式**
 
@@ -479,6 +511,7 @@ flashlight计算方式与Camera功耗计算思路一样。
 
 **初始化**
 
+```java
     public MobileRadioPowerCalculator(PowerProfile profile, BatteryStats stats) {
         mPowerRadioOn = profile.getAveragePower(PowerProfile.POWER_RADIO_ACTIVE);
         for (int i = 0; i < mPowerBins.length; i++) {
@@ -487,6 +520,7 @@ flashlight计算方式与Camera功耗计算思路一样。
         mPowerScan = profile.getAveragePower(PowerProfile.POWER_RADIO_SCANNING);
         mStats = stats;
     }
+```
 
 无线电功耗可配置项：
 
@@ -494,6 +528,7 @@ flashlight计算方式与Camera功耗计算思路一样。
 
 **功耗计算**
 
+```java
     public void calculateApp(BatterySipper app, BatteryStats.Uid u, long rawRealtimeUs,
                              long rawUptimeUs, int statsType) {
         app.mobileRxPackets = u.getNetworkActivityPackets(BatteryStats.NETWORK_MOBILE_RX_DATA, statsType);
@@ -513,9 +548,11 @@ flashlight计算方式与Camera功耗计算思路一样。
             app.mobileRadioPowerMah = (app.mobileRxPackets + app.mobileTxPackets) * getMobilePowerPerPacket(rawRealtimeUs, statsType);
         }
     }
+```
 
 计算出每收/发一个数据包的功耗值
 
+```java
     private double getMobilePowerPerPacket(long rawRealtimeUs, int statsType) {
         final long MOBILE_BPS = 200000; //Extract average bit rates from system
         final double MOBILE_POWER = mPowerRadioOn / 3600;
@@ -531,6 +568,7 @@ flashlight计算方式与Camera功耗计算思路一样。
                 : (((double)MOBILE_BPS) / 8 / 2048);
         return (MOBILE_POWER / mobilePps) / (60*60);
     }
+```
 
 **子公式**
 
@@ -553,10 +591,12 @@ Sensor功耗项的计算是通过SensorPowerCalculator类
 
 **初始化**
 
+```java
     public SensorPowerCalculator(PowerProfile profile, SensorManager sensorManager) {
         mSensors = sensorManager.getSensorList(Sensor.TYPE_ALL);
         mGpsPowerOn = profile.getAveragePower(PowerProfile.POWER_GPS_ON);
     }
+```
 
 Sensor功耗可配置项：
 
@@ -564,6 +604,7 @@ Sensor功耗可配置项：
 
 **功耗计算**
 
+```java
     d calculateApp(BatterySipper app, BatteryStats.Uid u, long rawRealtimeUs, long rawUptimeUs, int statsType) {
         // 计算没有个Uid
         final SparseArray<? extends BatteryStats.Uid.Sensor> sensorStats = u.getSensorStats();
@@ -591,6 +632,7 @@ Sensor功耗可配置项：
             }
         }
     }
+```
 
 GPS的功耗计算与sensor的计算方法放在一块
 
@@ -602,12 +644,14 @@ gpsPowerMah = (app.gpsTimeMs * mGpsPowerOn) / (1000* 60* 60);
 
 BatterySipper中，功耗计算方法：
 
+```java
     public double sumPower() {
         return totalPowerMah = usagePowerMah + wifiPowerMah + gpsPowerMah + cpuPowerMah +
                 sensorPowerMah + mobileRadioPowerMah + wakeLockPowerMah + cameraPowerMah +
                 flashlightPowerMah;
     }
 
+```
 
 软件功耗的子项共分为9项：
 
@@ -634,6 +678,7 @@ BatterySipper中，功耗计算方法：
 
 processMiscUsage()
 
+```java
     private void processMiscUsage() {
         addUserUsage();
         addPhoneUsage();
@@ -645,6 +690,7 @@ processMiscUsage()
             addRadioUsage();
         }
     }
+```
 
 硬件功耗的子项共分为7项：
 
@@ -664,6 +710,7 @@ processMiscUsage()
 
 **功耗计算**
 
+```java
     private void addUserUsage() {
         for (int i = 0; i < mUserSippers.size(); i++) {
             final int userId = mUserSippers.keyAt(i);
@@ -674,9 +721,11 @@ processMiscUsage()
         }
     }
 
+```
 
 合计
 
+```java
     private void aggregateSippers(BatterySipper bs, List<BatterySipper> from, String tag)  {
         for (int i=0; i<from.size(); i++) {
             BatterySipper wbs = from.get(i);
@@ -685,6 +734,7 @@ processMiscUsage()
         bs.computeMobilemspp();
         bs.sumPower(); //计算总功耗
     }
+```
 
 **子公式**
 
@@ -701,6 +751,7 @@ user_power = user_1_power + user_2_power + ... +　user_n_power; (n为所有的u
 
 **功耗计算**
 
+```java
     private void addPhoneUsage() {
         long phoneOnTimeMs = mStats.getPhoneOnTime(mRawRealtime, mStatsType) / 1000;
         double phoneOnPower = mPowerProfile.getAveragePower(PowerProfile.POWER_RADIO_ACTIVE) * phoneOnTimeMs / (60*60*1000);
@@ -709,6 +760,7 @@ user_power = user_1_power + user_2_power + ... +　user_n_power; (n为所有的u
         }
     }
 
+```
 
 **子公式**
 
@@ -725,6 +777,7 @@ CPU Idle功耗可配置项：
 
 **功耗计算**
 
+```java
     private void addIdleUsage() {
         long idleTimeMs = (mTypeBatteryRealtime - mStats.getScreenOnTime(mRawRealtime, mStatsType)) / 1000;
         double idlePower = (idleTimeMs * mPowerProfile.getAveragePower(PowerProfile.POWER_CPU_IDLE)) / (60*60*1000);
@@ -733,6 +786,7 @@ CPU Idle功耗可配置项：
         }
     }
 
+```
 
 **子公式**
 
@@ -749,6 +803,7 @@ idlePower = (idleTimeMs * cpuIdlePower) / (60* 60* 1000)
 
 **功耗计算**
 
+```java
     private void addScreenUsage() {
         double power = 0;
         long screenOnTimeMs = mStats.getScreenOnTime(mRawRealtime, mStatsType) / 1000;
@@ -767,9 +822,11 @@ idlePower = (idleTimeMs * cpuIdlePower) / (60* 60* 1000)
             addEntry(BatterySipper.DrainType.SCREEN, screenOnTimeMs, power);
         }
     }
+```
 
 其中参数：
 
+```java
     BatteryStats.NUM_SCREEN_BRIGHTNESS_BINS = 5；
 
     static final String[] SCREEN_BRIGHTNESS_NAMES = {
@@ -779,6 +836,7 @@ idlePower = (idleTimeMs * cpuIdlePower) / (60* 60* 1000)
     static final String[] SCREEN_BRIGHTNESS_SHORT_NAMES = {
         "0", "1", "2", "3", "4"
     };
+```
 
 **子公式**
 
@@ -804,6 +862,7 @@ power_profile.xml文件：
 
 wifi的硬件功耗是指除去App消耗之外的剩余wifi功耗
 
+```java
     private void addWiFiUsage() {
         BatterySipper bs = new BatterySipper(DrainType.WIFI, null, 0);
         mWifiPowerCalculator.calculateRemaining(bs, mStats, mRawRealtime, mRawUptime, mStatsType); //计算wifi硬件功耗
@@ -812,9 +871,11 @@ wifi的硬件功耗是指除去App消耗之外的剩余wifi功耗
             mUsageList.add(bs);
         }
     }
+```
 
 计算
 
+```java
     @Override
     public void calculateRemaining(BatterySipper app, BatteryStats stats, long rawRealtimeUs, long rawUptimeUs, int statsType) {
         final long idleTimeMs = stats.getWifiControllerActivity(BatteryStats.CONTROLLER_IDLE_TIME, statsType);
@@ -829,6 +890,7 @@ wifi的硬件功耗是指除去App消耗之外的剩余wifi功耗
         app.wifiPowerMah = Math.max(0, powerDrainMah - mTotalAppPowerDrain);
     }
 
+```
 
 **子公式**
 公式：wifiPowerMah = powerDrainMah - mTotalAppPowerDrain；
@@ -846,12 +908,14 @@ POWER_WIFI_ON="wifi.on"
 
 **功耗计算**
 
+```java
     public void calculateRemaining(BatterySipper app, BatteryStats stats, long rawRealtimeUs, long rawUptimeUs, int statsType) {
         final long totalRunningTimeMs = stats.getGlobalWifiRunningTime(rawRealtimeUs, statsType) / 1000;
         final double powerDrain = ((totalRunningTimeMs - mTotalAppWifiRunningTimeMs) * mWifiPowerOn) / (1000*60*60);
         app.wifiRunningTimeMs = totalRunningTimeMs;
         app.wifiPowerMah = Math.max(0, powerDrain);
     }
+```
 
 **子公式**
 
@@ -870,6 +934,7 @@ wifiPowerMah =   ((totalRunningTimeMs - mTotalAppWifiRunningTimeMs) * mWifiPower
 
 **功耗计算**
 
+```java
     private void addBluetoothUsage() {
         BatterySipper bs = new BatterySipper(BatterySipper.DrainType.BLUETOOTH, null, 0);
         mBluetoothPowerCalculator.calculateRemaining(bs, mStats, mRawRealtime, mRawUptime, mStatsType);
@@ -878,9 +943,11 @@ wifiPowerMah =   ((totalRunningTimeMs - mTotalAppWifiRunningTimeMs) * mWifiPower
             mUsageList.add(bs);
         }
     }
+```
 
 计算：
 
+```java
     public void calculateRemaining(BatterySipper app, BatteryStats stats, long rawRealtimeUs,
                                    long rawUptimeUs, int statsType) {
         final long idleTimeMs = stats.getBluetoothControllerActivity(
@@ -900,6 +967,7 @@ wifiPowerMah =   ((totalRunningTimeMs - mTotalAppWifiRunningTimeMs) * mWifiPower
         app.usagePowerMah = powerMah;
         app.usageTimeMs = totalTimeMs;
     }
+```
 
 **子公式**
 
@@ -924,6 +992,7 @@ power_profile.xml文件：
 
 对于只支持wifi的设备则不需要计算该项
 
+```java
     private void addRadioUsage() {
         BatterySipper radio = new BatterySipper(BatterySipper.DrainType.CELL, null, 0);
         mMobileRadioPowerCalculator.calculateRemaining(radio, mStats, mRawRealtime, mRawUptime, mStatsType);
@@ -932,9 +1001,11 @@ power_profile.xml文件：
             mUsageList.add(radio);
         }
     }
+```
 
 计算
 
+```java
     @Override
     public void calculateRemaining(BatterySipper app, BatteryStats stats, long rawRealtimeUs, long rawUptimeUs, int statsType) {
         double power = 0;
@@ -968,13 +1039,16 @@ power_profile.xml文件：
             app.mobileRadioPowerMah = power;
         }
     }
+```
 
 常量：
 
+```java
     public static final int NUM_SIGNAL_STRENGTH_BINS = 5;
     public static final String[] SIGNAL_STRENGTH_NAMES = {
         "none", "poor", "moderate", "good", "great"
     };
+```
 
 **子公式**
 
@@ -1000,6 +1074,7 @@ remainingActivePower =  （radioActiveTimeMs - mTotalAppMobileActiveMs）* mPowe
 
 在 BatteryStatsHelper.java中：
 
+```java
     final boolean hasWifiPowerReporting = checkHasWifiPowerReporting(mStats, mPowerProfile);
         if (mWifiPowerCalculator == null || hasWifiPowerReporting != mHasWifiPowerReporting) {
             mWifiPowerCalculator = hasWifiPowerReporting ?
@@ -1007,18 +1082,21 @@ remainingActivePower =  （radioActiveTimeMs - mTotalAppMobileActiveMs）* mPowe
                     new WifiPowerEstimator(mPowerProfile);
             mHasWifiPowerReporting = hasWifiPowerReporting;
         }
+```
 
 - 当hasWifiPowerReporting = true时，采用WifiPowerCalculator算法；
 - 当hasWifiPowerReporting = false时，采用WifiPowerEstimator算法；
 
 其中
 
+```java
     public static boolean checkHasWifiPowerReporting(BatteryStats stats, PowerProfile profile) {
         return stats.hasWifiActivityReporting() &&
                 profile.getAveragePower(PowerProfile.POWER_WIFI_CONTROLLER_IDLE) != 0 &&
                 profile.getAveragePower(PowerProfile.POWER_WIFI_CONTROLLER_RX) != 0 &&
                 profile.getAveragePower(PowerProfile.POWER_WIFI_CONTROLLER_TX) != 0;
     }
+```
 
 mHasWifiActivityReporting的默认值为false，故WIFI计算方式默认采用WifiPowerEstimator方式。
 

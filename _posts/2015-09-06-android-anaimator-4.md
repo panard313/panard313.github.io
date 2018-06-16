@@ -13,9 +13,11 @@ tags:
 
 前面已介绍Android属性动画的启动方式：
 
+```java
     ObjectAnimator anim = ObjectAnimator.ofFloat(targetObject, "alpha", 0f, 1f); //[见小节2.1]
     anim.setDuration(1000); // [见小节2.2]
     anim.start();           // [见小节2.3]
+```
 
 接下来从源码角度来分析这三条语句.
 
@@ -24,6 +26,7 @@ tags:
 ### 2.1 ObjectAnimator.ofFloat
 [-> ObjectAnimator.java]
 
+```java
     public static ObjectAnimator ofFloat(Object target, String propertyName, float... values) {
         //创建ObjectAnimator对象
         ObjectAnimator anim = new ObjectAnimator(target, propertyName);
@@ -32,6 +35,7 @@ tags:
         return anim;
     }
 
+```
 
 ObjectAnimator.ofFloat，是一个静态方法:
 
@@ -40,6 +44,7 @@ ObjectAnimator.ofFloat，是一个静态方法:
 
 ### 2.2 ObjectAnimator.setDuration
 
+```java
     public ValueAnimator setDuration(long duration) {
         if (duration < 0) {
             throw new IllegalArgumentException(...);
@@ -53,11 +58,13 @@ ObjectAnimator.ofFloat，是一个静态方法:
         // sDurationScale默认为1
         mDuration = (long)(mUnscaledDuration * sDurationScale);
     }
+```
 
 该方法用于设置动画的执行总时间，调用父类ValueAnimator的方法：
 
 ### 2.3 ObjectAnimator.start
 
+```java
     public void start() {
         // 获取AnimationHandler，并进行取消动画操作
         AnimationHandler handler = sAnimationHandler.get();
@@ -92,6 +99,7 @@ ObjectAnimator.ofFloat，是一个静态方法:
         }
         super.start(); //调用父类方法 [见小节2.4]
     }
+```
 
 首先判断是否存在活动或将要活动的，若存在则根据条件进行相应的取消操作。
 其中AnimationHandler包含mAnimations（活动动画）， mPendingAnimations（下一帧的动画），mDelayedAnims（延时动画）这3个动画ArrayList。
@@ -99,6 +107,7 @@ ObjectAnimator.ofFloat，是一个静态方法:
 ### 2.4  ValueAnimator.start
 进入ValueAnimator对象的方法。调用start()，再跳转到start(false)，为了精简内容，下面方法只截取关键的代码片段：
 
+```java
     private void start(boolean playBackwards) {
         ...
         int prevPlayingState = mPlayingState;
@@ -122,9 +131,11 @@ ObjectAnimator.ofFloat，是一个静态方法:
         }
         animationHandler.start();   //见小节2.4.4
     }
+```
 
 #### 2.4.1 getOrCreateAnimationHandler
 
+```java
     private static AnimationHandler getOrCreateAnimationHandler() {
         AnimationHandler handler = sAnimationHandler.get();
         if (handler == null) {
@@ -150,9 +161,11 @@ ObjectAnimator.ofFloat，是一个静态方法:
             mCallbackQueues[i] = new CallbackQueue();
         }
     }
+```
 
 #### 2.4.2 animateValue
 
+```java
     void animateValue(float fraction) {
 
         fraction = mInterpolator.getInterpolation(fraction);
@@ -169,12 +182,14 @@ ObjectAnimator.ofFloat，是一个静态方法:
         }
     }
 
+```
 
 其中setCurrentPlayTime(0)，多次跳转后，调用animateValue(1)，插值器默认为`AccelerateDecelerateInterpolator`。此处首次调用onAnimationUpdate方法，
 动画更新是通过实现`AnimatorUpdateListener`接口的`onAnimationUpdate()`方法。
 
 #### 2.4.3 notifyStartListeners
 
+```java
     private void notifyStartListeners() {
         if (mListeners != null && !mStartListenersCalled) {
             ArrayList<AnimatorListener> tmpListeners =
@@ -187,12 +202,14 @@ ObjectAnimator.ofFloat，是一个静态方法:
         mStartListenersCalled = true;
     }
 
+```
 
 其中notifyStartListeners()，主要功能是调用`onAnimationStart(this)`,动画启动：
 通知动画开始是通过实现`AnimatorListener`接口的`onAnimationStart()`方法。
 
 #### 2.4.4 AnimationHandler.start
 
+```java
     protected static class AnimationHandler {
         public void start() {
             scheduleAnimation();
@@ -213,11 +230,13 @@ ObjectAnimator.ofFloat，是一个静态方法:
             }
         };
     }
+```
 
 Choreographer.postCallback方法传递的第二参数为AnimationHandler.mAnimate
 
 ### 2.5 Choreographer.postCallback
 
+```java
     public void postCallback(int callbackType, Runnable action, Object token) {
         postCallbackDelayed(callbackType, action, token, 0);
     }
@@ -247,11 +266,13 @@ Choreographer.postCallback方法传递的第二参数为AnimationHandler.mAnimat
             }
         }
     }
+```
 
 进入Choreographer类，这是动画最为核心的一个类，动画最后都会走到这个类里面。mChoreographer.postCallback 方法，传入进去的action的animationHandler的mAnimate：
 
 #### 2.5.1 scheduleFrameLocked
 
+```java
     private void scheduleFrameLocked(long now) {
         if (!mFrameScheduled) {
             mFrameScheduled = true;
@@ -269,6 +290,7 @@ Choreographer.postCallback方法传递的第二参数为AnimationHandler.mAnimat
             }
         }
     }
+```
 
 其中`USE_VSYNC = SystemProperties.getBoolean("debug.choreographer.vsync", true)`,该属性值一般都是缺省的，
 则`USE_VSYNC =true`,启动VSYNC垂直同步信号方式来触发动画。当fps=60时，则1/60 s≈16.7ms，故VSYNC信号上报的周期为16.7ms：
@@ -276,9 +298,11 @@ Choreographer.postCallback方法传递的第二参数为AnimationHandler.mAnimat
 #### 2.5.2 scheduleVsyncLocked
 [-> Choreographer.java]
 
+```java
     private void scheduleVsyncLocked() {
         mDisplayEventReceiver.scheduleVsync();
     }
+```
 
 DisplayEventReceiver实现了Runnable接口，提供了一种能接收display event，比如垂直同步的机制，通过Looper不断扫描信息，直到收到VSYNC信号，触发相应操作。
 
@@ -286,6 +310,7 @@ DisplayEventReceiver实现了Runnable接口，提供了一种能接收display ev
 #### 2.5.3 onVsync
 [-> Choreographer.java]
 
+```java
     private final class FrameDisplayEventReceiver extends DisplayEventReceiver implements Runnable {
 
         public void onVsync(long timestampNanos, int builtInDisplayId, int frame) {
@@ -313,12 +338,14 @@ DisplayEventReceiver实现了Runnable接口，提供了一种能接收display ev
             doFrame(mTimestampNanos, mFrame); //[见小节2.5.4]
         }
     }
+```
 
 当接收到vsync信号时，会调用onVsync()方法，通过sendMessageAtTime，交由FrameHandler来处理消息事件.
 
 #### 2.5.4 doFrame
 [-> Choreographer.java]
 
+```java
     void doFrame(long frameTimeNanos, int frame) {
         final long startNanos;
         synchronized (mLock) {
@@ -355,6 +382,7 @@ DisplayEventReceiver实现了Runnable接口，提供了一种能接收display ev
         doCallbacks(Choreographer.CALLBACK_ANIMATION, frameTimeNanos);
         doCallbacks(Choreographer.CALLBACK_TRAVERSAL, frameTimeNanos);
     }
+```
 
 FrameHandler在收到信息时执行doFrame()，该方法重点是doCallbacks语句，分别是`CALLBACK_INPUT`，`CALLBACK_ANIMATION`，`CALLBACK_TRAVERSAL`.
 可看出回调的处理顺序依次为：
@@ -365,6 +393,7 @@ FrameHandler在收到信息时执行doFrame()，该方法重点是doCallbacks语
 
 #### 2.5.5 doCallbacks
 
+```java
     void doCallbacks(int callbackType, long frameTimeNanos) {
         CallbackRecord callbacks;
         synchronized (mLock) {
@@ -391,21 +420,25 @@ FrameHandler在收到信息时执行doFrame()，该方法重点是doCallbacks语
             }
         }
     }
+```
 
 由小节2.4.4,可知其调用如下方法.
 
 ### 2.6 AnimationHandler.run()
 [-> ValueAnimator.java]
 
+```java
     public void run() {
         mAnimationScheduled = false;
         //具体实现动画的内容 [见小节2.6.1]
         doAnimationFrame(mChoreographer.getFrameTime());
     }
+```
 
 #### 2.6.1 doAnimationFrame
 [-> ValueAnimator.java]
 
+```java
      private void doAnimationFrame(long frameTime) {
         // 清空mPendingAnimations
         while (mPendingAnimations.size() > 0) {
@@ -471,11 +504,13 @@ FrameHandler在收到信息时执行doFrame()，该方法重点是doCallbacks语
             scheduleAnimation();
         }
     }
+```
 
 doAnimationFrame是消耗帧的过程，其中startAnimation会初始化`Evalutor`.
 
 #### 2.6.2 animationFrame
 
+```java
     boolean animationFrame(long currentTime) {
         boolean done = false;
         switch (mPlayingState) {
@@ -517,12 +552,14 @@ doAnimationFrame是消耗帧的过程，其中startAnimation会初始化`Evaluto
 
         return done;
     }
+```
 
 绘制动画的帧，当动画的elapsed time时间超过动画duration时，动画将结束。
 animateValue(fraction)，动画的每一帧变化，都会调用这个方式，将` elapsed fraction`通过`Interpolation`转换为所需的插值。之后获取的动画属性值，对于`evaluator`，大多数情况是在动画更新方式中调用。
 
 #### 2.6.3 endAnimation
 
+```java
     protected void endAnimation(AnimationHandler handler) {
         handler.mAnimations.remove(this);
         handler.mPendingAnimations.remove(this);
@@ -549,17 +586,20 @@ animateValue(fraction)，动画的每一帧变化，都会调用这个方式，�
         mCurrentIteration = 0;
     }
 
+```
 
 动画结束是通过实现`AnimatorListener`接口的`onAnimationEnd()`方法。
 
 #### 2.6.4 scheduleAnimation
 
+```java
     private void scheduleAnimation() {
         if (!mAnimationScheduled) {
             mChoreographer.postCallback(Choreographer.CALLBACK_ANIMATION, this, null);
             mAnimationScheduled = true;
         }
     }
+```
 
 scheduleAnimation再次调用mChoreographer, 跟小节[2.5]构成循环流程，不断重复执行这个过程，直到动画结束.
 到此，整个动画的完成流程已全部疏通完毕。
@@ -569,6 +609,7 @@ scheduleAnimation再次调用mChoreographer, 跟小节[2.5]构成循环流程，
 
 动画主线流程：
 
+```java
     ObjectAnimator.start()
     -> ValueAnimator.start()
     -> animationHandler.start()
@@ -586,5 +627,6 @@ scheduleAnimation再次调用mChoreographer, 跟小节[2.5]构成循环流程，
     -> doAnimationFrame()
     -> animationFrame()
     -> animateValue()
+```
 
 目前先文字叙述，后面有空再画详细流程图。

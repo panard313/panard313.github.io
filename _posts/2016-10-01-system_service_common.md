@@ -28,6 +28,7 @@ tags:
 ### 2.1 SM.addService
 [-> ServiceManager.java]
 
+```java
     public static void addService(String name, IBinder service) {
         try {
             // [见小节2.2 和 2.3]
@@ -36,10 +37,12 @@ tags:
             Log.e(TAG, "error in addService", e);
         }
     }
+```
 
 ### 2.2 SM.getIServiceManager
 [-> ServiceManager.java]
 
+```java
     private static IServiceManager getIServiceManager() {
         if (sServiceManager != null) {
             return sServiceManager;
@@ -48,6 +51,7 @@ tags:
         sServiceManager = ServiceManagerNative.asInterface(BinderInternal.getContextObject());
         return sServiceManager;
     }
+```
 
 采用了单例模式获取ServiceManager  getIServiceManager()返回的是ServiceManagerProxy(简称SMP)对象.
 
@@ -58,6 +62,7 @@ tags:
 #### 2.2.1 asInterface
 [-> ServiceManagerNative.java]
 
+```java
     public abstract class ServiceManagerNative extends Binder implements IServiceManager
     {
 
@@ -75,10 +80,12 @@ tags:
             return new ServiceManagerProxy(obj);
         }
     }
+```
 
 #### 2.2.2 ServiceManagerProxy创建
 [-> ServiceManagerNative.java ::ServiceManagerProxy]
 
+```java
     class ServiceManagerProxy implements IServiceManager {
         private IBinder mRemote;
         
@@ -88,12 +95,14 @@ tags:
         ...
     }
 
+```
 
 可见, getIServiceManager()过程是获取一个用于跟远程ServiceManager服务(这个用于管理所有binder服务的大管家)进行通信的binder代理端.
 
 ### 2.3 SMP.addService
 [-> ServiceManagerNative.java ::ServiceManagerProxy]
 
+```java
     public void addService(String name, IBinder service, boolean allowIsolated)
             throws RemoteException {
         Parcel data = Parcel.obtain();
@@ -106,6 +115,7 @@ tags:
         reply.recycle();
         data.recycle();
     }
+```
 
 通过mRemote向将ADD_SERVICE_TRANSACTION的事件发送给ServiceManager. 接下来的内容见[Binder系列5—注册服务(addService)](https://panard313.github.io/2015/11/14/binder-add-service/#addservice).
 
@@ -122,6 +132,7 @@ tags:
 ### 3.1 SSM初始化
 [-> SystemServiceManager.java]
 
+```java
     public class SystemServiceManager {
         private final Context mContext;
         
@@ -133,12 +144,14 @@ tags:
         }
         
     }
+```
 
 mSystemServiceManager只会创建一次，后续其他服务通过该方式启动，直接调用其startService()方法即可。
 
 ### 3.2 SSM.startService
 [-> SystemServiceManager.java]
 
+```java
     public <T extends SystemService> T startService(Class<T> serviceClass) {
         final String name = serviceClass.getName();
 
@@ -166,6 +179,7 @@ mSystemServiceManager只会创建一次，后续其他服务通过该方式启�
         }
         return service;
     }
+```
 
 mSystemServiceManager.startService(xxx.class) 功能主要：
 
@@ -178,6 +192,7 @@ mSystemServiceManager.startService(xxx.class) 功能主要：
 #### 3.2.1 onStart
 [-> PowerManagerService.java]
 
+```java
     public void onStart() {
         //[见小节3.2.2]
         publishBinderService(Context.POWER_SERVICE, new BinderService());
@@ -186,12 +201,14 @@ mSystemServiceManager.startService(xxx.class) 功能主要：
         Watchdog.getInstance().addMonitor(this);
         Watchdog.getInstance().addThread(mHandler);
     }
+```
 
 PowerManagerService定义了一个内部类BinderService, 继承于IPowerManager.Stub服务. 再调用publishBinderService来注册服务.
 
 #### 3.2.2 publishBinderService
 [-> SystemService.java]
 
+```java
     public abstract class SystemService {
         protected final void publishBinderService(String name, IBinder service) {
             publishBinderService(name, service, false);
@@ -202,6 +219,7 @@ PowerManagerService定义了一个内部类BinderService, 继承于IPowerManager
             ServiceManager.addService(name, service, allowIsolated);
         }
     }
+```
 
 到此可见, 采用该方式真正注册服务的过程,同样也是采用ServiceManager.addService方式.
 
@@ -210,6 +228,7 @@ PowerManagerService定义了一个内部类BinderService, 继承于IPowerManager
 ### 3.3 SSM.startBootPhase
 [-->SystemServiceManager.java]
 
+```java
     public void startBootPhase(final int phase) {
         mCurrentPhase = phase;
 
@@ -222,18 +241,21 @@ PowerManagerService定义了一个内部类BinderService, 继承于IPowerManager
                 ...
         }
     }
+```
 
 所有通过该方式注册的继承于SystemService的服务,都会被添加到mServices. 该方法会根据当前系统启动到不同的阶段, 则回调所有服务onBootPhase()方法
 
 #### 3.3.1 BootPhase
 系统开机启动过程, 当执行到system_server进程时, 将启动过程划分了几个阶段, 定义在SystemService.java文件
 
+```java
     public static final int PHASE_WAIT_FOR_DEFAULT_DISPLAY = 100; 
     public static final int PHASE_LOCK_SETTINGS_READY = 480;
     public static final int PHASE_SYSTEM_SERVICES_READY = 500;
     public static final int PHASE_ACTIVITY_MANAGER_READY = 550;
     public static final int PHASE_THIRD_PARTY_APPS_CAN_START = 600;
     public static final int PHASE_BOOT_COMPLETED = 1000;
+```
 
 这些阶段跟系统服务大致的顺序图,如下:
 

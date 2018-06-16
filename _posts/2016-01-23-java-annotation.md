@@ -58,12 +58,14 @@ tags:
 
 源码：
 
+```java
     @Documented
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.ANNOTATION_TYPE)
     public @interface Documented {
     }
 
+```
 
 @Documented：表示拥有该注解的元素可通过javadoc此类的工具进行文档化。该类型应用于注解那些影响客户使用带注释(comment)的元素声明的类型。如果类型声明是用Documented来注解的，这种类型的注解被作为被标注的程序成员的公共API。
 
@@ -73,11 +75,13 @@ tags:
 
 源码：
 
+```java
     @Documented
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.ANNOTATION_TYPE)
     public @interface Inherited {
     }
+```
 
 @Inherited：表示该注解类型被自动继承，如果用户在当前类中查询这个元注解类型并且当前类的声明中不包含这个元注解类型，那么也将自动查询当前类的父类是否存在Inherited元注解，这个动作将被重复执行知道这个标注类型被找到，或者是查询到顶层的父类。
 
@@ -85,12 +89,14 @@ tags:
 
 源码：
 
+```java
     @Documented
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.ANNOTATION_TYPE)
     public @interface Retention {
         RetentionPolicy value();
     }
+```
 
 @Retention：表示该注解类型的注解保留的时长。当注解类型声明中没有@Retention元注解，则默认保留策略为RetentionPolicy.CLASS。关于保留策略(RetentionPolicy)是枚举类型，共定义3种保留策略，如下表：
 
@@ -107,12 +113,14 @@ tags:
 
 源码：
 
+```java
     @Documented
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.ANNOTATION_TYPE)
     public @interface Target {
         ElementType[] value();
     }
+```
 
 @Target：表示该注解类型的所使用的程序元素类型。当注解类型声明中没有@Target元注解，则默认为可适用所有的程序元素。如果存在指定的@Target元注解，则编译器强制实施相应的使用限制。关于程序元素(ElementType)是枚举类型，共定义8种程序元素，如下表：
 
@@ -137,10 +145,12 @@ Java提供了多种内建的注解，下面接下几个比较常用的注解：@
 
 源码：
 
+```java
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.SOURCE)
     public @interface Override {
     }
+```
 
 用途：用于告知编译器，我们需要覆写超类的当前方法。如果某个方法带有该注解但并没有覆写超类相应的方法，则编译器会生成一条错误信息。
 
@@ -150,11 +160,13 @@ Java提供了多种内建的注解，下面接下几个比较常用的注解：@
 
 源码：
 
+```java
     @Documented
     @Retention(RetentionPolicy.RUNTIME)
     @Target(value={CONSTRUCTOR, FIELD, LOCAL_VARIABLE, METHOD, PACKAGE, PARAMETER, TYPE})
     public @interface Deprecated {
     }
+```
 
 用途：用于告知编译器，某一程序元素(比如方法，成员变量)不建议使用时，应该使用这个注解。Java在javadoc中推荐使用该注解，一般应该提供为什么该方法不推荐使用以及相应替代方法。
 
@@ -164,11 +176,13 @@ Java提供了多种内建的注解，下面接下几个比较常用的注解：@
 
 源码：
 
+```java
     @Target({TYPE, FIELD, METHOD, PARAMETER, CONSTRUCTOR, LOCAL_VARIABLE})
     @Retention(RetentionPolicy.SOURCE)
     public @interface SuppressWarnings {
         String[] value();
     }
+```
 
 用于：用于告知编译器忽略特定的警告信息，例在泛型中使用原生数据类型。
 
@@ -176,7 +190,9 @@ Java提供了多种内建的注解，下面接下几个比较常用的注解：@
 
 该注解有方法value(）,可支持多个字符串参数，例如：
 
+```java
     @SupressWarning(value={"uncheck","deprecation"})
+```
 
 前面讲的@Override，@Deprecated都是无需参数的，而压制警告是需要带有参数的，可用参数如下：
 
@@ -208,6 +224,7 @@ Java提供了多种内建的注解，下面接下几个比较常用的注解：@
 
 创建自定义注解，与创建接口有几分相似，但注解需要以@开头，下面先声明一个自定义注解（AuthorAnno.java）文件：
 
+```java
     package com.yuanhh.annotation;
     import java.lang.annotation.Documented;
     import java.lang.annotation.ElementType;
@@ -225,6 +242,7 @@ Java提供了多种内建的注解，下面接下几个比较常用的注解：@
         String website() default "gityuan.com";
         int revision() default 1;
     }
+```
 
 自定义注解规则：
 
@@ -235,6 +253,7 @@ Java提供了多种内建的注解，下面接下几个比较常用的注解：@
 
 有了前面的自定义注解@AuthorAnno，那么我们便可以在代码中使用(AnnotationDemo.java)，如下：
 
+```java
     package com.yuanhh.annotation;
 
     public class AnnotationDemo {
@@ -249,6 +268,7 @@ Java提供了多种内建的注解，下面接下几个比较常用的注解：@
             System.out.println("I am demo method");
         }
     }
+```
 
 由于该注解的保留策略为RetentionPolicy.RUNTIME，故可在运行期通过反射机制来使用，否则无法通过反射机制来获取。
 
@@ -266,6 +286,7 @@ Java提供了多种内建的注解，下面接下几个比较常用的注解：@
 
 前面自定义的注解，适用对象为Method。类Method继承类AccessibleObject，而类AccessibleObject实现了AnnotatedElement接口，那么可以利用上面的反射方法，来实现解析@AuthorAnno的功能(AnnotationParser.java)，内容如下：
 
+```java
     package com.yuanhh.annotation;
     import java.lang.reflect.Method;
 
@@ -286,14 +307,17 @@ Java提供了多种内建的注解，下面接下几个比较常用的注解：@
             }
         }
     }
+```
 
 程序运行的输出结果：
 
+```java
     method: public void com.yuanhh.annotation.AnnotationDemo.demo()
     name= yuanhh , website= gityuan.com , revision= 2
     method: public static void com.yuanhh.annotation.AnnotationDemo.main(java.lang.String[])
     name= yuanhh , website= gityuan.com , revision= 1
 
+```
 
 这里通过反射将注解直接输出只是出于demo，完全可以根据拿到的注解信息做更多有意义的事。
 

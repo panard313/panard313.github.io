@@ -19,6 +19,7 @@ tags:
 
 ==> linux/mm_types.h
 
+```java
     struct page {
            page_flags_t flags;  页标志符
            atomic_t _count;    页引用计数
@@ -29,6 +30,7 @@ tags:
            struct list_head lru;        最近最久未使用struct slab结构指针链表头变量
            void *virtual;               页虚拟地址
     };
+```
 
 - flags：页标志包含是不是脏的，是否被锁定等等，每一位单独表示一种状态，可同时表示出32种不同状态，定义在<linux/page-flags.h>
 - _count：计数值为-1表示未被使用。
@@ -93,10 +95,12 @@ kmalloc，vmalloc分配都是以字节为单位
 
 `kzalloc()`等价于先用 `kmalloc()` 申请空间， 再用`memset()`来初始化，所有申请的元素都被初始化为0。
 
+```java
     static inline void *kzalloc(size_t size, gfp_t flags)
     {
         return kmalloc(size, flags | __GFP_ZERO); //通过或标志位__GFP_ZERO，初始化元素为0
     }
+```
 
 **(2) vmalloc**
 
@@ -206,6 +210,7 @@ slab层把不同的对象划分为高速缓存组，每个高速缓存组都存�
 
 ==> linux/sched.h
 
+```java
     struct mm_struct
     {
         struct vm_area_struct *mmap;
@@ -217,6 +222,7 @@ slab层把不同的对象划分为高速缓存组，每个高速缓存组都存�
         struct list_head mmlist;
         ...
     };
+```
 
 - mm_users：代表正在使用该地址的进程数目，当该值为0时mm_count也变为0；
 - mm_count: 代表mm_struct的主引用计数，当该值为0说明没有任何指向该mm_struct结构体的引用，结构体会被撤销。
@@ -245,6 +251,7 @@ slab层把不同的对象划分为高速缓存组，每个高速缓存组都存�
 
 ==> linux/mm_types.h
 
+```java
     struct vm_area_struct {
         struct mm_struct * vm_mm;  //内存描述符
         unsigned long  vm_start;   //区域的首地址
@@ -258,17 +265,20 @@ slab层把不同的对象划分为高速缓存组，每个高速缓存组都存�
         struct file * vm_file; //指向被映射的文件的指针
         void * vm_private_data; //设备驱动私有数据，与内存管理无关。
     }
+```
 
 每个内存描述符对应于进程地址空间的唯一区间，vm_end - vm_start便是内存区间的长度。
 
 **VMA操作**
 
+```java
     struct vm_operations_struct {
         void (*open) (struct vm_area_struct * area);
         void (*close) (struct vm_area_struct * area);
         struct page * (*nopage)(struct vm_area_struct *area, unsigned long address, int write_access);
         ...
     }
+```
 
 **查看进程内存空间**
 

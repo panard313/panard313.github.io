@@ -61,6 +61,7 @@ Activity的生命周期中只有在以下3种状态之一，才能较长时间�
 
 Activity的生命周期，都是其他线程通过handler发送消息给主线程，那么主线程中的`ActivityThread`的内部类`H`控制整个核心消息处理机制，通过`H.handleMessage()`来控制Activity的生命周期，在H类中共定义了50种消息。
 
+```java
     private class H extends Handler {
       public static final int LAUNCH_ACTIVITY         = 100;
       public static final int PAUSE_ACTIVITY          = 101;
@@ -113,6 +114,7 @@ Activity的生命周期，都是其他线程通过handler发送消息给主线�
       public static final int BACKGROUND_VISIBLE_BEHIND_CHANGED = 148;
       public static final int ENTER_ANIMATION_COMPLETE = 149;
     }
+```
     
 主线程每到收到其他线程发送过来的不同的Handler消息，则都会触发相应的H.handleMessage，下面列举跟Activity相关的一些常见消息。
 
@@ -126,6 +128,7 @@ Activity的生命周期，都是其他线程通过handler发送消息给主线�
 
 一般来说收到消息，都会调用相应handlexxx方法。比如,`LAUNCH_ACTIVITY`则对应`handleLaunchActivity`, `RESUME_ACTIVITY`则对应`handleResumeActivity`等。
 
+```java
     public void handleMessage(Message msg) {
       switch (msg.what) {
         case LAUNCH_ACTIVITY: {
@@ -158,6 +161,7 @@ Activity的生命周期，都是其他线程通过handler发送消息给主线�
          ...
       }
     }
+```
 
 先简单列举先调用链可能涉及的方法(**注：并非每次都能同时进入如下调用链的每个分支，先大致列举，后续再展开**)
 
@@ -169,6 +173,7 @@ Activity的生命周期，都是其他线程通过handler发送消息给主线�
 
 **调用链**
 
+```java
     ActivityThread.handleLaunchActivity
         ActivityThread.handleConfigurationChanged
             ActivityThread.performConfigurationChanged
@@ -200,6 +205,7 @@ Activity的生命周期，都是其他线程通过handler发送消息给主线�
 
                     Instrumentation.callActivityOnResume
                         Activity.onResume
+```
 
 采用缩进方式，来代表方法的调用链，相同缩进层的方法代表来自位于同一个调用方法里。callActivityOnCreate和callActivityonRestoreInstanceState相同层级，代表都是由上一层级的ActivityThread.performLaunchActivity()方法中调用。
 
@@ -223,6 +229,7 @@ Application和Activity都实现了ComponentCallbacks2接口；所以Application�
 
 **调用链**
 
+```java
     ActivityThread.handleResumeActivity
         ActivityThread.performResumeActivity
             Activity.performResume
@@ -236,6 +243,7 @@ Application和Activity都实现了ComponentCallbacks2接口；所以Application�
 
                 Instrumentation.callActivityOnResume
                     Activity.onResume
+```
 
 **App角度**
 
@@ -251,6 +259,7 @@ msg: `PAUSE_ACTIVITY`
 
 **调用链**
 
+```java
     ActivityThread.handlePauseActivity
         ActivityThread.performPauseActivity
             ActivityThread.callCallActivityOnSaveInstanceState
@@ -261,6 +270,7 @@ msg: `PAUSE_ACTIVITY`
             Instrumentation.callActivityOnPause
                 Activity.performPause
                     Activity.onPause
+```
 
 **App角度**
 
@@ -275,6 +285,7 @@ msg: `STOP_ACTIVITY_HIDE`
 
 **调用链**
 
+```java
     ActivityThread.handleStopActivity
         ActivityThread.performStopActivityInner
             ActivityThread.callCallActivityOnSaveInstanceState
@@ -300,6 +311,7 @@ msg: `STOP_ACTIVITY_HIDE`
 
                         AMS.cleanUpApplicationRecordLocked
                         AMS.updateOomAdjLocked
+```
 
 **App角度**
 
@@ -314,6 +326,7 @@ msg: `DESTROY_ACTIVITY`
 
 **调用链**
 
+```java
     ActivityThread.handleDestroyActivity
         ActivityThread.performDestroyActivity
             Instrumentation.callActivityOnPause
@@ -329,6 +342,7 @@ msg: `DESTROY_ACTIVITY`
                     ActivityStackSupervisor.resumeTopActivitiesLocked
                         ActivityStack.resumeTopActivityLocked
                             ActivityStack.resumeTopActivityInnerLocked
+```
 
 **App角度**
 
@@ -342,6 +356,7 @@ msg: `NEW_INTENT` （打开已经处于栈顶的Activity，则会发送给NEW_IN
 
 **调用链**
 
+```java
     ActivityThread.handleNewIntent
         performNewIntents
             Instrumentation.callActivityOnPause
@@ -363,6 +378,7 @@ msg: `NEW_INTENT` （打开已经处于栈顶的Activity，则会发送给NEW_IN
 
                 Instrumentation.callActivityOnResume
                     Activity.onResume
+```
 
 **App角度**
 

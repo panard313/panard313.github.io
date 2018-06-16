@@ -19,6 +19,7 @@ RemoteService.java
 
 本例是为了演示进程间的通信机制，故需要将Service与Activity处于不同的进程，需要在AndroidManifest.xml中，把service配置成`android:process=":remote"`,进程也可以命名成其他的。
 
+```java
     public class RemoteService extends Service {
         private static final String TAG = "BinderSimple";
 
@@ -82,11 +83,13 @@ RemoteService.java
             mMyData.setData2(20);
         }
     }
+```
 
 ### 1.2 Client端
 
 ClientActivity.java
 
+```java
     public class ClientActivity extends AppCompatActivity {
         private static final String TAG = "BinderSimple";
 
@@ -194,16 +197,19 @@ ClientActivity.java
             }
         }
     }
+```
 
 ### 1.3 AIDL文件
 
 (1)IRemoteService.aidl
 定义远程通信的接口方法
 
+```java
     interface IRemoteService {
         int getPid();
         MyData getMyData();
     }
+```
 
 (2)MyData.aidl
 定义远程通信的自定义数据
@@ -214,6 +220,7 @@ ClientActivity.java
 ### 1.4 Parcel数据
 MyData.java
 
+```java
     public class MyData implements Parcelable {
         private int data1;
         private int data2;
@@ -279,6 +286,7 @@ MyData.java
         }
     }
 
+```
 
 ### 1.5 运行
 
@@ -302,6 +310,7 @@ MyData.java
 
 采用AIDL技术，是原理还是利用framework binder的架构。本文的实例AIDL会自动生成一个与之相对应的IRemoteService.java文件，如下：
 
+```java
     package com.yuanhh.appbinderdemo;
     public interface IRemoteService extends android.os.IInterface {
         /**

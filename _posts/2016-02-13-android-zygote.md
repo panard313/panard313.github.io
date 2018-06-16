@@ -52,6 +52,7 @@ Zygote进程能够重启的地方:
 ### 2.1 App_main.main
 [-> App_main.cpp]
 
+```java
     int main(int argc, char* const argv[])
     {
         //传到的参数argv为“-Xzygote /system/bin --zygote --start-system-server”
@@ -135,10 +136,12 @@ Zygote进程能够重启的地方:
             return 10;
         }
     }
+```
 
 ## 2.2 start
 [-> AndroidRuntime.cpp]
 
+```java
     void AndroidRuntime::start(const char* className, const Vector<String8>& options, bool zygote)
     {
         static const String8 startSystemServer("start-system-server");
@@ -206,12 +209,14 @@ Zygote进程能够重启的地方:
         mJavaVM->DestroyJavaVM();
     }
 
+```
 
 ### 2.3 startVm
 [--> AndroidRuntime.cpp]
 
 创建Java虚拟机方法的主要篇幅是关于虚拟机参数的设置，下面只列举部分在调试优化过程中常用参数。
 
+```java
     int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv, bool zygote)
     {
         // JNI检测功能，用于native层调用jni函数时进行常规检测，比较弱字符串格式是否符合要求，资源是否正确释放。该功能一般用于早期系统调试或手机Eng版，对于User版往往不会开启，引用该功能比较消耗系统CPU资源，降低系统性能。
@@ -255,10 +260,12 @@ Zygote进程能够重启的地方:
         }
     }
 
+```
 
 ### 2.4 startReg
 [--> AndroidRuntime.cpp]
 
+```java
     int AndroidRuntime::startReg(JNIEnv* env)
     {
         //设置线程创建方法为javaCreateThreadEtc 【见小节2.4.1】
@@ -273,19 +280,23 @@ Zygote进程能够重启的地方:
         env->PopLocalFrame(NULL);
         return 0;
     }
+```
 
 #### 2.4.1 androidSetCreateThreadFunc
 [-> Threads.cpp]
 
+```java
     void androidSetCreateThreadFunc(android_create_thread_fn func)
     {
         gCreateThreadFn = func;
     }
+```
 
 虚拟机启动后startReg()过程，会设置线程创建函数指针`gCreateThreadFn`指向`javaCreateThreadEtc`.
 
 #### 2.4.2 register_jni_procs
 
+```java
     static int register_jni_procs(const RegJNIRec array[], size_t count, JNIEnv* env)
     {
         for (size_t i = 0; i < count; i++) {
@@ -296,25 +307,31 @@ Zygote进程能够重启的地方:
         }
         return 0;
     }
+```
 
 #### 2.4.3 gRegJNI.mProc
 
+```java
     static const RegJNIRec gRegJNI[] = {
         REG_JNI(register_com_android_internal_os_RuntimeInit),
         REG_JNI(register_android_os_Binder)，
         ...
     }；
+```
 
 array[i]是指gRegJNI数组, 该数组有100多个成员。其中每一项成员都是通过**REG_JNI**宏定义的：
 
+```java
     #define REG_JNI(name)      { name }
     struct RegJNIRec {
         int (*mProc)(JNIEnv*);
     };
+```
 
 可见，调用`mProc`，就等价于调用其参数名所指向的函数。 例如REG_JNI(register_com_android_internal_os_RuntimeInit).mProc也就是指进入register_com_android_internal_os_RuntimeInit方法，接下来就继续以此为例来说明：
 
 
+```java
     int register_com_android_internal_os_RuntimeInit(JNIEnv* env)
     {
         return jniRegisterNativeMethods(env, "com/android/internal/os/RuntimeInit",
@@ -330,6 +347,7 @@ array[i]是指gRegJNI数组, 该数组有100多个成员。其中每一项成员
         { "nativeSetExitWithoutCleanup", "(Z)V",
             (void*) com_android_internal_os_RuntimeInit_nativeSetExitWithoutCleanup },
     };
+```
 
 ## 三. 进入Java层
 
@@ -338,6 +356,7 @@ array[i]是指gRegJNI数组, 该数组有100多个成员。其中每一项成员
 ### 3.1 ZygoteInit.main
 [-->ZygoteInit.java]
 
+```java
     public static void main(String argv[]) {
         try {
             RuntimeInit.enableDdms(); //开启DDMS功能
@@ -374,12 +393,14 @@ array[i]是指gRegJNI数组, 该数组有100多个成员。其中每一项成员
             throw ex;
         }
     }
+```
 
 在异常捕获后调用的方法caller.run()，会在后续的system_server文章会讲到。
 
 ### 3.2 registerZygoteSocket
 [-->ZygoteInit.java]
 
+```java
     private static void registerZygoteSocket(String socketName) {
         if (sServerSocket == null) {
             int fileDesc;
@@ -400,10 +421,12 @@ array[i]是指gRegJNI数组, 该数组有100多个成员。其中每一项成员
             }
         }
     }
+```
 
 ### 3.3 preload
 [-->ZygoteInit.java]
 
+```java
     static void preload() {
         //预加载位于/system/etc/preloaded-classes文件中的类
         preloadClasses();
@@ -424,6 +447,7 @@ array[i]是指gRegJNI数组, 该数组有100多个成员。其中每一项成员
         //仅用于zygote进程，用于内存共享的进程
         WebViewFactory.prepareWebViewInZygote();
     }
+```
 
 执行Zygote进程的初始化,对于类加载，采用反射机制Class.forName()方法来加载。对于资源加载，主要是 com.android.internal.R.array.preloaded_drawables和com.android.internal.R.array.preloaded_color_state_lists，在应用程序中以com.android.internal.R.xxx开头的资源，便是此时由Zygote加载到内存的。
 
@@ -434,6 +458,7 @@ zygote进程内加载了preload()方法中的所有资源，当需要fork新进�
 ### 3.4 startSystemServer
 [-->ZygoteInit.java]
 
+```java
     private static boolean startSystemServer(String abiList, String socketName)
             throws MethodAndArgsCaller, RuntimeException {
         long capabilities = posixCapabilitiesAsBits(
@@ -490,12 +515,14 @@ zygote进程内加载了preload()方法中的所有资源，当需要fork新进�
         }
         return true;
     }
+```
 
 准备参数并fork新进程，从上面可以看出system server进程参数信息为uid=1000,gid=1000,进程名为sytem_server，从zygote进程fork新进程后，需要关闭zygote原有的socket。另外，对于有两个zygote进程情况，需等待第2个zygote创建完成。更多详情见[Android系统启动-systemServer上篇](https://panard313.github.io/2016/02/14/android-system-server/)。
 
 ### 3.5 runSelectLoop
 [-->ZygoteInit.java]
 
+```java
     private static void runSelectLoop(String abiList) throws MethodAndArgsCaller {
         ArrayList<FileDescriptor> fds = new ArrayList<FileDescriptor>();
         ArrayList<ZygoteConnection> peers = new ArrayList<ZygoteConnection>();
@@ -540,12 +567,14 @@ zygote进程内加载了preload()方法中的所有资源，当需要fork新进�
             }
         }
     }
+```
 
 Zygote采用高效的I/O多路复用机制，保证在没有客户端连接请求或数据处理时休眠，否则响应客户端的请求。
 
 ### 3.6 runOnce
 [-> ZygoteConnection.java]
 
+```java
     boolean runOnce() throws ZygoteInit.MethodAndArgsCaller {
 
         String args[];
@@ -594,6 +623,7 @@ Zygote采用高效的I/O多路复用机制，保证在没有客户端连接请�
             IoUtils.closeQuietly(serverPipeFd);
         }
     }
+```
 
 更多内容，见[理解Android进程创建流程](https://panard313.github.io/2016/03/26/app-process-create/)
 

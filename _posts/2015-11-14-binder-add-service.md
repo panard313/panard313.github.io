@@ -29,6 +29,7 @@ tags:
 
 media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
 
+```c++
     int main(int argc __unused, char** argv)
     {
         ...
@@ -51,6 +52,7 @@ media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
         //当前线程加入到线程池
         IPCThreadState::self()->joinThreadPool();
      }
+```
 
 过程说明:
 
@@ -87,6 +89,7 @@ media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
 #### 2.1 ProcessState::self
 [-> ProcessState.cpp]
 
+```c++
     sp<ProcessState> ProcessState::self()
     {
         Mutex::Autolock _l(gProcessMutex);
@@ -99,12 +102,14 @@ media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
         return gProcess;
     }
 
+```
 
 获得ProcessState对象: 这也是**单例模式**，从而保证每一个进程只有一个`ProcessState`对象。其中`gProcess`和`gProcessMutex`是保存在`Static.cpp`类的全局变量。
 
 #### 2.2  ProcessState初始化
 [-> ProcessState.cpp]
 
+```c++
     ProcessState::ProcessState()
         : mDriverFD(open_driver()) // 打开Binder驱动【见小节2.3】
         , mVMStart(MAP_FAILED)
@@ -127,6 +132,7 @@ media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
             }
         }
     }
+```
 
 - `ProcessState`的单例模式的惟一性，因此一个进程只打开binder设备一次,其中ProcessState的成员变量`mDriverFD`记录binder驱动的fd，用于访问binder设备。
 - `BINDER_VM_SIZE = (1*1024*1024) - (4096 *2)`, binder分配的默认内存大小为1M-8k。
@@ -135,6 +141,7 @@ media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
 #### 2.3  open_driver
 [-> ProcessState.cpp]
 
+```c++
     static int open_driver()
     {
         // 打开/dev/binder设备，建立与内核的Binder驱动的交互通道
@@ -163,6 +170,7 @@ media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
         }
         return fd;
     }
+```
 
 open_driver作用是打开/dev/binder设备，设定binder支持的最大线程数。关于binder驱动的相应方法，见文章[Binder Driver初探](https://panard313.github.io/2015/11/01/binder-driver/)。
 
@@ -170,10 +178,12 @@ ProcessState采用单例模式，保证每一个进程都只打开一次Binder D
 
 #### 2.4 mmap
 
+```c++
     //原型
     void* mmap(void* addr, size_t size, int prot, int flags, int fd, off_t offset)
     //此处
     mmap(0, BINDER_VM_SIZE, PROT_READ, MAP_PRIVATE | MAP_NORESERVE, mDriverFD, 0);
+```
 
 参数说明：
 
@@ -191,10 +201,12 @@ mmap()经过系统调用，执行[binder_mmap](https://panard313.github.io/2015/
 ### 3.1 instantiate
 [-> MediaPlayerService.cpp]
 
+```c++
     void MediaPlayerService::instantiate() {
         //注册服务【见小节3.2】
         defaultServiceManager()->addService(String16("media.player"), new MediaPlayerService());
     }
+```
 
 注册服务MediaPlayerService：由[defaultServiceManager()](https://panard313.github.io/2015/11/08/binder-get-sm/)返回的是BpServiceManager，同时会创建ProcessState对象和BpBinder对象。
 故此处等价于调用BpServiceManager->addService。其中MediaPlayerService位于libmediaplayerservice库.
@@ -202,6 +214,7 @@ mmap()经过系统调用，执行[binder_mmap](https://panard313.github.io/2015/
 ### 3.2 BpSM.addService
 [-> IServiceManager.cpp  ::BpServiceManager]
 
+```c++
     virtual status_t addService(const String16& name, const sp<IBinder>& service,
             bool allowIsolated)
     {
@@ -215,20 +228,24 @@ mmap()经过系统调用，执行[binder_mmap](https://panard313.github.io/2015/
         status_t err = remote()->transact(ADD_SERVICE_TRANSACTION, data, &reply);
         return err == NO_ERROR ? reply.readExceptionCode() : err;
     }
+```
 
 服务注册过程：向ServiceManager注册服务MediaPlayerService，服务名为"media.player"；
 
 #### 3.2.1 writeStrongBinder
 [-> parcel.cpp]
 
+```c++
     status_t Parcel::writeStrongBinder(const sp<IBinder>& val)
     {
         return flatten_binder(ProcessState::self(), val, this);
     }
+```
 
 #### 3.2.2 flatten_binder
 [-> parcel.cpp]
 
+```c++
     status_t flatten_binder(const sp<ProcessState>& /*proc*/,
         const sp<IBinder>& binder, Parcel* out)
     {
@@ -255,6 +272,7 @@ mmap()经过系统调用，执行[binder_mmap](https://panard313.github.io/2015/
         //【见小节3.2.3】
         return finish_flatten_binder(binder, obj, out);
     }
+```
 
 将Binder对象扁平化，转换成flat_binder_object对象。
 
@@ -263,6 +281,7 @@ mmap()经过系统调用，执行[binder_mmap](https://panard313.github.io/2015/
 
 关于localBinder，代码见Binder.cpp。
 
+```c++
     BBinder* BBinder::localBinder()
     {
         return this;
@@ -272,20 +291,24 @@ mmap()经过系统调用，执行[binder_mmap](https://panard313.github.io/2015/
     {
         return NULL;
     }
+```
 
 #### 3.2.3 finish_flatten_binder
 
+```c++
     inline static status_t finish_flatten_binder(
         const sp<IBinder>& , const flat_binder_object& flat, Parcel* out)
     {
         return out->writeObject(flat, false);
     }
+```
 
 将flat_binder_object写入out。
 
 ### 3.3 BpBinder::transact
 [-> BpBinder.cpp]
 
+```c++
     status_t BpBinder::transact(
         uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags)
     {
@@ -298,6 +321,7 @@ mmap()经过系统调用，执行[binder_mmap](https://panard313.github.io/2015/
         }
         return DEAD_OBJECT;
     }
+```
 
 Binder代理类调用transact()方法，真正工作还是交给IPCThreadState来进行transact工作。先来
 看看IPCThreadState::self的过程。
@@ -305,6 +329,7 @@ Binder代理类调用transact()方法，真正工作还是交给IPCThreadState�
 #### 3.3.1 IPCThreadState::self
 [-> IPCThreadState.cpp]
 
+```c++
     IPCThreadState* IPCThreadState::self()
     {
         if (gHaveTLS) {
@@ -328,12 +353,14 @@ Binder代理类调用transact()方法，真正工作还是交给IPCThreadState�
         pthread_mutex_unlock(&gTLSMutex);
         goto restart;
     }
+```
 
 TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有自己的TLS，并且是私有空间，线程之间不会共享。通过pthread_getspecific/pthread_setspecific函数可以获取/设置这些空间中的内容。从线程本地存储空间中获得保存在其中的IPCThreadState对象。
 
 #### 3.3.2 IPCThreadState初始化
 [-> IPCThreadState.cpp]
 
+```c++
     IPCThreadState::IPCThreadState()
         : mProcess(ProcessState::self()),
           mMyThreadId(gettid()),
@@ -345,6 +372,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         mIn.setDataCapacity(256);
         mOut.setDataCapacity(256);
     }
+```
 
 每个线程都有一个`IPCThreadState`，每个`IPCThreadState`中都有一个mIn、一个mOut。成员变量mProcess保存了ProcessState变量(每个进程只有一个)。
 
@@ -354,6 +382,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
 ### 3.4 IPC::transact
 [-> IPCThreadState.cpp]
 
+```c++
     status_t IPCThreadState::transact(int32_t handle,
                                       uint32_t code, const Parcel& data,
                                       Parcel* reply, uint32_t flags)
@@ -382,6 +411,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         return err;
     }
 
+```
 
 IPCThreadState进行transact事务处理分3部分：
 
@@ -392,6 +422,7 @@ IPCThreadState进行transact事务处理分3部分：
 ### 3.5 IPC.writeTransactionData
 [-> IPCThreadState.cpp]
 
+```c++
     status_t IPCThreadState::writeTransactionData(int32_t cmd, uint32_t binderFlags,
         int32_t handle, uint32_t code, const Parcel& data, status_t* statusBuffer)
     {
@@ -422,6 +453,7 @@ IPCThreadState进行transact事务处理分3部分：
         return NO_ERROR;
     }
 
+```
 
 其中handle的值用来标识目的端，注册服务过程的目的端为service manager，此处handle=0所对应的是binder_context_mgr_node对象，正是service manager所对应的binder实体对象。[binder_transaction_data结构体](https://panard313.github.io/2015/11/01/binder-driver/#bindertransactiondata)是binder驱动通信的数据结构，该过程最终是把Binder请求码BC_TRANSACTION和binder_transaction_data结构体写入到`mOut`。
 
@@ -438,6 +470,7 @@ transact过程，先写完binder_transaction_data数据，其中Parcel data的�
 ### 3.6 IPC.waitForResponse
 [-> IPCThreadState.cpp]
 
+```c++
     status_t IPCThreadState::waitForResponse(Parcel *reply, status_t *acquireResult)
     {
         int32_t cmd;
@@ -465,6 +498,7 @@ transact过程，先写完binder_transaction_data数据，其中Parcel data的�
         ...
         return err;
     }
+```
 
 在waitForResponse过程, 首先执行BR_TRANSACTION_COMPLETE；另外，目标进程收到事务后，处理BR_TRANSACTION事务。
 然后发送给当前进程，再执行BR_REPLY命令。
@@ -472,6 +506,7 @@ transact过程，先写完binder_transaction_data数据，其中Parcel data的�
 ### 3.7 IPC.talkWithDriver
 [-> IPCThreadState.cpp]
 
+```c++
     status_t IPCThreadState::talkWithDriver(bool doReceive)
     {
         ...
@@ -506,6 +541,7 @@ transact过程，先写完binder_transaction_data数据，其中Parcel data的�
         return err;
     }
 
+```
 
 [binder_write_read结构体](https://panard313.github.io/2015/11/01/binder-driver/#binderwriteread)用来与Binder设备交换数据的结构, 通过ioctl与mDriverFD通信，是真正与Binder驱动进行数据读写交互的过程。 主要是操作mOut和mIn变量。
 
@@ -518,6 +554,7 @@ ioctl -> binder_ioctl -> binder_ioctl_write_read
 ### 4.1 binder_ioctl_write_read
 [-> binder.c]
 
+```c++
     static int binder_ioctl_write_read(struct file *filp,
                     unsigned int cmd, unsigned long arg,
                     struct binder_thread *thread)
@@ -553,9 +590,11 @@ ioctl -> binder_ioctl -> binder_ioctl_write_read
         copy_to_user(ubuf, &bwr, sizeof(bwr));
         ...
     }   
+```
 
 ### 4.2 binder_thread_write
 
+```c++
     static int binder_thread_write(struct binder_proc *proc,
                 struct binder_thread *thread,
                 binder_uintptr_t binder_buffer, size_t size,
@@ -586,9 +625,11 @@ ioctl -> binder_ioctl -> binder_ioctl_write_read
       }
       return 0;
     }
+```
 
 ### 4.3 binder_transaction
 
+```c++
     static void binder_transaction(struct binder_proc *proc,
                    struct binder_thread *thread,
                    struct binder_transaction_data *tr, int reply){
@@ -709,6 +750,7 @@ ioctl -> binder_ioctl -> binder_ioctl_write_read
             wake_up_interruptible(target_wait);
         return;
     }
+```
 
 注册服务的过程，传递的是BBinder对象，故[小节3.2.1]的writeStrongBinder()过程中localBinder不为空，
 从而flat_binder_object.type等于BINDER_TYPE_BINDER。
@@ -720,6 +762,7 @@ ioctl -> binder_ioctl -> binder_ioctl_write_read
 
 #### 4.3.1 binder_get_node
 
+```c++
     static struct binder_node *binder_get_node(struct binder_proc *proc,
                  binder_uintptr_t ptr)
     {
@@ -738,12 +781,14 @@ ioctl -> binder_ioctl -> binder_ioctl_write_read
       }
       return NULL;
     }
+```
 
 从binder_proc来根据binder指针ptr值，查询相应的binder_node。
 
 
 #### 4.3.2 binder_new_node
 
+```c++
     static struct binder_node *binder_new_node(struct binder_proc *proc,
                            binder_uintptr_t ptr,
                            binder_uintptr_t cookie)
@@ -768,9 +813,11 @@ ioctl -> binder_ioctl -> binder_ioctl_write_read
         INIT_LIST_HEAD(&node->async_todo);
         return node;
     }
+```
 
 #### 4.3.3 binder_get_ref_for_node
 
+```c++
     static struct binder_ref *binder_get_ref_for_node(struct binder_proc *proc,
                   struct binder_node *node)
     {
@@ -832,6 +879,7 @@ ioctl -> binder_ioctl -> binder_ioctl_write_read
       return new_ref;
     }
 
+```
 
 handle值计算方法规律：
 
@@ -847,6 +895,7 @@ handle值计算方法规律：
 ### 5.1 binder_parse
 [-> servicemanager/binder.c]
 
+```c++
     int binder_parse(struct binder_state *bs, struct binder_io *bio,
                      uintptr_t ptr, size_t size, binder_handler func)
     {
@@ -881,10 +930,12 @@ handle值计算方法规律：
         }
         return r;
     }
+```
 
 ### 5.2 svcmgr_handler
 [-> service_manager.c]
 
+```c++
     int svcmgr_handler(struct binder_state *bs,
                        struct binder_transaction_data *txn,
                        struct binder_io *msg,
@@ -918,10 +969,12 @@ handle值计算方法规律：
         bio_put_uint32(reply, 0);
         return 0;
     }
+```
 
 ### 5.3 do_add_service
 [-> service_manager.c]
 
+```c++
     int do_add_service(struct binder_state *bs,
                        const uint16_t *s, size_t len,
                        uint32_t handle, uid_t uid, int allow_isolated,
@@ -966,12 +1019,14 @@ handle值计算方法规律：
         binder_link_to_death(bs, handle, &si->death);
         return 0;
     }
+```
 
 svcinfo记录着服务名和handle信息，保存到svclist列表。
 
 ### 5.4  binder_send_reply
 [-> servicemanager/binder.c]
 
+```c++
     void binder_send_reply(struct binder_state *bs,
                            struct binder_io *reply,
                            binder_uintptr_t buffer_to_free,
@@ -1002,6 +1057,7 @@ svcinfo记录着服务名和handle信息，保存到svclist列表。
         //向Binder驱动通信
         binder_write(bs, &data, sizeof(data));
     }
+```
 
 binder_write进入binder驱动后，将BC_FREE_BUFFER和BC_REPLY命令协议发送给Binder驱动，
 向client端发送reply.

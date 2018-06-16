@@ -17,12 +17,14 @@ Android系统启动过程SystemServer进程时，在startOtherServices()过程�
 ### 1.1 启动DBMS
 [-> SystemServer.java]
 
+```java
     private void startOtherServices() {
         //初始化DBMS，并登记该服务【见小节1.2】
         ServiceManager.addService(Context.DROPBOX_SERVICE,
                 new DropBoxManagerService(context, new File("/data/system/dropbox")));
         ...
     }
+```
 
 其中DROPBOX_SERVICE = "dropbox", DBMS工作目录位于"/data/system/dropbox"，这个过程向ServiceManager
 登记名为“dropbox”的服务。那么可通过`dumpsys dropbox`来查看该dropbox服务信息。
@@ -30,6 +32,7 @@ Android系统启动过程SystemServer进程时，在startOtherServices()过程�
 ### 1.2 初始化DBMS
 [-> DropBoxManagerService.java]
 
+```java
     public final class DropBoxManagerService extends IDropBoxManagerService.Stub {
 
         public DropBoxManagerService(final Context context, File path) {
@@ -66,6 +69,7 @@ Android系统启动过程SystemServer进程时，在startOtherServices()过程�
     }
 
 
+```
 
 该方法主要功能是给dropbox目录所对应的存储空间进行瘦身:
 
@@ -78,6 +82,7 @@ Android系统启动过程SystemServer进程时，在startOtherServices()过程�
 ### 1.3 mReceiver.onReceive
 [-> DropBoxManagerService.java]
 
+```java
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             if (intent != null && Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
@@ -101,9 +106,11 @@ Android系统启动过程SystemServer进程时，在startOtherServices()过程�
             }.start();
         }
     };
+```
 
 #### 1.3.1 init
 
+```java
     private synchronized void init() throws IOException {
         if (mStatFs == null) {
             if (!mDropBoxDir.isDirectory() && !mDropBoxDir.mkdirs()) {
@@ -137,6 +144,7 @@ Android系统启动过程SystemServer进程时，在startOtherServices()过程�
             }
         }
     }
+```
 
 该方法主要功能：
 
@@ -150,6 +158,7 @@ Android系统启动过程SystemServer进程时，在startOtherServices()过程�
 
     private synchronized long trimToFit() {
 
+```java
         int ageSeconds = Settings.Global.getInt(mContentResolver,
                 Settings.Global.DROPBOX_AGE_SECONDS, DEFAULT_AGE_SECONDS);
         int maxFiles = Settings.Global.getInt(mContentResolver,
@@ -219,6 +228,7 @@ Android系统启动过程SystemServer进程时，在startOtherServices()过程�
 
         return mCachedQuotaBlocks * mBlockSize;
     }
+```
 
 trimToFit过程中触发条件是：当文件有效时长超过3天，或者最大文件数超过1000，再或者剩余可用存储设备过低；
 
@@ -249,6 +259,7 @@ DBMS有很多常量参数：
 
 [–>ActivityManagerService.java]
 
+```java
     public void addErrorToDropBox(String eventType,
             ProcessRecord process, String processName, ActivityRecord activity,
             ActivityRecord parent, String subject,
@@ -324,6 +335,7 @@ DBMS有很多常量参数：
             worker.start();
         }
     }
+```
 
 该方法主要功能是输出以下内容项：
 
@@ -335,6 +347,7 @@ DBMS有很多常量参数：
 
 #### 2.1.1 AMS.processClass
 
+```java
     private static String processClass(ProcessRecord process) {
         //MY_PID代表的是当前进程pid，正是system_server进程
         if (process == null || process.pid == MY_PID) {
@@ -345,6 +358,7 @@ DBMS有很多常量参数：
             return "data_app";
         }
     }
+```
 
 dropbox文件名格式为`dropboxTag@xxx.txt` xxx代表时间戳,例如`system_server_crash@1465650845355.txt`,则记录该文件时间戳为1465650845355.
 文件后缀除了`.txt`，还有压缩格式`.txt.gz`. 对于dropboxTag是由processClass + eventType组合而成.
@@ -374,6 +388,7 @@ dropbox文件名格式为`dropboxTag@xxx.txt` xxx代表时间戳,例如`system_s
 
 #### 2.1.2 AMS.appendDropBoxProcessHeaders
 
+```java
     private void appendDropBoxProcessHeaders(ProcessRecord process, String processName,
             StringBuilder sb) {
         if (process == null) {
@@ -404,6 +419,7 @@ dropbox文件名格式为`dropboxTag@xxx.txt` xxx代表时间戳,例如`system_s
             }
         }
     }
+```
 
 该方法输出的信息:
 
@@ -414,16 +430,19 @@ dropbox文件名格式为`dropboxTag@xxx.txt` xxx代表时间戳,例如`system_s
 
 这里列举头信息实例:
 
+```java
     2016-11-11 22:22:22 system_app_anr (compressed text, 26165 bytes)
     Process: com.android.systemui
     Flags: 0x40d83e0d
     Package: com.android.systemui v21 (5.0.2)
     Subject: Broadcast of Intent { act=android.intent.action.TIME_TICK flg=0x50000014 (has extras) }
+```
 
 ### 2.2 DBM.addText
 
 [-> DropBoxManager.java]
 
+```java
     public void addText(String tag, String data) {
         try { 
             //data数据封装到Entry对象实例 【见小节2.3】
@@ -432,12 +451,14 @@ dropbox文件名格式为`dropboxTag@xxx.txt` xxx代表时间戳,例如`system_s
             ...
         }
     }
+```
 
 在DropBoxManager中有addText, addData, addFile方法，三分归一统，对应于DBMS的add()方法。
 
 ### 2.3 DBMS.add
 [ -> DropBoxManagerService.java]
 
+```java
     public void add(DropBoxManager.Entry entry) {
         File temp = null;
         OutputStream output = null;
@@ -517,10 +538,12 @@ dropbox文件名格式为`dropboxTag@xxx.txt` xxx代表时间戳,例如`system_s
         }
     }
     
+```
     
 #### 2.3.1 DBMS.createEntry
 [ -> DropBoxManagerService.java]
 
+```java
     private synchronized long createEntry(File temp, String tag, int flags) throws IOException {
         long t = System.currentTimeMillis(); //当当前时间作为dropbox文件的时间戳
         ...
@@ -531,6 +554,7 @@ dropbox文件名格式为`dropboxTag@xxx.txt` xxx代表时间戳,例如`system_s
         }
         return t;
     }
+```
 
 关于时间戳问题:
 

@@ -18,6 +18,7 @@ tags:
 
 ### 1.1 query操作
 
+```java
     public final  Cursor query(final  Uri uri,  String[] projection,
                  String selection,  String[] selectionArgs,
                  String sortOrder,  CancellationSignal cancellationSignal) {
@@ -53,12 +54,14 @@ tags:
             }
         }
     }
+```
 
 - provider引用计数的增加时机: acquireUnstableProvider()或者acquireProvider()
 - provider引用计数的减少时机: releaseUnstableProvider()或者releaseProvider()或unstableProviderDied()
 
 ### 1.2 相关对象
 
+```java
     public final class ContentProviderConnection extends Binder {
         public final ContentProviderRecord provider;
         public final ProcessRecord client;
@@ -79,6 +82,7 @@ tags:
         public int unstableCount;
         public boolean removePending;
     }
+```
 
 以上两个对象记录provider引用相关的对象:
 
@@ -91,6 +95,7 @@ acquireUnstableProvider过程具体过程见文章,[理解ContentProvider原理]
 
 CASE 1: acquireUnstableProvider
 
+```java
     CR.acquireUnstableProvider
         ACR.acquireUnstableProvider
             AT.acquireProvider   // stable = false
@@ -99,9 +104,11 @@ CASE 1: acquireUnstableProvider
                     AMS.getContentProvider
                         AMS.getContentProviderImpl //增加计数[见小节2.2]
                 AT.installProvider
+```
 
 CASE 2: acquireProvider
 
+```java
     CR.acquireProvider
         ACR.acquireProvider  
             AT.acquireProvider   // stable = true
@@ -110,11 +117,13 @@ CASE 2: acquireProvider
                     AMS.getContentProvider
                         AMS.getContentProviderImpl
                 AT.installProvider
+```
 
 整个过程中有两个地方会增加引用计数: [小节2.2] acquireExistingProvider和  [小节2.3] getContentProviderImpl
 
 ### 2.1 AT.acquireExistingProvider
 
+```java
     public final IContentProvider acquireExistingProvider(
             Context c, String auth, int userId, boolean stable) {
         synchronized (mProviderMap) {
@@ -141,12 +150,14 @@ CASE 2: acquireProvider
         }
     }
 
+```
 
 - acquireUnstableProvider的调用, 则stable=false.
 - acquireProvider的调用, 则stable=true.
 
 #### 2.1.1 AT.incProviderRefLocked
 
+```java
     private final void incProviderRefLocked(ProviderRefCount prc, boolean stable) {
         if (stable) {
             prc.stableCount += 1; //stable引用计数+1
@@ -178,6 +189,7 @@ CASE 2: acquireProvider
             }
         }
     }
+```
 
 该方法先增加ProviderRefCount对象的引用,再通过Binder调用AMS.refContentProvider来增加ContentProviderConnection的引用.
 
@@ -189,6 +201,7 @@ CASE 2: acquireProvider
 
 #### 2.1.2 AMP.refContentProvider
 
+```java
     public boolean refContentProvider(IBinder connection, int stable, int unstable)
             throws RemoteException {
         Parcel data = Parcel.obtain();
@@ -205,9 +218,11 @@ CASE 2: acquireProvider
         reply.recycle();
         return res;
     }
+```
 
 #### 2.1.3 AMN.onTransact
 
+```java
     public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
             throws RemoteException {
         switch (code) {
@@ -225,9 +240,11 @@ CASE 2: acquireProvider
             ...
         }
     }
+```
 
 #### 2.1.4 AMS.refContentProvider
 
+```java
     public boolean refContentProvider(IBinder connection, int stable, int unstable) {
         ContentProviderConnection conn;
         conn = (ContentProviderConnection)connection;
@@ -264,6 +281,7 @@ CASE 2: acquireProvider
         }
     }
 
+```
 
 该方法是修改conn的stable和unstable引用次数,并返回connection是否存活. 存活则返回1,死亡则返回0.
 修改后的stable和unstable值必须大于或等于0,且至少有一项大于0才能正常返回.以下任一情况会抛出异常IllegalStateException:
@@ -276,6 +294,7 @@ CASE 2: acquireProvider
 
 ### 2.2 AMS.getContentProviderImpl
 
+```java
     private final ContentProviderHolder getContentProviderImpl(IApplicationThread caller,
             String name, IBinder token, boolean stable, int userId) {
         ContentProviderRecord cpr;
@@ -306,9 +325,11 @@ CASE 2: acquireProvider
         ...
         return cpr != null ? cpr.newHolder(conn) : null;
     }
+```
 
 #### 2.2.1 AMS.incProviderCountLocked
 
+```java
     ContentProviderConnection incProviderCountLocked(ProcessRecord r,
             final ContentProviderRecord cpr, IBinder externalProcessToken, boolean stable) {
         if (r != null) {
@@ -344,6 +365,7 @@ CASE 2: acquireProvider
         cpr.addExternalProcessHandleLocked(externalProcessToken);
         return null;
     }
+```
 
 ### 2.3 小节
 
@@ -369,6 +391,7 @@ releaseProvider跟releaseUnstableProvider过程很相似, 都会调用到AT.rele
 
 CASE 1: releaseUnstableProvider
 
+```java
     ApplicationContentResolver.releaseUnstableProvider
         AT.releaseProvider   // stable = false [见小节3.1]
             AMP.refContentProvider
@@ -377,9 +400,11 @@ CASE 1: releaseUnstableProvider
                 AMP.removeContentProvider
                     AMS.removeContentProvider
                         AMS.decProviderCountLocked
+```
 
 CASE 2: releaseProvider
 
+```java
     ApplicationContentResolver.releaseProvider
         AT.releaseProvider   // stable = true [见小节3.1]
             AMP.refContentProvider
@@ -388,9 +413,11 @@ CASE 2: releaseProvider
                 AMP.removeContentProvider
                     AMS.removeContentProvider
                         AMS.decProviderCountLocked
+```
 
 ### 3.1  AT.releaseProvider
 
+```java
     public final boolean releaseProvider(IContentProvider provider, boolean stable) {
         if (provider == null) {
             return false; //provider为空则直接返回
@@ -442,19 +469,21 @@ CASE 2: releaseProvider
             return true;
         }
     }
+```
 
 该方法先减小ProviderRefCount对象的引用,再通过Binder调用AMS.refContentProvider来减小ContentProviderConnection的引用.
 
 - 对于stable provider,当stableCount=0的情况下
     - 当unstableCount != 0时, 则refContentProvider传递的后两个参数(-1, 0)
     - 当unstableCount = 0时,  则refContentProvider传递的后两个参数(-1, 1)
-- 对于unstable provider,当unstableCount=0的情况下:
+    - 对于unstable provider,当unstableCount=0的情况下:
     - 当stableCount != 0 时, 则refContentProvider传递的后两个参数(0,-1)
 
 当最后引用计数时,则发送REMOVE_PROVIDER消息, 主线程收到消息调用AT.completeRemoveProvider.
 
 #### 3.1.1 AMS.refContentProvider
 
+```java
     public boolean refContentProvider(IBinder connection, int stable, int unstable) {
         ContentProviderConnection conn;
         conn = (ContentProviderConnection)connection;
@@ -490,9 +519,11 @@ CASE 2: releaseProvider
             return !conn.dead;
         }
     }
+```
 
 ### 3.2  AT.completeRemoveProvider
 
+```java
     final void completeRemoveProvider(ProviderRefCount prc) {
         synchronized (mProviderMap) {
             if (!prc.removePending) {
@@ -520,9 +551,11 @@ CASE 2: releaseProvider
                 prc.holder.connection, false);
 
     }
+```
 
 #### 3.2.1 AMP.removeContentProvider
 
+```java
     public void removeContentProvider(IBinder connection, boolean stable) throws RemoteException {
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
@@ -535,9 +568,11 @@ CASE 2: releaseProvider
         data.recycle();
         reply.recycle();
     }
+```
 
 #### 3.2.2 AMN.onTransact
 
+```java
     public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
             throws RemoteException {
         switch (code) {
@@ -553,9 +588,11 @@ CASE 2: releaseProvider
         ...
         }
     }
+```
 
 #### 3.2.3  AMS.removeContentProvider
 
+```java
     public void removeContentProvider(IBinder connection, boolean stable) {
         enforceNotIsolatedCaller("removeContentProvider");
         long ident = Binder.clearCallingIdentity();
@@ -573,9 +610,11 @@ CASE 2: releaseProvider
             Binder.restoreCallingIdentity(ident);
         }
     }
+```
 
 #### 3.2.4 AMS.decProviderCountLocked
 
+```java
     boolean decProviderCountLocked(ContentProviderConnection conn,
             ContentProviderRecord cpr, IBinder externalProcessToken, boolean stable) {
         if (conn != null) {
@@ -599,6 +638,7 @@ CASE 2: releaseProvider
         return false;
     }
 
+```
 
 ### 3.3 小节
 
@@ -628,15 +668,18 @@ CASE 2: releaseProvider
 
 调用链如下:
 
+```java
         ACR.unstableProviderDied
             AT.handleUnstableProviderDied
                 AT.handleUnstableProviderDiedLocked //[见小节4.2]
                     AMP.unstableProviderDied
                         AMS.unstableProviderDied
                             AMS.appDiedLocked
+```
 
 #### 4.2 AT.handleUnstableProviderDiedLocked
 
+```java
     final void handleUnstableProviderDiedLocked(IBinder provider, boolean fromClient) {
         ProviderRefCount prc = mProviderRefCountMap.get(provider);
         if (prc != null) {
@@ -656,9 +699,11 @@ CASE 2: releaseProvider
             }
         }
     }
+```
 
 #### 4.3 AMS.unstableProviderDied
 
+```java
     public void unstableProviderDied(IBinder connection) {
         ContentProviderConnection conn = (ContentProviderConnection)connection;
 
@@ -697,9 +742,11 @@ CASE 2: releaseProvider
             }
         }
     }
+```
 
 #### 4.4 AMS.cleanUpApplicationRecordLocked
 
+```java
     private final boolean cleanUpApplicationRecordLocked(...) {
         ...
         for (int i = app.pubProviders.size() - 1; i >= 0; i--) {
@@ -737,9 +784,11 @@ CASE 2: releaseProvider
         }
         ...
     }
+```
 
 #### 4.5 AMS.removeDyingProviderLocked
 
+```java
     private final boolean removeDyingProviderLocked(ProcessRecord proc,
               ContentProviderRecord cpr, boolean always) {
       final boolean inLaunching = mLaunchingProviders.contains(cpr);
@@ -790,6 +839,7 @@ CASE 2: releaseProvider
       }
       return inLaunching;
     }
+```
 
 removeDyingProviderLocked()方法的功能非常值得注意，引用计数跟进程的存活息息相关：
 

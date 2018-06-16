@@ -40,6 +40,7 @@ Android系统启动过程中，一路启动到[SystemServer](https://panard313.g
 
 SystemServer启动过程中涉及到的PKMS如下：
 
+```java
     private void startBootstrapServices() {
         //启动installer服务
         Installer installer = mSystemServiceManager.startService(Installer.class);
@@ -63,9 +64,11 @@ SystemServer启动过程中涉及到的PKMS如下：
         mPackageManager = mSystemContext.getPackageManager();
         ...
     }
+```
 
 PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家。
 
+```java
     private void startOtherServices() {
         ...
         //启动MountService，后续PackageManager会需要使用
@@ -82,6 +85,7 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
         mPackageManagerService.systemReady();
         ...
     }
+```
 
 整个system_server进程启动过程，涉及PKMS服务的主要几个动作如下，接下来分别讲解每个过程
 
@@ -91,6 +95,7 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
 
 ## 二、 PKMS.main
 
+```java
     public static PackageManagerService main(Context context, Installer installer,
             boolean factoryTest, boolean onlyCore) {
         //初始化PKMS对象
@@ -100,10 +105,12 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
         ServiceManager.addService("package", m);
         return m;
     }
+```
 
 该方法的主要功能创建PKMS对象，并将其注册到ServiceManager。 关于PKMS对象的构造方法很长，分为以下几个阶段，每个阶段会输出相应的EventLog：
 除了阶段1的开头部分代码，后续代码都是同时持有同步锁mPackages和mInstallLock的过程中执行的。
 
+```java
     public PackageManagerService(Context context, Installer installer,
             boolean factoryTest, boolean onlyCore) {
 
@@ -124,6 +131,7 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
         //暴露私有服务，用于系统组件的使用
         LocalServices.addService(PackageManagerInternal.class, new PackageManagerInternalImpl());
     }
+```
 
 接下里分别说说这5个阶段：
 
@@ -131,6 +139,7 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
 
 阶段1 PMS_START有两部分组成，由无需加锁的前部分和同时持有两个锁的后半部分，先来说说前半部分：
 
+```java
     EventLog.writeEvent(EventLogTags.BOOT_PROGRESS_PMS_START,
             SystemClock.uptimeMillis());
     mContext = context;
@@ -179,6 +188,7 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
     mGlobalGids = systemConfig.getGlobalGids();
     mSystemPermissions = systemConfig.getSystemPermissions();
     mAvailableFeatures = systemConfig.getAvailableFeatures();
+```
 
 这里有一个参数mDexOptLRUThresholdInMills用于决定执行dex优化操作的时间阈，这个参数用于后续的PKMS.performBootDexOpt()过程。
 
@@ -187,6 +197,7 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
 
 接下来，再来看看后半部分：
 
+```java
     synchronized (mInstallLock) {
     synchronized (mPackages) {
         //创建名为“PackageManager”的handler线程
@@ -221,6 +232,7 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
         ...
       }
     }
+```
 
 这个过程涉及的几个重要变量：
 
@@ -235,6 +247,7 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
 
 #### 2.1.1  创建Settings
 
+```java
     Settings(Object lock) {
          this(Environment.getDataDirectory(), lock);
      }
@@ -258,6 +271,7 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
          mStoppedPackagesFilename = new File(mSystemDir, "packages-stopped.xml");
          mBackupStoppedPackagesFilename = new File(mSystemDir, "packages-stopped-backup.xml");
      }
+```
 
 此处mSystemDir是指目录`/data/system`，在该目录有以下5个文件：
 
@@ -272,6 +286,7 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
 #### 2.1.2 SC.getInstance
 [-> SystemConfig.java]
 
+```java
     public static SystemConfig getInstance() {
          synchronized (SystemConfig.class) {
              if (sInstance == null) {
@@ -292,6 +307,7 @@ PKMS.main()过程主要是创建PKMS服务，并注册到ServiceManager大管家
         readPermissions(Environment.buildPath(
                 Environment.getOemDirectory(), "etc", "permissions"), true);
     }
+```
 
 readPermissions()解析指定目录下的所有xml文件，比如将标签`<library>`所指的动态库保存到
 PKMS的成员变量mSharedLibraries。可见，SystemConfig创建过程是对以下这四个目录中的所有xml进行解析:
@@ -304,6 +320,7 @@ PKMS的成员变量mSharedLibraries。可见，SystemConfig创建过程是对以
 #### 2.1.3 SC.readPermissions
 [-> SystemConfig.java]
 
+```java
     void readPermissions(File libraryDir, boolean onlyFeatures) {
          ...
 
@@ -328,11 +345,13 @@ PKMS的成员变量mSharedLibraries。可见，SystemConfig创建过程是对以
              readPermissionsFromXml(platformFile, onlyFeatures);
          }
      }
+```
 
 该方法是解析指定目录下所有的具有可读权限的，且以xml后缀文件。    
 
 ### 2.2 PMS_SYSTEM_SCAN_START
 
+```java
     long startTime = SystemClock.uptimeMillis();
     EventLog.writeEvent(EventLogTags.BOOT_PROGRESS_PMS_SYSTEM_SCAN_START,
             startTime);
@@ -512,6 +531,7 @@ PKMS的成员变量mSharedLibraries。可见，SystemConfig创建过程是对以
     //移除不相干包中的所有共享userID
     mSettings.pruneSharedUsersLPw();
 
+```
 
 **环境变量:** 那可通过`adb shell env`来查看系统所有的环境变量及相应值。也可通过命令**adb shell echo $SYSTEMSERVERCLASSPATH**。
 
@@ -537,6 +557,7 @@ PKMS的成员变量mSharedLibraries。可见，SystemConfig创建过程是对以
 #### 2.2.1  dexopt
 [-> Installer.java]
 
+```java
     public int dexopt(String apkPath, int uid, String instructionSet,
             int dexoptNeeded, int dexFlags) {
         if (!isValidInstructionSet(instructionSet)) {
@@ -545,10 +566,12 @@ PKMS的成员变量mSharedLibraries。可见，SystemConfig创建过程是对以
         //[见小节2.2.2]
         return mInstaller.dexopt(apkPath, uid, instructionSet, dexoptNeeded, dexFlags);
     }
+```
 
 #### 2.2.2 IC.dexopt
 [-> InstallerConnection.java]
 
+```java
     public int dexopt(String apkPath, int uid, String instructionSet,
             int dexoptNeeded, int dexFlags) {
         return dexopt(apkPath, uid, "*", instructionSet, dexoptNeeded,
@@ -575,12 +598,14 @@ PKMS的成员变量mSharedLibraries。可见，SystemConfig创建过程是对以
        return execute(builder.toString());
    }
 
+```
 
 通过socket发送给installd守护进程来执行相应的dexopt操作。
 
 
 ### 2.3 PMS_DATA_SCAN_START
 
+```java
     if (!mOnlyCore) { //处理非系统app
         EventLog.writeEvent(EventLogTags.BOOT_PROGRESS_PMS_DATA_SCAN_START, SystemClock.uptimeMillis());
         //收集/data/app包名
@@ -649,6 +674,7 @@ PKMS的成员变量mSharedLibraries。可见，SystemConfig创建过程是对以
     }
 
     mPackageUsage.readLP();
+```
 
 当mOnlyCore =  false时，则scanDirLI()还会收集如下目录中的apk
 
@@ -657,6 +683,7 @@ PKMS的成员变量mSharedLibraries。可见，SystemConfig创建过程是对以
 
 ### 2.4 PMS_SCAN_END
 
+```java
     EventLog.writeEvent(EventLogTags.BOOT_PROGRESS_PMS_SCAN_END,
             SystemClock.uptimeMillis());
 
@@ -695,9 +722,11 @@ PKMS的成员变量mSharedLibraries。可见，SystemConfig创建过程是对以
     ver.databaseVersion = Settings.CURRENT_DATABASE_VERSION;
     //信息写回packages.xml文件
     mSettings.writeLPr();
+```
 
 ### 2.5 PMS_READY
 
+```java
     EventLog.writeEvent(EventLogTags.BOOT_PROGRESS_PMS_READY,
             SystemClock.uptimeMillis());
 
@@ -709,12 +738,14 @@ PKMS的成员变量mSharedLibraries。可见，SystemConfig创建过程是对以
     mIntentFilterVerifierComponent = getIntentFilterVerifierComponentNameLPr();
     mIntentFilterVerifier = new IntentVerifierProxy(mContext,
             mIntentFilterVerifierComponent);
+```
 
 PKMS初始化完成阶段，还会创建一个PackageInstaller服务。
 
 #### 2.5.1 创建PKIS服务
 [-> PackageInstallerService]
 
+```java
     public PackageInstallerService(Context context, PackageManagerService pm) {
         mContext = context;
         mPm = pm;
@@ -749,6 +780,7 @@ PKMS初始化完成阶段，还会创建一个PackageInstaller服务。
             }
         }
     }
+```
 
 ### 小节
 
@@ -782,6 +814,7 @@ PKMS初始化过程，分为5个阶段：
 ### 3.1 getPackageManager
 [-> ContextImpl.java]
 
+```java
     public PackageManager getPackageManager() {
         if (mPackageManager != null) {
             return mPackageManager;
@@ -796,12 +829,14 @@ PKMS初始化过程，分为5个阶段：
 
         return null;
     }
+```
 
 获取PKMS服务，并创建ApplicationPackageManager对象
 
 #### 3.1.1 AT.getPackageManager
 [-> ActivityThread.java]
 
+```java
     public static IPackageManager getPackageManager() {
         if (sPackageManager != null) {
             return sPackageManager;
@@ -811,10 +846,12 @@ PKMS初始化过程，分为5个阶段：
         return sPackageManager;
     }
 
+```
 
 ### 3.2 PKMS.performBootDexOpt
 [-> PackageManagerService.java]
 
+```java
     public void performBootDexOpt() {
        // 确保只有system或者root uid有权限执行该方法
        enforceSystemOrRoot("Only the system can request dexopt be performed");
@@ -904,6 +941,7 @@ PKMS初始化过程，分为5个阶段：
            }
        }
    }
+```
 
 该方法主要功能：
 
@@ -915,6 +953,7 @@ PKMS初始化过程，分为5个阶段：
 
 #### 3.2.1 PKMS.filterRecentlyUsedApps
 
+```java
     private void filterRecentlyUsedApps(Collection<PackageParser.Package> pkgs) {
 
          if (mLazyDexOpt || (!isFirstBoot() && mPackageUsage.isHistoricalPackageUsageAvailable())) {
@@ -932,6 +971,7 @@ PKMS初始化过程，分为5个阶段：
              }
          }
      }
+```
 
 获取最近使用的app,其中mDexOptLRUThresholdInMills：
 
@@ -940,6 +980,7 @@ PKMS初始化过程，分为5个阶段：
 
 #### 3.2.2 PKMS.performBootDexOpt
 
+```java
      private void performBootDexOpt(PackageParser.Package pkg, int curr, int total) {
         if (!isFirstBoot()) {
             ActivityManagerNative.getDefault().showBootMessage(
@@ -954,10 +995,12 @@ PKMS初始化过程，分为5个阶段：
                     false /* boot complete */, false /*useJit*/);
         }
     }
+```
 
 #### 3.2.3 performDexOpt
 [-> PackageDexOptimizer.java]
 
+```java
     int performDexOpt(PackageParser.Package pkg, String[] instructionSets,
              boolean forceDex, boolean defer, boolean inclDependencies,
              boolean bootComplete, boolean useJit) {
@@ -987,9 +1030,11 @@ PKMS初始化过程，分为5个阶段：
      }
 
  这个过程最终还是调用[小节2.2.1]的dexopt操作.
+```
 
 ### 3.3 PKMS.systemReady
 
+```java
     public void systemReady() {
         mSystemReady = true;
         ...
@@ -1047,6 +1092,7 @@ PKMS初始化过程，分为5个阶段：
         MountServiceInternal mountServiceInternal = LocalServices.getService(MountServiceInternal.class);
         mountServiceInternal.addExternalStoragePolicy(...);
     }
+```
 
 ## 四. 总结
 

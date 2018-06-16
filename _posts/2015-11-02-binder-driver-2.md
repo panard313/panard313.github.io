@@ -55,6 +55,7 @@ Binder IPC通信至少是两个进程的交互：
 
 请求处理过程是通过`binder_thread_write()`方法，该方法用于处理Binder协议中的请求码。当binder_buffer存在数据，binder线程的写操作循环执行。
 
+```java
     binder_thread_write(){
         while (ptr < end && thread->return_error == BR_OK) {
             get_user(cmd, (uint32_t __user *)ptr)；//获取IPC数据中的Binder协议(BC码)
@@ -85,11 +86,13 @@ Binder IPC通信至少是两个进程的交互：
             }
         }
     }
+```
 
 对于请求码为`BC_TRANSACTION`或`BC_REPLY`时，会执行binder_transaction()方法，这是最为频繁的操作。
 对于其他命令则不同。
 
 #### 2.2.1 binder_transaction
+```java
     static void binder_transaction(struct binder_proc *proc,
                    struct binder_thread *thread,
                    struct binder_transaction_data *tr, int reply){
@@ -126,6 +129,7 @@ Binder IPC通信至少是两个进程的交互：
             wake_up_interruptible(target_wait);
         return;
     }
+```
 
 路由过程：handle -> ref -> target_node -> target_proc
 
@@ -178,6 +182,7 @@ binder请求码，是用`enum binder_driver_command_protocol`来定义的，是�
 
 响应处理过程是通过`binder_thread_read()`方法，该方法根据不同的`binder_work->type`以及不同状态，生成相应的响应码。
 
+```java
     binder_thread_read（）{
         wait_for_proc_work = thread->transaction_stack == NULL &&
                 list_empty(&thread->todo);
@@ -218,6 +223,7 @@ binder请求码，是用`enum binder_driver_command_protocol`来定义的，是�
         }
         return 0;
     }
+```
 
 说明：
 

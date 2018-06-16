@@ -77,6 +77,7 @@ Input模块所涉及的重要类的关系如下：
 
 IMS服务是伴随着system_server进程的启动而启动，整个调用过程：
 
+```c++
     InputManagerService(初始化)
         nativeInit
             NativeInputManager
@@ -93,6 +94,7 @@ IMS服务是伴随着system_server进程的启动而启动，整个调用过程�
             InputManager.start
                 InputReaderThread->run
                 InputDispatcherThread->run
+```
 
 整个过程首先创建如下对象：NativeInputManager，EventHub，InputManager，
 InputDispatcher，InputReader，InputReaderThread，InputDispatcherThread。
@@ -100,6 +102,7 @@ InputDispatcher，InputReader，InputReaderThread，InputDispatcherThread。
 
 ## 二. 启动过程
 
+```c++
     private void startOtherServices() {
         //初始化IMS对象【见小节2.1】
         inputManager = new InputManagerService(context);
@@ -110,10 +113,12 @@ InputDispatcher，InputReader，InputReaderThread，InputDispatcherThread。
         //[见小节2.9]
         inputManager.start();
     }
+```
 
 ### 2.1 InputManagerService
 [-> InputManagerService.java]
 
+```c++
     public InputManagerService(Context context) {
          this.mContext = context;
          // 运行在线程"android.display"
@@ -124,10 +129,12 @@ InputDispatcher，InputReader，InputReaderThread，InputDispatcherThread。
          mPtr = nativeInit(this, mContext, mHandler.getLooper().getQueue());
          LocalServices.addService(InputManagerInternal.class, new LocalService());
      }
+```
 
 #### 2.2 nativeInit
 [-> com_android_server_input_InputManagerService.cpp]
 
+```c++
     static jlong nativeInit(JNIEnv* env, jclass /* clazz */,
             jobject serviceObj, jobject contextObj, jobject messageQueueObj) {
         //获取native消息队列
@@ -139,10 +146,12 @@ InputDispatcher，InputReader，InputReaderThread，InputDispatcherThread。
         im->incStrong(0);
         return reinterpret_cast<jlong>(im); //返回Native对象的指针
     }
+```
 
 ### 2.3 NativeInputManager
 [-> com_android_server_input_InputManagerService.cpp]
 
+```c++
     NativeInputManager::NativeInputManager(jobject contextObj,
             jobject serviceObj, const sp<Looper>& looper) :
             mLooper(looper), mInteractive(true) {
@@ -153,6 +162,7 @@ InputDispatcher，InputReader，InputReaderThread，InputDispatcherThread。
         sp<EventHub> eventHub = new EventHub(); // 创建EventHub对象【见小节2.4】
         mInputManager = new InputManager(eventHub, this, this); // 创建InputManager对象【见小节2.5】
     }
+```
 
 此处的mLooper是指“android.display”线程的Looper;
 libinputservice.so库中PointerController和SpriteController对象都继承于于MessageHandler，
@@ -161,6 +171,7 @@ libinputservice.so库中PointerController和SpriteController对象都继承于�
 #### 2.4 EventHub
 [-> EventHub.cpp]
 
+```c++
     EventHub::EventHub(void) :
             mBuiltInKeyboardId(NO_BUILT_IN_KEYBOARD), mNextDeviceId(1), mControllerNumbers(),
             mOpeningDevices(0), mClosingDevices(0),
@@ -197,6 +208,7 @@ libinputservice.so库中PointerController和SpriteController对象都继承于�
         result = epoll_ctl(mEpollFd, EPOLL_CTL_ADD, mWakeReadPipeFd, &eventItem);
         ...
     }
+```
 
 该方法主要功能：
 
@@ -207,6 +219,7 @@ libinputservice.so库中PointerController和SpriteController对象都继承于�
 ### 2.5 InputManager
 [-> InputManager.cpp]
 
+```c++
     InputManager::InputManager(
             const sp<EventHubInterface>& eventHub,
             const sp<InputReaderPolicyInterface>& readerPolicy,
@@ -217,12 +230,14 @@ libinputservice.so库中PointerController和SpriteController对象都继承于�
         mReader = new InputReader(eventHub, readerPolicy, mDispatcher);
         initialize();//【见小节2.8】
     }
+```
 
 InputDispatcher和InputReader的mPolicy成员变量都是指NativeInputManager对象。
 
 #### 2.6 InputDispatcher
 [-> InputDispatcher.cpp]
 
+```c++
     InputDispatcher::InputDispatcher(const sp<InputDispatcherPolicyInterface>& policy) :
         mPolicy(policy),
         mPendingEvent(NULL), mLastDropReason(DROP_REASON_NOT_DROPPED),
@@ -237,6 +252,7 @@ InputDispatcher和InputReader的mPolicy成员变量都是指NativeInputManager�
         //获取分发超时参数
         policy->getDispatcherConfiguration(&mConfig);
     }
+```
 
 该方法主要工作：
 
@@ -246,6 +262,7 @@ InputDispatcher和InputReader的mPolicy成员变量都是指NativeInputManager�
 #### 2.7 InputReader
 [-> InputReader.cpp]
 
+```c++
     InputReader::InputReader(const sp<EventHubInterface>& eventHub,
             const sp<InputReaderPolicyInterface>& policy,
             const sp<InputListenerInterface>& listener) :
@@ -261,6 +278,7 @@ InputDispatcher和InputReader的mPolicy成员变量都是指NativeInputManager�
             updateGlobalMetaStateLocked();
         }
     }
+```
 
 此处mQueuedListener的成员变量`mInnerListener`便是InputDispatcher对象。
 前面【小节2.5】InputManager创建完InputDispatcher和InputReader对象，
@@ -269,6 +287,7 @@ InputDispatcher和InputReader的mPolicy成员变量都是指NativeInputManager�
 #### 2.8 initialize
 [-> InputManager.cpp]
 
+```c++
     void InputManager::initialize() {
         //创建线程“InputReader”
         mReaderThread = new InputReaderThread(mReader);
@@ -283,6 +302,7 @@ InputDispatcher和InputReader的mPolicy成员变量都是指NativeInputManager�
     InputDispatcherThread::InputDispatcherThread(const sp<InputDispatcherInterface>& dispatcher) :
             Thread(/*canCallJava*/ true), mDispatcher(dispatcher) {
     }
+```
 
 初始化的主要工作就是创建两个能访问Java代码的native线程。
 
@@ -294,6 +314,7 @@ InputDispatcher和InputReader的mPolicy成员变量都是指NativeInputManager�
 ### 2.9 IMS.start
 [-> InputManagerService.java]
 
+```c++
     public void start() {
         // 启动native对象[见小节2.10]
         nativeStart(mPtr);
@@ -315,10 +336,12 @@ InputDispatcher和InputReader的mPolicy成员变量都是指NativeInputManager�
         updatePointerSpeedFromSettings(); //更新触摸点的速度
         updateShowTouchesFromSettings(); //是否在屏幕上显示触摸点
     }
+```
 
 #### 2.10 nativeStart
 [-> com_android_server_input_InputManagerService.cpp]
 
+```c++
     static void nativeStart(JNIEnv* env, jclass /* clazz */, jlong ptr) {
         //此处ptr记录的便是NativeInputManager
         NativeInputManager* im = reinterpret_cast<NativeInputManager*>(ptr);
@@ -326,16 +349,19 @@ InputDispatcher和InputReader的mPolicy成员变量都是指NativeInputManager�
         status_t result = im->getInputManager()->start();
         ...
     }
+```
 
 #### 2.11 InputManager.start
 [InputManager.cpp]
 
+```c++
     status_t InputManager::start() {
         result = mDispatcherThread->run("InputDispatcher", PRIORITY_URGENT_DISPLAY);
         result = mReaderThread->run("InputReader", PRIORITY_URGENT_DISPLAY);
         ...
         return OK;
     }
+```
 
 该方法的主要功能是启动两个线程:
 
@@ -382,6 +408,7 @@ Input事件流程：Linux Kernel -> IMS(InputReader -> InputDispatcher) -> WMS -
 
 #### 4.1.1 InputDevice
 
+```c++
     class InputDevice {
       ...
       private:
@@ -405,11 +432,13 @@ Input事件流程：Linux Kernel -> IMS(InputReader -> InputDispatcher) -> WMS -
 
           PropertyMap mConfiguration;
     };
+```
 
 ### 4.2 InputDispatcher.h
 
 #### 4.2.1 DropReason
 
+```c++
     enum DropReason {
        DROP_REASON_NOT_DROPPED = 0, //不丢弃
        DROP_REASON_POLICY = 1, //策略
@@ -441,9 +470,11 @@ Input事件流程：Linux Kernel -> IMS(InputReader -> InputDispatcher) -> WMS -
     bool mInputTargetWaitTimeoutExpired;
     //目标等待的应用
     sp<InputApplicationHandle> mInputTargetWaitApplicationHandle;
+```
 
 #### 4.2.2 Connection
 
+```c++
     class Connection : public RefBase {
         enum Status {
             STATUS_NORMAL, //正常状态
@@ -466,9 +497,11 @@ Input事件流程：Linux Kernel -> IMS(InputReader -> InputDispatcher) -> WMS -
         //已发布到connection，但还没有收到来自应用的“finished”响应的事件队列
         Queue<DispatchEntry> waitQueue;
     }
+```
 
 #### 4.2.3 EventEntry
 
+```c++
     struct EventEntry : Link<EventEntry> {
          mutable int32_t refCount;
          int32_t type; //时间类型
@@ -478,6 +511,7 @@ Input事件流程：Linux Kernel -> IMS(InputReader -> InputDispatcher) -> WMS -
 
          bool dispatchInProgress; //初始值为false, 分发过程则设置成true
      };
+```
 
 此处type的可取值为:
 
@@ -488,6 +522,7 @@ Input事件流程：Linux Kernel -> IMS(InputReader -> InputDispatcher) -> WMS -
 
 #### 4.2.4 INPUT_EVENT_INJECTION
 
+```c++
     enum {
         // 内部使用, 正在执行注入操作
         INPUT_EVENT_INJECTION_PENDING = -1,
@@ -504,11 +539,13 @@ Input事件流程：Linux Kernel -> IMS(InputReader -> InputDispatcher) -> WMS -
         // 事件注入失败, 由于超时
         INPUT_EVENT_INJECTION_TIMED_OUT = 3
     };
+```
 
 ### 4.3 InputTransport.h
 
 #### 4.3.1 InputChannel
 
+```c++
     class InputChannel : public RefBase {
         // 创建一对input channels
         static status_t openInputChannelPair(const String8& name,
@@ -525,6 +562,7 @@ Input事件流程：Linux Kernel -> IMS(InputReader -> InputDispatcher) -> WMS -
         String8 mName;
         int mFd;
     };
+```
 
 sendMessage的返回值:
 
@@ -541,6 +579,7 @@ receiveMessage的返回值:
 
 #### 4.3.2 InputTarget
 
+```c++
     struct InputTarget {
         enum {
             FLAG_FOREGROUND = 1 << 0, //事件分发到前台app
@@ -585,9 +624,11 @@ receiveMessage的返回值:
 
         BitSet32 pointerIds;
     };
+```
 
 #### 4.3.3 InputPublisher
 
+```c++
     class InputPublisher {
     public:
         //获取输入通道
@@ -603,9 +644,11 @@ receiveMessage的返回值:
     private:
         sp<InputChannel> mChannel;
     };
+```
 
 #### 4.3.4 InputConsumer
 
+```c++
     class InputConsumer {
     public:
         inline sp<InputChannel> getChannel() { return mChannel; }
@@ -632,11 +675,13 @@ receiveMessage的返回值:
         static void initializeKeyEvent(KeyEvent* event, const InputMessage* msg);
         static void initializeMotionEvent(MotionEvent* event, const InputMessage* msg);
     }
+```
 
 ### 4.4 input.h
 
 #### 4.4.1 KeyEvent
 
+```c++
     class KeyEvent : public InputEvent {
         ...
         protected:
@@ -649,9 +694,11 @@ receiveMessage的返回值:
             nsecs_t mDownTime; //专指按下时间
             nsecs_t mEventTime; //事件发生时间(包括down/up等事件)
     }
+```
 
 #### 4.4.2 MotionEvent
 
+```c++
     class MotionEvent : public InputEvent {
         ...
         protected:
@@ -671,11 +718,13 @@ receiveMessage的返回值:
             Vector<PointerCoords> mSamplePointerCoords;
         };
     }
+```
 
 ###  4.5  InputListener.h
 
 #### 4.5.1 NotifyKeyArgs
 
+```c++
     struct NotifyKeyArgs : public NotifyArgs {
         nsecs_t eventTime; //事件发生时间
         int32_t deviceId;
@@ -690,3 +739,4 @@ receiveMessage的返回值:
 
         ...
     };
+```

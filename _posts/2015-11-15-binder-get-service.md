@@ -33,6 +33,7 @@ tags:
 ### 2.1 getMediaPlayerService
 [-> framework/av/media/libmedia/IMediaDeathNotifier.cpp]
 
+```c++
     sp<IMediaPlayerService>&
     IMediaDeathNotifier::getMediaPlayerService()
     {
@@ -60,6 +61,7 @@ tags:
         return sMediaPlayerService;
     }
 
+```
 
 其中defaultServiceManager()过程在上一篇文章[获取ServiceManager](https://panard313.github.io/2015/11/08/binder-get-sm/#defaultservicemanager)已讲过，返回BpServiceManager。
 
@@ -69,6 +71,7 @@ tags:
 ### 2.2 BpSM.getService
 [-> IServiceManager.cpp ::BpServiceManager]
 
+```c++
     virtual sp<IBinder> getService(const String16& name) const
         {
             unsigned n;
@@ -79,6 +82,7 @@ tags:
             }
             return NULL;
         }
+```
 
 通过BpServiceManager来获取MediaPlayer服务：检索服务是否存在，当服务存在则返回相应的服务，当服务不存在则休眠1s再继续检索服务。该循环进行5次。为什么是循环5次呢，这估计跟Android的ANR时间为5s相关。如果每次都无法获取服务，循环5次，每次循环休眠1s，忽略`checkService()`的时间，差不多就是5s的时间
 
@@ -86,6 +90,7 @@ tags:
 ### 2.3 BpSM.checkService
 [-> IServiceManager.cpp ::BpServiceManager]
 
+```c++
     virtual sp<IBinder> checkService( const String16& name) const
     {
         Parcel data, reply;
@@ -96,12 +101,14 @@ tags:
         remote()->transact(CHECK_SERVICE_TRANSACTION, data, &reply); //【见2.4】
         return reply.readStrongBinder(); //【见小节2.9】
     }
+```
 
 检索指定服务是否存在, 其中remote()为BpBinder。
 
 ### 2.4 BpBinder::transact
 [-> BpBinder.cpp]
 
+```c++
     status_t BpBinder::transact(
         uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags)
     {
@@ -114,12 +121,14 @@ tags:
         }
         return DEAD_OBJECT;
     }
+```
 
 Binder代理类调用transact()方法，真正工作还是交给IPCThreadState来进行transact工作，
 
 #### 2.4.1 IPCThreadState::self
 [-> IPCThreadState.cpp]
 
+```c++
     IPCThreadState* IPCThreadState::self()
     {
         if (gHaveTLS) {
@@ -142,12 +151,14 @@ Binder代理类调用transact()方法，真正工作还是交给IPCThreadState�
         pthread_mutex_unlock(&gTLSMutex);
         goto restart;
     }
+```
 
 TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有自己的TLS，并且是私有空间，线程之间不会共享。通过pthread_getspecific/pthread_setspecific函数可以获取/设置这些空间中的内容。从线程本地存储空间中获得保存在其中的IPCThreadState对象。
 
 #### 2.4.2 IPCThreadState初始化
 [-> IPCThreadState.cpp]
 
+```c++
     IPCThreadState::IPCThreadState()
         : mProcess(ProcessState::self()),
           mMyThreadId(gettid()),
@@ -159,6 +170,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         mIn.setDataCapacity(256);
         mOut.setDataCapacity(256);
     }
+```
 
 每个线程都有一个`IPCThreadState`，每个`IPCThreadState`中都有一个mIn、一个mOut。成员变量mProcess保存了ProcessState变量(每个进程只有一个)。
 
@@ -169,6 +181,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
 ### 2.5 IPC::transact
 [-> IPCThreadState.cpp]
 
+```c++
     status_t IPCThreadState::transact(int32_t handle,
                                       uint32_t code, const Parcel& data,
                                       Parcel* reply, uint32_t flags)
@@ -202,10 +215,12 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         return err;
     }
 
+```
 
 ### 2.6 IPC.writeTransactionData
 [-> IPCThreadState.cpp]
 
+```c++
     status_t IPCThreadState::writeTransactionData(int32_t cmd, uint32_t binderFlags,
         int32_t handle, uint32_t code, const Parcel& data, status_t* statusBuffer)
     {
@@ -235,6 +250,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         mOut.write(&tr, sizeof(tr));  //写入binder_transaction_data数据
         return NO_ERROR;
     }
+```
 
 其中handle的值用来标识目的端，注册服务过程的目的端为service manager，此处handle=0所对应的是binder_context_mgr_node对象，正是service manager所对应的binder实体对象。[binder_transaction_data结构体](https://panard313.github.io/2015/11/01/binder-driver/#bindertransactiondata)是binder驱动通信的数据结构，该过程最终是把Binder请求码BC_TRANSACTION和binder_transaction_data结构体写入到`mOut`。
 
@@ -242,6 +258,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
 ### 2.7 IPC.waitForResponse
 [-> IPCThreadState.cpp]
 
+```c++
     status_t IPCThreadState::waitForResponse(Parcel *reply, status_t *acquireResult)
     {
         int32_t cmd;
@@ -287,10 +304,12 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         ...
         return err;
     }
+```
 
 ### 2.8 IPC.talkWithDriver
 [-> IPCThreadState.cpp]
 
+```c++
     status_t IPCThreadState::talkWithDriver(bool doReceive)
     {
         ...
@@ -324,6 +343,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         ...
         return err;
     }
+```
 
 [binder_write_read结构体](https://panard313.github.io/2015/11/01/binder-driver/#binderwriteread)用来与Binder设备交换数据的结构, 通过ioctl与mDriverFD通信，是真正与Binder驱动进行数据读写交互的过程。 先向service manager进程发送查询服务的请求(BR_TRANSACTION)，见[Binder系列3—启动ServiceManager](https://panard313.github.io/2015/11/07/binder-start-sm/)。当service manager进程收到该命令后，会执行do_find_service()
 查询服务所对应的handle，然后再binder_send_reply()应答 发起者，发送BC_REPLY协议，然后调用binder_transaction()，再向服务请求者的Todo队列
@@ -333,6 +353,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
 
 #### 2.8.1 binder_transaction
 
+```c++
     static void binder_transaction(struct binder_proc *proc,
                    struct binder_thread *thread,
                    struct binder_transaction_data *tr, int reply){
@@ -394,6 +415,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
             wake_up_interruptible(target_wait);
         return;
     }
+```
 
 这个过程非常重要，分两种情况来说：
 
@@ -402,6 +424,7 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
 
 #### 2.8.2 binder_thread_read
 
+```c++
     binder_thread_read（...）{
         ...
         //当线程todo队列有数据则执行往下执行；当线程todo队列没有数据，则进入休眠等待状态
@@ -486,10 +509,12 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         }
         return 0;
     }
+```
 
 ### 2.9 readStrongBinder
 [-> Parcel.cpp]
 
+```c++
     sp<IBinder> Parcel::readStrongBinder() const
     {
         sp<IBinder> val;
@@ -497,10 +522,12 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         unflatten_binder(ProcessState::self(), *this, &val);
         return val;
     }
+```
 
 #### 2.9.1 unflatten_binder
 [-> Parcel.cpp]
 
+```c++
     status_t unflatten_binder(const sp<ProcessState>& proc,
         const Parcel& in, sp<IBinder>* out)
     {
@@ -521,10 +548,12 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         }
         return BAD_TYPE;
     }
+```
 
 #### 2.9.2 getStrongProxyForHandle
 [-> ProcessState.cpp]
 
+```c++
     sp<IBinder> ProcessState::getStrongProxyForHandle(int32_t handle)
     {
         sp<IBinder> result;
@@ -549,11 +578,13 @@ TLS是指Thread local storage(线程本地储存空间)，每个线程都拥有�
         }
         return result;
     }
+```
 
 readStrongBinder的功能是flat_binder_object解析并创建BpBinder对象.
 
 #### 2.9.3 lookupHandleLocked
 
+```c++
     ProcessState::handle_entry* ProcessState::lookupHandleLocked(int32_t handle)
     {
         const size_t N=mHandleToObject.size();
@@ -568,6 +599,7 @@ readStrongBinder的功能是flat_binder_object解析并创建BpBinder对象.
         }
         return &mHandleToObject.editItemAt(handle);
     }
+```
 
 根据handle值来查找对应的handle_entry.
 

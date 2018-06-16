@@ -36,6 +36,7 @@ installd的启动入口frameworks/base/cmds/installd/installd.c的main()方法�
 ### 2.1 main
 [-> installd.cpp]
 
+```java
     int main(const int argc __unused, char *argv[]) {
         char buf[BUFFER_MAX]; //buffer大小为1024Byte
         struct sockaddr addr;
@@ -92,12 +93,14 @@ installd的启动入口frameworks/base/cmds/installd/installd.c的main()方法�
         }
         return 0;
     }
+```
 
 installd进程，通过监听套接字”installd"，当接收到socket消息则执行相应的指令。
 
 ### 2.2  initialize_globals
 [-> installd.cpp]
 
+```java
     int initialize_globals() {
         // 数据目录/data/
         if (get_path_from_env(&android_data_dir, "ANDROID_DATA") < 0) {
@@ -165,9 +168,11 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
         return 0;
     }
 
+```
 
 ### 2.3 initialize_directories
 
+```java
     int initialize_directories() {
         int res = -1;
 
@@ -201,9 +206,11 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
         return res;
     }
 
+```
 
 ### 2.4 execute
 
+```java
     static int execute(int s, char cmd[BUFFER_MAX])
     {
         char reply[REPLY_MAX];
@@ -257,6 +264,7 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
         if (writex(s, cmd, count)) return -1;
         return 0;
     }
+```
 
 ### 2.6 命令表
 
@@ -298,15 +306,18 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
 
 [-> SystemServer.java]
 
+```java
     private void startBootstrapServices() {
         //启动installer服务【见小节3.0】
         Installer installer = mSystemServiceManager.startService(Installer.class);
         ...
 
     }
+```
 
 [-> Installer.java]
 
+```java
     public Installer(Context context) {
         super(context);
         //创建InstallerConnection对象
@@ -318,12 +329,14 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
       //【见小节3.1】
       mInstaller.waitForConnection();
     }
+```
 
 先创建Installer对象，再调用onStart()方法，该方法中主要工作是等待socket通道建立完成。
 
 ### 3.1 waitForConnection
 [-> InstallerConnection.java]
 
+```java
     public void waitForConnection() {
         for (;;) {
             //【见小节3.2】
@@ -334,12 +347,14 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
             SystemClock.sleep(1000);
         }
     }
+```
 
 通过循环地方式，每次休眠1s
 
 ### 3.2 execute
 [-> InstallerConnection.java]
 
+```java
     public int execute(String cmd) {
         //【见小节3.3】
         String res = transact(cmd);
@@ -349,10 +364,12 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
             return -1;
         }
     }
+```
 
 ### 3.3 transact
 [-> InstallerConnection.java]
 
+```java
     public synchronized String transact(String cmd) {
         //【见小节3.4】
         if (!connect()) {
@@ -375,9 +392,11 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
             return "-1";
         }
     }
+```
 
 ### 3.4 connect
 
+```java
     private boolean connect() {
         if (mSocket != null) {
             return true;
@@ -399,9 +418,11 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
         }
         return true;
     }
+```
 
 ### 3.5 writeCommand
 
+```java
     private boolean writeCommand(String cmdString) {
         final byte[] cmd = cmdString.getBytes();
         final int len = cmd.length;
@@ -420,11 +441,13 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
         }
         return true;
     }
+```
 
 命令写入socket套接字，installd进程收到该命令后，便开始执行ping操作并返回结果。
 
 ### 3.6 readReply
 
+```java
     private int readReply() {
         //【见小节3.6.1】
         if (!readFully(buf, 2)) {
@@ -443,10 +466,12 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
 
         return len;
     }    
+```
 
 #### 3.6.1 readFully
 
     private boolean readFully(byte[] buffer, int len) {
+```java
          try {
              Streams.readFully(mIn, buffer, 0, len);
          } catch (IOException ioe) {
@@ -455,6 +480,7 @@ installd进程，通过监听套接字”installd"，当接收到socket消息则
          }
          return true;
      }
+```
 
  可见，一次transact过程为先connect()来判断是否建立socket连接，如果已连接则通过writeCommand()
  将命令写入socket的mOut管道，等待从管道的mIn中readFully()读取应答消息。

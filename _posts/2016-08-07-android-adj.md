@@ -29,7 +29,7 @@ tags:
 |SERVICE_ADJ | 5|服务进程(**Service process**)
 |HEAVY_WEIGHT_APP_ADJ | 4|后台的重量级进程，system/rootdir/init.rc文件中设置
 |BACKUP_APP_ADJ | 3|备份进程
-|PERCEPTIBLE_APP_ADJ | 2|可感知进程，比如后台音乐播放  
+|PERCEPTIBLE_APP_ADJ | 2|可感知进程，比如后台音乐播放
 |VISIBLE_APP_ADJ | 1|可见进程(**Visible process**)
 |FOREGROUND_APP_ADJ | 0|前台进程（**Foreground process**)
 |PERSISTENT_SERVICE_ADJ | -11|关联着系统或persistent进程
@@ -145,7 +145,7 @@ FOREGROUND_APP_ADJ
 
 - `mBServiceAppThreshold` = SystemProperties.getInt("ro.sys.fw.bservice_limit", 5);
 - `mMinBServiceAgingTime` =SystemProperties.getInt("ro.sys.fw.bservice_age", 5000);
-- `mProcessLimit` = ProcessList.MAX_CACHED_APPS    
+- `mProcessLimit` = ProcessList.MAX_CACHED_APPS
 - `mProcessLimit` = emptyProcessLimit(空进程上限) + cachedProcessLimit(缓存进程上限)
 - `oldTime` = now - ProcessList.MAX_EMPTY_TIME;
 - `LRU进程队列长度` =  numEmptyProcs(空进程数)  + mNumCachedHiddenProcs(cached进程) + mNumNonCachedProcs（非cached进程）
@@ -156,6 +156,7 @@ FOREGROUND_APP_ADJ
 
 [-> ActivityManagerService.java]
 
+```java
     final boolean updateOomAdjLocked(ProcessRecord app) {
         //获取栈顶的Activity
         final ActivityRecord TOP_ACT = resumedAppLocked();
@@ -178,6 +179,7 @@ FOREGROUND_APP_ADJ
         }
         return success;
     }
+```
 
 该方法主要功能：
 
@@ -186,6 +188,7 @@ FOREGROUND_APP_ADJ
 
 #### 3.3  五参方法
 
+```java
     private final boolean updateOomAdjLocked(ProcessRecord app, int cachedAdj,
             ProcessRecord TOP_APP, boolean doingAll, long now) {
         if (app.thread == null) {
@@ -197,11 +200,13 @@ FOREGROUND_APP_ADJ
         //【见小节5】
         return applyOomAdjLocked(app, doingAll, now, SystemClock.elapsedRealtime());
     }
+```
 
 该方法是private方法，只提供给`一参`和`无参`的同名方法调用，系统中并没有其他地方调用。
 
 #### 3.4 无参方法(核心)
 
+```java
     final void updateOomAdjLocked() {
         //获取栈顶的Activity
         final ActivityRecord TOP_ACT = resumedAppLocked();
@@ -543,6 +548,7 @@ FOREGROUND_APP_ADJ
 
 
 
+```
 
 #### 3.5 小节
 
@@ -601,6 +607,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
 
 #### 1. 空进程情况
 
+```java
      if (mAdjSeq == app.adjSeq) {
          return app.curRawAdj; //已经调整完成
      }
@@ -613,9 +620,11 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
          return (app.curAdj=app.curRawAdj=ProcessList.CACHED_APP_MAX_ADJ);
      }
 
+```
 
 #### 2. maxAdj<=0情况
 
+```java
     final int activitiesSize = app.activities.size();
      if (app.maxAdj <= ProcessList.FOREGROUND_APP_ADJ) {
          app.adjType = "fixed";
@@ -644,6 +653,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
          return (app.curAdj=app.maxAdj);
      }
 
+```
 
 当maxAdj <=0的情况，也就意味这不允许app将其adj调整到低于前台app的优先级别, 这样场景下执行后将直接返回:
 
@@ -652,6 +662,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
 
 #### 3. 前台的情况
 
+```java
      if (app == TOP_APP) {
          adj = ProcessList.FOREGROUND_APP_ADJ;
          schedGroup = Process.THREAD_GROUP_DEFAULT;
@@ -697,6 +708,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
              app.adjType = "top-activity";
          }
      }
+```
 
  |Case|adj|procState|
  |---|---|---|
@@ -708,6 +720,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
 
 #### 4. 非前台activity的情况
 
+```java
      if (!foregroundActivities && activitiesSize > 0) {
          for (int j = 0; j < activitiesSize; j++) {
              final ActivityRecord r = app.activities.get(j);
@@ -765,6 +778,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
              }
          }
      }
+```
 
 对于进程中的activity处于非前台情况
 
@@ -775,6 +789,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
 
 #### 5. adj > 2的情况
 
+```java
      if (adj > ProcessList.PERCEPTIBLE_APP_ADJ) {
          当存在前台service时，则adj=2, procState=4；
          if (app.foregroundServices) {
@@ -793,6 +808,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
              schedGroup = Process.THREAD_GROUP_DEFAULT;
          }
      }
+```
 
 当adj > 2的情况的前提下：
 
@@ -801,6 +817,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
 
 #### 6. HeavyWeightProces情况
 
+```java
      if (app == mHeavyWeightProcess) {
          if (adj > ProcessList.HEAVY_WEIGHT_APP_ADJ) {
              adj = ProcessList.HEAVY_WEIGHT_APP_ADJ;
@@ -812,11 +829,13 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
              procState = ActivityManager.PROCESS_STATE_HEAVY_WEIGHT;
          }
      }
+```
 
 当进程为HeavyWeightProcess，则adj=4, procState=9；
 
 #### 7. HomeProcess情况
 
+```java
      if (app == mHomeProcess) {
          if (adj > ProcessList.HOME_APP_ADJ) {
              adj = ProcessList.HOME_APP_ADJ;
@@ -828,11 +847,13 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
              procState = ActivityManager.PROCESS_STATE_HOME;
          }
      }
+```
 
 当进程为HomeProcess情况，则adj=6, procState=12；
 
 #### 8. PreviousProcess情况
 
+```java
      if (app == mPreviousProcess && app.activities.size() > 0) {
          if (adj > ProcessList.PREVIOUS_APP_ADJ) {
              adj = ProcessList.PREVIOUS_APP_ADJ;
@@ -844,11 +865,13 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
              procState = ActivityManager.PROCESS_STATE_LAST_ACTIVITY;
          }
      }
+```
 
 当进程为PreviousProcess情况，则adj=7, procState=13；
 
 #### 9. 备份进程情况
 
+```java
      if (mBackupTarget != null && app == mBackupTarget.app) {
          if (adj > ProcessList.BACKUP_APP_ADJ) {
              adj = ProcessList.BACKUP_APP_ADJ;
@@ -862,11 +885,13 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
              procState = ActivityManager.PROCESS_STATE_BACKUP;
          }
      }
+```
 
 对于备份进程的情况，则adj=3, procState=7或8
 
 #### 10. Service情况
 
+```java
      //是否显示在最顶部
      boolean mayBeTop = false;
      for (int is = app.services.size()-1;
@@ -1060,6 +1085,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
              }
          }
      }
+```
 
  当adj>0 或 schedGroup为后台线程组 或procState>2时，双重循环遍历：
 
@@ -1085,6 +1111,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
 
 #### 11. ContentProvider情况
 
+```java
      //当adj>0 或 schedGroup为后台线程组 或procState>2时
      for (int provi = app.pubProviders.size()-1;
              provi >= 0 && (adj > ProcessList.FOREGROUND_APP_ADJ
@@ -1160,7 +1187,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
              }
          }
      }
-
+```
 
  当adj>0 或 schedGroup为后台线程组 或procState>2时，双重循环遍历：
 
@@ -1175,6 +1202,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
 
 #### 12. 调整adj
 
+```java
      // 当client进程处于top，且procState>2时
      if (mayBeTop && procState > ActivityManager.PROCESS_STATE_TOP) {
          switch (procState) {
@@ -1246,6 +1274,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
      //返回进程的curRawAdj
      return app.curRawAdj;
  }
+```
 
 #### 13.  小节
 
@@ -1272,6 +1301,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
 ### 五.  applyOomAdjLocked
 
 #### 5.1  源码
+```java
     private final boolean applyOomAdjLocked(ProcessRecord app, boolean doingAll, long now,
             long nowElapsed) {
         boolean success = true;
@@ -1399,6 +1429,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
 
         return success;
     }
+```
 
 #### 5.2 小节
 
@@ -1434,8 +1465,8 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
 |2|maxAdj<=0进程 |DEFAULT
 |2|maxAdj<=0 && TOP_APP |TOP_APP
 |3|TOP_APP   |TOP_APP
-|4|isReceivingBroadcast |DEFAULT /BACKGROUND  
-|5|executingServices |DEFAULT /BACKGROUND  
+|4|isReceivingBroadcast |DEFAULT /BACKGROUND
+|5|executingServices |DEFAULT /BACKGROUND
 |6|以上皆不是          |BACKGROUND
 |6|以上皆不是 &&被杀的home进程  |DEFAULT
 |7|非前台activity && r.visible      |DEFAULT
@@ -1444,7 +1475,7 @@ updateOomAdjLocked过程比较复杂，主要分为更新adj(满足条件则杀�
 |7|非前台activity && 以上皆不是    |-|
 |8|adj>2或procState>4情况 && app.foregroundServices  |DEFAULT
 |8|adj>2或procState>4情况 && app.forcingToForeground  |DEFAULT
-|9|mHeavyWeightProcess  |BACKGROUND  
+|9|mHeavyWeightProcess  |BACKGROUND
 |10|mHomeProcess  |BACKGROUND
 |11|mPreviousProcess && app.activities   |BACKGROUND
 |12|mBackupTarget |- |
@@ -1454,23 +1485,23 @@ THREAD_GROUP_xxx.
 情况一:
 
 ||进程类型|adjType|curAdj|curProcState|
-|1|app.thread == null  |-  |CACHED_APP_MAX_ADJ    |PROCESS_STATE_CACHED_EMPTY(16)       
-|2|maxAdj<=0进程     |fixed|  maxAdj|  PROCESS_STATE_PERSISTENT(0)                       
+|1|app.thread == null  |-  |CACHED_APP_MAX_ADJ    |PROCESS_STATE_CACHED_EMPTY(16)
+|2|maxAdj<=0进程     |fixed|  maxAdj|  PROCESS_STATE_PERSISTENT(0)
 |2|maxAdj<=0 && TOP_APP  |pers-top-activity|  maxAdj        |PROCESS_STATE_PERSISTENT_UI(1)  |
-|3|TOP_APP  |top-activity |FOREGROUND_APP_ADJ |PROCESS_STATE_TOP(2)                   
+|3|TOP_APP  |top-activity |FOREGROUND_APP_ADJ |PROCESS_STATE_TOP(2)
 |4|isReceivingBroadcast |broadcast |FOREGROUND_APP_ADJ |PROCESS_STATE_RECEIVER(11) |
 |5|executingServices  |exec-service  |FOREGROUND_APP_ADJ     |PROCESS_STATE_SERVICE(10)
 |6|以上皆不是          |cch-empty |cachedAdj      |PROCESS_STATE_CACHED_EMPTY(16)
 |6|以上皆不是 &&被杀的home进程  |top-activity |PERSISTENT_PROC_ADJ |PROCESS_STATE_CACHED_EMPTY(16)
-|7|非前台activity && r.visible  |visible       |VISIBLE_APP_ADJ   |PROCESS_STATE_TOP   
-|7|非前台activity && r.state为PAUSING/PAUSED |pausing |PERCEPTIBLE_APP_ADJ |PROCESS_STATE_TOP  
+|7|非前台activity && r.visible  |visible       |VISIBLE_APP_ADJ   |PROCESS_STATE_TOP
+|7|非前台activity && r.state为PAUSING/PAUSED |pausing |PERCEPTIBLE_APP_ADJ |PROCESS_STATE_TOP
 |7|非前台activity && r.state为STOPPING   |stopping     |PERCEPTIBLE_APP_ADJ |PROCESS_STATE_LAST_ACTIVITY(13) |
 |7|非前台activity && 以上皆不是     |cch-act  |- |PROCESS_STATE_CACHED_ACTIVITY(14)
-|8|adj>2或procState>4情况 && app.foregroundServices  |fg-service |PERCEPTIBLE_APP_ADJ   |PROCESS_STATE_FOREGROUND_SERVICE(4)  
+|8|adj>2或procState>4情况 && app.foregroundServices  |fg-service |PERCEPTIBLE_APP_ADJ   |PROCESS_STATE_FOREGROUND_SERVICE(4)
 |8|adj>2或procState>4情况 && app.forcingToForeground |force-fg |PERCEPTIBLE_APP_ADJ  |PROCESS_STATE_IMPORTANT_FOREGROUND(6)
-|9|mHeavyWeightProcess  |heavy  |HEAVY_WEIGHT_APP_ADJ  |PROCESS_STATE_HEAVY_WEIGHT(9)  
+|9|mHeavyWeightProcess  |heavy  |HEAVY_WEIGHT_APP_ADJ  |PROCESS_STATE_HEAVY_WEIGHT(9)
 |10|mHomeProcess |home |HOME_APP_ADJ    |PROCESS_STATE_HOME(12)
-|11|mPreviousProcess && app.activities |previous |PREVIOUS_APP_ADJ  |PROCESS_STATE_LAST_ACTIVITY(13)  
+|11|mPreviousProcess && app.activities |previous |PREVIOUS_APP_ADJ  |PROCESS_STATE_LAST_ACTIVITY(13)
 |12|mBackupTarget  |backup |BACKUP_APP_ADJ   |PROCESS_STATE_BACKUP(8)
 
 情况二: Service
@@ -1482,9 +1513,11 @@ THREAD_GROUP_xxx.
 
 情况三: Provider
 
-if (procState > clientProcState) {
-    procState = clientProcState;
-}
+```java
+    if (procState > clientProcState) {
+        procState = clientProcState;
+    }
+```
 
 保证provider所在进程的优先级高于或等于 客户端进程. 所以appindex应该为top才对, 使用结束后再恢复为空.
 

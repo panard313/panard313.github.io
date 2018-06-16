@@ -29,6 +29,7 @@ Binder线程创建与其所在进程的创建中产生，Java层进程的创建�
 ### 2.1 onZygoteInit
 [-> app_main.cpp]
 
+```c++
     virtual void onZygoteInit()
     {
         //获取ProcessState对象
@@ -36,12 +37,14 @@ Binder线程创建与其所在进程的创建中产生，Java层进程的创建�
         //启动新binder线程 【见小节2.2】
         proc->startThreadPool();
     }
+```
 
 ProcessState::self()是单例模式，主要工作是调用open()打开/dev/binder驱动设备，再利用mmap()映射内核的地址空间，将Binder驱动的fd赋值ProcessState对象中的变量mDriverFD，用于交互操作。startThreadPool()是创建一个新的binder线程，不断进行talkWithDriver()。 详细过程,见[注册服务](https://panard313.github.io/2015/11/14/binder-add-service/)的[小节二].
 
 ### 2.2 PS.startThreadPool
 [-> ProcessState.cpp]
 
+```c++
     void ProcessState::startThreadPool()
     {
         AutoMutex _l(mLock);    //多线程同步
@@ -50,6 +53,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
             spawnPooledThread(true);  【见小节2.3】
         }
     }
+```
 
 启动Binder线程池后, 则设置mThreadPoolStarted=true. 通过变量mThreadPoolStarted来保证每个应用进程只允许启动一个binder线程池, 且本次创建的是binder主线程(isMain=true).
 其余binder线程池中的线程都是由Binder驱动来控制创建的。
@@ -57,6 +61,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
 ### 2.3 PS.spawnPooledThread
 [-> ProcessState.cpp]
 
+```c++
     void ProcessState::spawnPooledThread(bool isMain)
     {
         if (mThreadPoolStarted) {
@@ -67,16 +72,19 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
             t->run(name.string());
         }
     }
+```
 
 #### 2.3.1 makeBinderThreadName
 [-> ProcessState.cpp]
 
+```c++
     String8 ProcessState::makeBinderThreadName() {
         int32_t s = android_atomic_add(1, &mThreadPoolSeq);
         String8 name;
         name.appendFormat("Binder_%X", s);
         return name;
     }
+```
 
 获取Binder线程名，格式为`Binder_x`, 其中x为整数。每个进程中的binder编码是从1开始，依次递增; 只有通过spawnPooledThread方法来创建的线程才符合这个格式，对于直接将当前线程通过joinThreadPool加入线程池的线程名则不符合这个命名规则。
 另外,目前Android N中Binder命令已改为`Binder:<pid>_x`格式, 则对于分析问题很有帮忙,通过binder名称的pid字段可以快速定位该binder线程所属的进程p.
@@ -84,6 +92,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
 #### 2.3.2 PoolThread.run
 [-> ProcessState.cpp]
 
+```c++
     class PoolThread : public Thread
     {
     public:
@@ -100,12 +109,14 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
         }
         const bool mIsMain;
     };
+```
 
 从函数名看起来是创建线程池，其实就只是创建一个线程，该PoolThread继承Thread类。t->run()方法最终调用 PoolThread的threadLoop()方法。
 
 ### 2.4 IPC.joinThreadPool
 [-> IPCThreadState.cpp]
 
+```c++
     void IPCThreadState::joinThreadPool(bool isMain)
     {
         //创建Binder线程
@@ -130,6 +141,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
         mOut.writeInt32(BC_EXIT_LOOPER);  // 线程退出循环
         talkWithDriver(false); //false代表bwr数据的read_buffer为空
     }
+```
 
 - 对于`isMain`=true的情况下， command为BC_ENTER_LOOPER，代表的是Binder主线程，不会退出的线程；
 - 对于`isMain`=false的情况下，command为BC_REGISTER_LOOPER，表示是由binder驱动创建的线程。
@@ -137,6 +149,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
 ### 2.5 processPendingDerefs
 [-> IPCThreadState.cpp]
 
+```c++
     void IPCThreadState::processPendingDerefs()
     {
         if (mIn.dataPosition() >= mIn.dataSize()) {
@@ -159,10 +172,12 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
             }
         }
     }
+```
 
 ### 2.6 getAndExecuteCommand
 [-> IPCThreadState.cpp]
 
+```c++
     status_t IPCThreadState::getAndExecuteCommand()
     {
         status_t result;
@@ -189,9 +204,11 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
         }
         return result;
     }
+```
 
 ### 2.7 talkWithDriver
 
+```c++
     //mOut有数据，mIn还没有数据。doReceive默认值为true
     status_t IPCThreadState::talkWithDriver(bool doReceive)
     {
@@ -210,12 +227,14 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
         ...
         return err;
     }
+```
 
 在这里调用的isMain=true，也就是向mOut例如写入的便是`BC_ENTER_LOOPER`. 经过talkWithDriver(), 接下来程序往哪进行呢？在文章[彻底理解Android Binder通信架构](https://panard313.github.io/2016/09/04/binder-start-service/)详细讲解了Binder通信过程，那么从`binder_thread_write()`往下说`BC_ENTER_LOOPER`的处理过程。
 
 #### 2.7.1 binder_thread_write
 [-> binder.c]
 
+```c++
     static int binder_thread_write(struct binder_proc *proc,
                 struct binder_thread *thread,
                 binder_uintptr_t binder_buffer, size_t size,
@@ -265,12 +284,14 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
       }
       return 0;
     }
+```
 
 处理完BC_ENTER_LOOPER命令后，一般情况下成功设置thread->looper |= `BINDER_LOOPER_STATE_ENTERED`。那么binder线程的创建是在什么时候呢？
 那就当该线程有事务需要处理的时候，进入binder_thread_read()过程。
 
 #### 2.7.2 binder_thread_read
 
+```c++
     binder_thread_read（）{
       ...
     retry:
@@ -372,6 +393,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
         }
         return 0;
     }
+```
 
 当发生以下3种情况之一，便会进入`done`：
 
@@ -391,6 +413,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
 
 ### 2.8 IPC.executeCommand
 
+```c++
     status_t IPCThreadState::executeCommand(int32_t cmd)
     {
         status_t result = NO_ERROR;
@@ -404,6 +427,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
         }
         return result;
     }
+```
 
 Binder主线程的创建是在其所在进程创建的过程一起创建的，后面再创建的普通binder线程是由spawnPooledThread(false)方法所创建的。
 
@@ -411,9 +435,11 @@ Binder主线程的创建是在其所在进程创建的过程一起创建的，�
 
 默认地，每个进程的binder线程池的线程个数上限为15，该上限不统计通过BC_ENTER_LOOPER命令创建的binder主线程， 只计算BC_REGISTER_LOOPER命令创建的线程。 对此，或者很多人不理解，例个栗子：某个进程的主线程执行如下方法，那么该进程可创建的binder线程个数上限是多少呢？
 
+```c++
     ProcessState::self()->setThreadPoolMaxThreadCount(6);  // 6个线程
     ProcessState::self()->startThreadPool();   // 1个线程
     IPCThread::self()->joinThreadPool();   // 1个线程
+```
 
 首先线程池的binder线程个数上限为6个，通过startThreadPool()创建的主线程不算在最大线程上限，最后一句是将当前线程成为binder线程，所以说可创建的binder线程个数上限为8，如果还不理解，建议再多看看这几个方案的源码，多思考整个binder架构。
 

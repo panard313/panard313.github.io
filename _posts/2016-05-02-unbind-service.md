@@ -48,6 +48,7 @@ bindService的过程，本文介绍其对应的另一个操作unbind。
 ### 2.1 binderDied
 [-> LoadedApk.ServiceDispatcher.DeathMonitor]
 
+```java
     private final class DeathMonitor implements IBinder.DeathRecipient
     {
         DeathMonitor(ComponentName name, IBinder service) {
@@ -62,10 +63,12 @@ bindService的过程，本文介绍其对应的另一个操作unbind。
         final ComponentName mName;
         final IBinder mService;
     }
+```
 
 ### 2.2 death
 [-> LoadedApk.ServiceDispatcher]
 
+```java
     public void death(ComponentName name, IBinder service) {
         ServiceDispatcher.ConnectionInfo old;
 
@@ -85,10 +88,12 @@ bindService的过程，本文介绍其对应的另一个操作unbind。
             doDeath(name, service);
         }
     }
+```
 
 ### 2.3 run
 [-> LoadedApk.ServiceDispatcher.RunConnection]
 
+```java
     private final class RunConnection implements Runnable {
         RunConnection(ComponentName name, IBinder service, int command) {
             mName = name;
@@ -104,14 +109,17 @@ bindService的过程，本文介绍其对应的另一个操作unbind。
             }
         }
     }
+```
 
 ### 2.4 doDeath
 [-> LoadedApk.ServiceDispatcher]
 
+```java
     public void doDeath(ComponentName name, IBinder service) {
        //回调用户定义的onServiceDisconnected方法
        mConnection.onServiceDisconnected(name);
     }
+```
 
 ## 三. 总结
 

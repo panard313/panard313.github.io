@@ -6,7 +6,7 @@ catalog:  true
 tags:
     - android
     - 组件系列
-    
+
 ---
 
 > 基于Android 6.0源码剖析，本文涉及的相关源码：
@@ -52,6 +52,7 @@ ContentProvider作为Android四大组件之一，并没有Activity那样复杂�
 
 其他app或者进程想要操作`ContentProvider`，则需要先获取其相应的`ContentResolver`，再利用ContentResolver类来完成对数据的增删改查操作，下面列举一个查询操作，查询得到的是一个`Cursor`结果集，再通过操作该Cursor便可获取想要查询的结果。
 
+```java
     ContentResolver cr = getContentResolver();  //获取ContentResolver
     Uri uri = Uri.parse("content://com.gityuan.articles/android/3");
     Cursor cursor = cr.query(uri, null, null, null, null);  //执行查询操作
@@ -59,6 +60,7 @@ ContentProvider作为Android四大组件之一，并没有Activity那样复杂�
     cursor.close(); //关闭
 
 
+```
 
 ### 1.3 继承关系图
 
@@ -104,13 +106,16 @@ getContentProviderImpl()过程返回的对象ContentProviderRecord中有成员�
 
 接下来，从源码角度来说说，以`query`的为例来说说ContentProvider的整个完整流程,首先获取ContentResolver再执行相应query方法.
 
+```java
     ContentResolver cr = getContentResolver();  //获取ContentResolver
     Cursor cursor = cr.query(uri, null, null, null, null);  //执行查询操作
+```
 
 ### 2.1 getContentResolver
 
 [-> ContextImpl.java]
 
+```java
     class ContextImpl extends Context {
         public ContentResolver getContentResolver() {
             return mContentResolver;
@@ -121,6 +126,7 @@ getContentProviderImpl()过程返回的对象ContentProviderRecord中有成员�
             mContentResolver = new ApplicationContentResolver(this, mainThread, user);
         }
     }
+```
 
 Context中调用getContentResolver，经过层层调用来到ContextImpl类。返回值`mContentResolver`赋值是在`ContextImpl`对象创建过程完成赋值.接下来看看query查询操作。
 
@@ -128,6 +134,7 @@ Context中调用getContentResolver，经过层层调用来到ContextImpl类。�
 
 [-> ContentResolver.java]
 
+```java
     public final  Cursor query( Uri uri,  String[] projection,
              String selection,  String[] selectionArgs,
              String sortOrder) {
@@ -192,6 +199,7 @@ Context中调用getContentResolver，经过层层调用来到ContextImpl类。�
                 }
             }
         }
+```
 
 一般地获取unstable的provider：
 
@@ -210,6 +218,7 @@ Context中调用getContentResolver，经过层层调用来到ContextImpl类。�
 ###  2.3 CR.acquireUnstableProvider
 [-> ContentResolver.java]
 
+```java
     public final IContentProvider acquireUnstableProvider(Uri uri) {
         //此处SCHEME_CONTENT = "content"
         if (!SCHEME_CONTENT.equals(uri.getScheme())) {
@@ -222,10 +231,12 @@ Context中调用getContentResolver，经过层层调用来到ContextImpl类。�
         }
         return null;
     }
+```
 
 ### 2.4 ACR.acquireUnstableProvider
 [-> ContextImpl.java ::ApplicationContentResolver]
 
+```java
     class ContextImpl extends Context {
         private static final class ApplicationContentResolver extends ContentResolver {
             ...
@@ -237,6 +248,7 @@ Context中调用getContentResolver，经过层层调用来到ContextImpl类。�
             }
         }
     }
+```
 
 不论是acquireUnstableProvider还是acquireProvider方法，最终都会调用ActivityThread的同一个方法acquireProvider()。
 getAuthorityWithoutUserId()的过程是字符截断过程，即去掉auth中的UserId信息，比如`com.gityuan.articles@123`，经过该方法处理后就变成了`com.gityuan.articles`。
@@ -244,6 +256,7 @@ getAuthorityWithoutUserId()的过程是字符截断过程，即去掉auth中的U
 ### 2.5 AT.acquireProvider
 [-> ActivityThread.java]
 
+```java
     public final IContentProvider acquireProvider(
             Context c, String auth, int userId, boolean stable) {
         //【见小节2.5.1】
@@ -270,6 +283,7 @@ getAuthorityWithoutUserId()的过程是字符截断过程，即去掉auth中的U
                 true , holder.noReleaseNeeded, stable);
         return holder.provider;
     }
+```
 
 该方法的主要功能：
 
@@ -280,6 +294,7 @@ getAuthorityWithoutUserId()的过程是字符截断过程，即去掉auth中的U
 #### 2.5.1 AT.acquireExistingProvider
 [-> ActivityThread.java]
 
+```java
     public final IContentProvider acquireExistingProvider(
             Context c, String auth, int userId, boolean stable) {
         synchronized (mProviderMap) {
@@ -306,6 +321,7 @@ getAuthorityWithoutUserId()的过程是字符截断过程，即去掉auth中的U
             return provider;
         }
     }
+```
 
 - 首先从ActivityThread的`mProviderMap`查询是否存在相对应的provider，若不存在则直接返回；
 - 当provider记录存在,但其所在进程已经死亡，则调用`handleUnstableProviderDiedLocked`清理provider信息,并返回；
@@ -314,6 +330,7 @@ getAuthorityWithoutUserId()的过程是字符截断过程，即去掉auth中的U
 ### 2.6 AMS.getContentProvider
 [-> ActivityManagerService.java]
 
+```java
     public final ContentProviderHolder getContentProvider(
             IApplicationThread caller, String name, int userId, boolean stable) {
         if (caller == null) {
@@ -322,6 +339,7 @@ getAuthorityWithoutUserId()的过程是字符截断过程，即去掉auth中的U
         //见小节2.7】
         return getContentProviderImpl(caller, name, null, stable, userId);
     }
+```
 
 ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传递给AMS来完成相应工作, 从这里开始便进入了system_server进程。
 清理,此处name就是前面的auth, 即com.gityuan.articles. 对应于AndroidManifest.xml中provider标签里面的`android:authorities`的值.
@@ -329,6 +347,7 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
 ### 2.7 AMS.getContentProviderImpl
 [-> ActivityManagerService.java]
 
+```java
     private final ContentProviderHolder getContentProviderImpl(IApplicationThread caller,
             String name, IBinder token, boolean stable, int userId) {
         ContentProviderRecord cpr;
@@ -363,6 +382,7 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
 
         return cpr != null ? cpr.newHolder(conn) : null;
     }
+```
 
 该方法比较长,也是获取provider的核心实现代码, 这里分成以下3部分:
 
@@ -379,6 +399,7 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
 
 #### 2.7.1  目标provider已存在
 
+```java
     private final ContentProviderHolder getContentProviderImpl(IApplicationThread caller,
             String name, IBinder token, boolean stable, int userId) {
         ContentProviderRecord cpr;
@@ -426,6 +447,7 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
         ...
     }
 
+```
 
 当ContentProvider所在进程已存在时的功能：
 
@@ -438,6 +460,7 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
 
 #### 2.7.2 目标provider不存在
 
+```java
     private final ContentProviderHolder getContentProviderImpl(IApplicationThread caller,
             String name, IBinder token, boolean stable, int userId) {
         ...
@@ -545,6 +568,7 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
     }
 
 
+```
 
 当ContentProvider所在进程没有存在时的功能：
 
@@ -563,6 +587,7 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
 
 #### 2.7.3 等待目标provider发布
 
+```java
     private final ContentProviderHolder getContentProviderImpl(IApplicationThread caller,
             String name, IBinder token, boolean stable, int userId) {
         ...
@@ -588,16 +613,19 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
         return cpr != null ? cpr.newHolder(conn) : null;
     }
 
+```
 
 循环等待,直到provider发布完成才会退出循环.
 
 #### 2.7.4 canRunHere
 [-> ContentProviderRecord.java]
 
+```java
     public boolean canRunHere(ProcessRecord app) {
         return (info.multiprocess || info.processName.equals(app.processName))
                 && uid == app.info.uid;
     }
+```
 
 该ContentProvider是否能运行在调用者所在进程需要满足以下条件：
 
@@ -611,6 +639,7 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
 
 [-> ActivityThread.java]
 
+```java
     private IActivityManager.ContentProviderHolder installProvider(Context context,
             IActivityManager.ContentProviderHolder holder, ProviderInfo info,
             boolean noisy, boolean noReleaseNeeded, boolean stable) {
@@ -659,12 +688,14 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
         }
         return retHolder;
     }
+```
 
 获取ContentProviderHolder对象,该对象的成员变量provider记录着ContentProviderProxy对象.
 
 #### 2.8.1 AMS.removeContentProvider
 [-> ActivityManagerService.java]
 
+```java
     public void removeContentProvider(IBinder connection, boolean stable) {
         enforceNotIsolatedCaller("removeContentProvider");
         long ident = Binder.clearCallingIdentity();
@@ -687,10 +718,12 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
             Binder.restoreCallingIdentity(ident);
         }
     }
+```
 
 #### 2.8.2 AMS.decProviderCountLocked
 [-> ActivityManagerService.java]
 
+```java
     boolean decProviderCountLocked(ContentProviderConnection conn,
             ContentProviderRecord cpr, IBinder externalProcessToken, boolean stable) {
         if (conn != null) {
@@ -712,12 +745,14 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
         cpr.removeExternalProcessHandleLocked(externalProcessToken);
         return false;
     }
+```
 
 减小provider引用所相反的操作便是增加引用incProviderCountLocked,再来说说增加引用计数
 
 #### 2.8.3 AMS.incProviderCountLocked
 [-> ActivityManagerService.java]
 
+```java
     ContentProviderConnection incProviderCountLocked(ProcessRecord r,
             final ContentProviderRecord cpr, IBinder externalProcessToken, boolean stable) {
         if (r != null) {
@@ -752,10 +787,12 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
         cpr.addExternalProcessHandleLocked(externalProcessToken);
         return null;
     }
+```
 
 #### 2.8.4 AT.installProviderAuthoritiesLocked
 [-> ActivityThread.java]
 
+```java
     private ProviderClientRecord installProviderAuthoritiesLocked(IContentProvider provider,
             ContentProvider localProvider, IActivityManager.ContentProviderHolder holder) {
         final String auths[] = holder.info.authority.split(";");
@@ -774,10 +811,12 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
         }
         return pcr;
     }
+```
 
 #### 2.8.5 ProviderRefCount
 [-> ActivityThread.java ::ProviderRefCount]
 
+```java
     private static final class ProviderRefCount {
         public final IActivityManager.ContentProviderHolder holder;
         public final ProviderClientRecord client;
@@ -795,6 +834,7 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
             unstableCount = uCount;
         }
     }
+```
 
 - stableCount代表的是stable引用的次数;
 - unstableCount代表的是unstable引用的次数;
@@ -805,6 +845,7 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
 
 [-> ContentProviderNative.java ::ContentProviderProxy]
 
+```java
     public Cursor query(String callingPkg, Uri url, String[] projection, String selection,
             String[] selectionArgs, String sortOrder, ICancellationSignal cancellationSignal)
                     throws RemoteException {
@@ -860,10 +901,12 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
             reply.recycle();
         }
     }
+```
 
 ### 2.10 CPN.onTransact
 [-> ContentProviderNative.java]
 
+```java
     public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
         throws RemoteException {
         switch (code) {
@@ -930,10 +973,12 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
             ...
         }
     }
+```
 
 ### 2.11 Transport.query
 [-> ContentProvider.java ::Transport]
 
+```java
     public Cursor query(String callingPkg, Uri uri, String[] projection,
             String selection, String[] selectionArgs, String sortOrder,
             ICancellationSignal cancellationSignal) {
@@ -962,6 +1007,7 @@ ActivityManagerNative.getDefault()返回的是AMP，AMP经过binder IPC通信传
             setCallingPackage(original);
         }
     }
+```
 
 query过程更为繁琐,本文就不再介绍,到这里便真正调用到了目标provider的query方法.
 
@@ -982,6 +1028,7 @@ query过程更为繁琐,本文就不再介绍,到这里便真正调用到了目�
 ### 3.2 AT.bindApplication
 [-> ActivityThread.java]
 
+```java
     public final void bindApplication(...) {
         ...
         AppBindData data = new AppBindData();
@@ -989,12 +1036,14 @@ query过程更为繁琐,本文就不再介绍,到这里便真正调用到了目�
         ...
         sendMessage(H.BIND_APPLICATION, data);
     }
+```
 
 当主线程收到`H.BIND_APPLICATION`消息后，会调用handleBindApplication方法。
 
 #### 3.2.1 AT.handleBindApplication
 [-> ActivityThread.java]
 
+```java
     private void handleBindApplication(AppBindData data) {
         ...
         Process.setArgV0(data.processName); //设置进程名
@@ -1012,10 +1061,12 @@ query过程更为繁琐,本文就不再介绍,到这里便真正调用到了目�
         //回调app.onCreate()
         mInstrumentation.callApplicationOnCreate(app);
     }
+```
 
 ### 3.3 AT.installContentProviders
 [-> ActivityThread.java]
 
+```java
     private void installContentProviders(
             Context context, List<ProviderInfo> providers) {
         final ArrayList<IActivityManager.ContentProviderHolder> results =
@@ -1038,10 +1089,12 @@ query过程更为繁琐,本文就不再介绍,到这里便真正调用到了目�
         } catch (RemoteException ex) {
         }
     }
+```
 
 ### 3.4 AT.installProvider
 [-> ActivityThread.java]
 
+```java
     private IActivityManager.ContentProviderHolder installProvider(Context context,
             IActivityManager.ContentProviderHolder holder, ProviderInfo info,
             boolean noisy, boolean noReleaseNeeded, boolean stable) {
@@ -1105,12 +1158,14 @@ query过程更为繁琐,本文就不再介绍,到这里便真正调用到了目�
         }
         return retHolder;
     }
+```
 
 该过程主要是通过反射，创建目标ContentProvider对象,并调用该对象onCreate方法.
 
 #### 3.4.1 getIContentProvider
 [-> ContentProvider.java]
 
+```java
     public abstract class ContentProvider implements ComponentCallbacks2 {
 
         private Transport mTransport = new Transport();
@@ -1127,6 +1182,7 @@ query过程更为繁琐,本文就不再介绍,到这里便真正调用到了目�
         }
 
     }
+```
 
 Transport继承于ContentProviderNative, 而ContentProviderNative实现接口IContentProvider.
 
@@ -1134,6 +1190,7 @@ Transport继承于ContentProviderNative, 而ContentProviderNative实现接口ICo
 ### 3.5 AMS.publishContentProviders
 由AMP.publishContentProviders经过binder IPC，交由AMS.publishContentProviders来处理
 
+```java
     public final void publishContentProviders(IApplicationThread caller,
            List<ContentProviderHolder> providers) {
        if (providers == null) {
@@ -1190,6 +1247,7 @@ Transport继承于ContentProviderNative, 而ContentProviderNative实现接口ICo
            Binder.restoreCallingIdentity(origId);
        }
    }
+```
 
 一旦publish成功,则会移除provider发布超时的消息,并且调用notifyAll()来唤醒所有等待的Client端进程。
 Provider进程的工作便是完成，接下来便开始执行【2.8】installProvider过程。
@@ -1199,13 +1257,16 @@ Provider进程的工作便是完成，接下来便开始执行【2.8】installPr
 ### 3.6 AT.scheduleInstallProvider
 [-> ActivityThread.java]
 
+```java
     public void scheduleInstallProvider(ProviderInfo provider) {
         sendMessage(H.INSTALL_PROVIDER, provider);
     }
+```
 
 #### 3.6.1  AT.handleInstallProvider
 [-> ActivityThread.java]
 
+```java
     public void handleInstallProvider(ProviderInfo info) {
         final StrictMode.ThreadPolicy oldPolicy = StrictMode.allowThreadDiskWrites();
         try {
@@ -1215,6 +1276,7 @@ Provider进程的工作便是完成，接下来便开始执行【2.8】installPr
             StrictMode.setThreadPolicy(oldPolicy);
         }
     }
+```
 
 场景二，跟场景一后面的过程一样，再执行【小节3.3-3.5】过程。
 

@@ -76,6 +76,7 @@ tags:
 
 print_binder_transaction
 
+```java
     static void print_binder_transaction(struct seq_file *m, const char *prefix,
     				     struct binder_transaction *t)
     {
@@ -99,6 +100,7 @@ print_binder_transaction
     		   t->buffer->data);
     }
 
+```
 
 接下来,分别说说系统中几个常见进程:`surfaceflinger`, `mediaserver`, `servicemanager`, `system_server`
 

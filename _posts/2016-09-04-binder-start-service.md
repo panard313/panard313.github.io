@@ -86,6 +86,7 @@ Binder通信采用C/S架构，从组件视角来说，包含Client、Server、Se
 ### 2.1 AMP.startService
 [-> ActivityManagerNative.java  ::ActivityManagerProxy]
 
+```java
     public ComponentName startService(IApplicationThread caller, Intent service,
                 String resolvedType, String callingPackage, int userId) throws RemoteException
     {
@@ -111,6 +112,7 @@ Binder通信采用C/S架构，从组件视角来说，包含Client、Server、Se
         reply.recycle();
         return res;
     }
+```
 
 主要功能:
 
@@ -123,6 +125,7 @@ Binder通信采用C/S架构，从组件视角来说，包含Client、Server、Se
 
 [-> Parcel.java]
 
+```java
     public static Parcel obtain() {
         final Parcel[] pool = sOwnedPool;
         synchronized (pool) {
@@ -139,6 +142,7 @@ Binder通信采用C/S架构，从组件视角来说，包含Client、Server、Se
         //当缓存池没有现成的Parcel对象，则直接创建[见流程2.2.1]
         return new Parcel(0);
     }
+```
 
 `sOwnedPool`是一个大小为6，存放着parcel对象的缓存池,这样设计的目标是用于节省每次都创建Parcel对象的开销。obtain()方法的作用：
 
@@ -149,6 +153,7 @@ Binder通信采用C/S架构，从组件视角来说，包含Client、Server、Se
 #### 2.2.1 new Parcel
 [-> Parcel.java]
 
+```java
     private Parcel(long nativePtr) {
         //初始化本地指针
         init(nativePtr);
@@ -164,23 +169,27 @@ Binder通信采用C/S架构，从组件视角来说，包含Client、Server、Se
             mOwnsNativeParcelObject = true;
         }
     }
+```
 
 nativeCreate这是native方法,经过JNI进入native层, 调用android_os_Parcel_create()方法.
 
 #### 2.2.2  android_os_Parcel_create
 [-> android_os_Parcel.cpp]
 
+```java
     static jlong android_os_Parcel_create(JNIEnv* env, jclass clazz)
     {
         Parcel* parcel = new Parcel();
         return reinterpret_cast<jlong>(parcel);
     }
+```
 
 创建C++层的Parcel对象, 该对象指针强制转换为long型, 并保存到Java层的`mNativePtr`对象. 创建完Parcel对象利用Parcel对象写数据. 接下来以writeString为例.
 
 
 #### 2.2.3 Parcel.recycle
 
+```java
     public final void recycle() {
         //释放native parcel对象
         freeBuffer();
@@ -201,6 +210,7 @@ nativeCreate这是native方法,经过JNI进入native层, 调用android_os_Parcel
             }
         }
     }
+```
 
 将不再使用的Parcel对象放入缓存池，可回收重复利用，当缓存池已满则不再加入缓存池。这里有两个Parcel线程池,`mOwnsNativeParcelObject`变量来决定:
 
@@ -210,14 +220,17 @@ nativeCreate这是native方法,经过JNI进入native层, 调用android_os_Parcel
 ### 2.3 writeString
 [-> Parcel.java]
 
+```java
     public final void writeString(String val) {
         //[见流程2.3.1]
         nativeWriteString(mNativePtr, val);
     }
+```
 
 #### 2.3.1 nativeWriteString
 [-> android_os_Parcel.cpp]
 
+```java
     static void android_os_Parcel_writeString(JNIEnv* env, jclass clazz, jlong nativePtr, jstring val)
     {
         Parcel* parcel = reinterpret_cast<Parcel*>(nativePtr);
@@ -240,10 +253,12 @@ nativeCreate这是native方法,经过JNI进入native层, 调用android_os_Parcel
             }
         }
     }
+```
 
 #### 2.3.2 writeString16
 [-> Parcel.cpp]
 
+```java
     status_t Parcel::writeString16(const char16_t* str, size_t len)
     {
         if (str == NULL) return writeInt32(-1);
@@ -263,14 +278,17 @@ nativeCreate这是native方法,经过JNI进入native层, 调用android_os_Parcel
         return err;
     }
 
+```
 
 **Tips:** 除了writeString(),在`Parcel.java`中大量的native方法, 都是调用`android_os_Parcel.cpp`相对应的方法, 该方法再调用`Parcel.cpp`中对应的方法.    
 调用流程:    Parcel.java -->  android_os_Parcel.cpp  --> Parcel.cpp.
 
+```java
     /frameworks/base/core/java/android/os/Parcel.java
     /frameworks/base/core/jni/android_os_Parcel.cpp
     /frameworks/native/libs/binder/Parcel.cpp
 
+```
 
 简单说,就是
 
@@ -281,15 +299,18 @@ mRemote的出生,要出先说说ActivityManagerProxy对象(简称AMP)创建说�
 #### 2.4.1 AMN.getDefault
 [-> ActivityManagerNative.java]
 
+```java
     static public IActivityManager getDefault() {
         // [见流程2.4.2]
         return gDefault.get();
     }
+```
 
 gDefault的数据类型为`Singleton<IActivityManager>`, 这是一个单例模式, 接下来看看Singleto.get()的过程
 
 #### 2.4.2 gDefault.get
 
+```java
     public abstract class Singleton<IActivityManager> {
         public final IActivityManager get() {
             synchronized (this) {
@@ -301,11 +322,13 @@ gDefault的数据类型为`Singleton<IActivityManager>`, 这是一个单例模�
             }
         }
     }
+```
 
 首次调用时需要创建,创建完之后保持到mInstance对象,之后可直接使用.
 
 #### 2.4.3 gDefault.create
 
+```java
     private static final Singleton<IActivityManager> gDefault = new Singleton<IActivityManager>() {
         protected IActivityManager create() {
             //获取名为"activity"的服务
@@ -315,12 +338,14 @@ gDefault的数据类型为`Singleton<IActivityManager>`, 这是一个单例模�
             return am;
         }
     };
+```
 
 文章[Binder系列7—framework层分析](https://panard313.github.io/2015/11/21/binder-framework/#section-4)，可知ServiceManager.getService("activity")返回的是指向目标服务AMS的代理对象`BinderProxy`对象，由该代理对象可以找到目标服务AMS所在进程
 
 #### 2.4.4 AMN.asInterface
 [-> ActivityManagerNative.java]
 
+```java
     public abstract class ActivityManagerNative extends Binder implements IActivityManager
     {
         static public IActivityManager asInterface(IBinder obj) {
@@ -337,12 +362,14 @@ gDefault的数据类型为`Singleton<IActivityManager>`, 这是一个单例模�
         }
         ...
     }
+```
 
 此时obj为BinderProxy对象, 记录着远程进程system_server中AMS服务的binder线程的handle.
 
 #### 2.4.5  queryLocalInterface
 [Binder.java]
 
+```java
     public class Binder implements IBinder {
         //对于Binder对象的调用,则返回值不为空
         public IInterface queryLocalInterface(String descriptor) {
@@ -361,6 +388,7 @@ gDefault的数据类型为`Singleton<IActivityManager>`, 这是一个单例模�
             return null;
         }
     }
+```
 
 对于Binder IPC的过程中, 同一个进程的调用则会是asInterface()方法返回的便是本地的Binder对象;对于不同进程的调用则会是远程代理对象BinderProxy.
 
@@ -368,6 +396,7 @@ gDefault的数据类型为`Singleton<IActivityManager>`, 这是一个单例模�
 #### 2.4.6 创建AMP
 [-> ActivityManagerNative.java :: AMP]
 
+```java
     class ActivityManagerProxy implements IActivityManager
     {
         public ActivityManagerProxy(IBinder remote)
@@ -375,12 +404,14 @@ gDefault的数据类型为`Singleton<IActivityManager>`, 这是一个单例模�
             mRemote = remote;
         }
     }
+```
 
 可知`mRemote`便是指向AMS服务的`BinderProxy`对象。
 
 ### 2.5 mRemote.transact
 [-> Binder.java ::BinderProxy]
 
+```java
     final class BinderProxy implements IBinder {
         public boolean transact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
             //用于检测Parcel大小是否大于800k
@@ -389,6 +420,7 @@ gDefault的数据类型为`Singleton<IActivityManager>`, 这是一个单例模�
             return transactNative(code, data, reply, flags);
         }
     }
+```
 
 mRemote.transact()方法中的code=START_SERVICE_TRANSACTION, data保存了`descriptor`，`caller`, `intent`, `resolvedType`, `callingPackage`, `userId`这6项信息。
 
@@ -397,6 +429,7 @@ transactNative是native方法，经过jni调用android_os_BinderProxy_transact�
 ### 2.6 android_os_BinderProxy_transact
 [-> android_util_Binder.cpp]
 
+```java
     static jboolean android_os_BinderProxy_transact(JNIEnv* env, jobject obj,
         jint code, jobject dataObj, jobject replyObj, jint flags)
     {
@@ -417,6 +450,7 @@ transactNative是native方法，经过jni调用android_os_BinderProxy_transact�
         signalExceptionForError(env, obj, err, true , data->dataSize());
         return JNI_FALSE;
     }
+```
 
 gBinderProxyOffsets.mObject中保存的是`BpBinder`对象, 这是开机时Zygote调用`AndroidRuntime::startReg`方法来完成jni方法的注册.
 
@@ -425,6 +459,7 @@ gBinderProxyOffsets.mObject中保存的是`BpBinder`对象, 这是开机时Zygot
 ### 2.7 BpBinder.transact
 [-> BpBinder.cpp]
 
+```java
     status_t BpBinder::transact(
         uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags)
     {
@@ -437,12 +472,14 @@ gBinderProxyOffsets.mObject中保存的是`BpBinder`对象, 这是开机时Zygot
         }
         return DEAD_OBJECT;
     }
+```
 
 IPCThreadState::self()采用单例模式，保证每个线程只有一个实例对象。
 
 ### 2.8 IPC.transact
 [-> IPCThreadState.cpp]
 
+```java
     status_t IPCThreadState::transact(int32_t handle,
                                       uint32_t code, const Parcel& data,
                                       Parcel* reply, uint32_t flags)
@@ -474,6 +511,7 @@ IPCThreadState::self()采用单例模式，保证每个线程只有一个实例�
         }
         return err;
     }
+```
 
 transact主要过程:
 
@@ -489,6 +527,7 @@ transact主要过程:
 ### 2.9 IPC.writeTransactionData
 [-> IPCThreadState.cpp]
 
+```java
     status_t IPCThreadState::writeTransactionData(int32_t cmd, uint32_t binderFlags,
         int32_t handle, uint32_t code, const Parcel& data, status_t* statusBuffer)
     {
@@ -515,11 +554,13 @@ transact主要过程:
         mOut.write(&tr, sizeof(tr));  //写入binder_transaction_data数据
         return NO_ERROR;
     }
+```
 
 将数据写入mOut
 
 ### 2.10 IPC.waitForResponse
 
+```java
     status_t IPCThreadState::waitForResponse(Parcel *reply, status_t *acquireResult)
     {
         int32_t cmd;
@@ -559,6 +600,7 @@ transact主要过程:
         }
         return err;
     }
+```
 
 在这个过程中, 收到以下任一BR_命令，处理后便会退出waitForResponse()的状态:
 
@@ -572,6 +614,7 @@ transact主要过程:
 
 ### 2.11  IPC.talkWithDriver
 
+```java
     //mOut有数据，mIn还没有数据。doReceive默认值为true
     status_t IPCThreadState::talkWithDriver(bool doReceive)
     {
@@ -623,11 +666,13 @@ transact主要过程:
         return err;
     }
 
+```
 
 [binder_write_read结构体](https://panard313.github.io/2015/11/01/binder-driver/#binderwriteread)用来与Binder设备交换数据的结构, 通过ioctl与mDriverFD通信，是真正与Binder驱动进行数据读写交互的过程。
 
 ### 2.12  IPC.executeCommand
 
+```java
     status_t IPCThreadState::executeCommand(int32_t cmd)
     {
         BBinder* obj;
@@ -648,6 +693,7 @@ transact主要过程:
         default: ...
         }
     }
+```
 
 再回到【小节2.11】，可知ioctl()方法经过syscall最终调用到Binder_ioctl()方法.
 
@@ -658,6 +704,7 @@ transact主要过程:
 
 由【小节2.11】传递过出来的参数 cmd=`BINDER_WRITE_READ`
 
+```java
     static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     {
         int ret;
@@ -687,6 +734,7 @@ transact主要过程:
         wait_event_interruptible(binder_user_error_wait, binder_stop_on_user_error < 2);
         return ret;
     }
+```
 
 首先,根据传递过来的文件句柄指针获取相应的binder_proc结构体, 再从中查找binder_thread,如果当前线程已经加入到proc的线程队列则直接返回，
 如果不存在则创建binder_thread，并将当前线程添加到当前的proc.
@@ -697,6 +745,7 @@ transact主要过程:
 
 #### 3.2  binder_ioctl_write_read
 
+```java
     static int binder_ioctl_write_read(struct file *filp,
                     unsigned int cmd, unsigned long arg,
                     struct binder_thread *thread)
@@ -754,11 +803,13 @@ transact主要过程:
     out:
         return ret;
     }   
+```
 
 此时arg是一个`binder_write_read`结构体，`mOut`数据保存在write_buffer，所以write_size>0，但此时read_size=0。首先,将用户空间bwr结构体拷贝到内核空间,然后执行binder_thread_write()操作.
 
 #### 3.3 binder_thread_write
 
+```java
     static int binder_thread_write(struct binder_proc *proc,
                 struct binder_thread *thread,
                 binder_uintptr_t binder_buffer, size_t size,
@@ -789,6 +840,7 @@ transact主要过程:
       }
       return 0;
     }
+```
 
 不断从binder_buffer所指向的地址获取cmd, 当只有`BC_TRANSACTION`或者`BC_REPLY`时, 则调用binder_transaction()来处理事务.
 
@@ -796,6 +848,7 @@ transact主要过程:
 
 发送的是BC_TRANSACTION时，此时reply=0。
 
+```java
     static void binder_transaction(struct binder_proc *proc,
                    struct binder_thread *thread,
                    struct binder_transaction_data *tr, int reply){
@@ -936,6 +989,7 @@ transact主要过程:
             wake_up_interruptible(target_wait);
         return;
     }
+```
 
 主要功能:
 
@@ -959,6 +1013,7 @@ transact主要过程:
 
 #### 3.4.1 binder_alloc_buf
 
+```java
     static struct binder_buffer *binder_alloc_buf(struct binder_proc *proc,
                               size_t data_size, size_t offsets_size, int is_async)
     {
@@ -1025,9 +1080,11 @@ transact主要过程:
         }
         return buffer;
     }
+```
     
 #### 3.5 binder_thread_read
 
+```java
     binder_thread_read（）{
         //当已使用字节数为0时，将BR_NOOP响应码放入指针ptr
         if (*consumed == 0) {
@@ -1176,6 +1233,7 @@ transact主要过程:
         }
         return 0;
     }
+```
 
 该方法功能说明:
 
@@ -1219,6 +1277,7 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
 
 ### 4.1 IPC.joinThreadPool
 
+```java
     void IPCThreadState::joinThreadPool(bool isMain)
     {
         mOut.writeInt32(isMain ? BC_ENTER_LOOPER : BC_REGISTER_LOOPER);
@@ -1244,9 +1303,11 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
         mOut.writeInt32(BC_EXIT_LOOPER);
         talkWithDriver(false);
     }
+```
 
 ### 4.2  IPC.getAndExecuteCommand
 
+```java
     status_t IPCThreadState::getAndExecuteCommand()
     {
         status_t result;
@@ -1273,12 +1334,14 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
         }
         return result;
     }
+```
 
 此时system_server的binder线程空闲便是停留在binder_thread_read()方法来处理进程/线程新的事务。
 由【小节3.4】可知收到的是`BINDER_WORK_TRANSACTION`命令, 再经过inder_thread_read()后生成命令cmd=`BR_TRANSACTION`.再将cmd和数据写回用户空间。
 
 ###  4.3 IPC.executeCommand
 
+```java
     status_t IPCThreadState::executeCommand(int32_t cmd)
     {
         BBinder* obj;
@@ -1362,6 +1425,7 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
         }
         return result;
     }
+```
 
 - 对于oneway的场景, 执行完本次transact()则全部结束.
 - 对于非oneway, 需要reply的通信过程,则向Binder驱动发送BC_REPLY命令【见小节5.1】
@@ -1369,6 +1433,7 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
 #### 4.3.1 ipcSetDataReference
 [-> Parcel.cpp]
 
+```java
     void Parcel::ipcSetDataReference(const uint8_t* data, size_t dataSize,
         const binder_size_t* objects, size_t objectsCount, release_func relFunc, void* relCookie)
     {
@@ -1393,6 +1458,7 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
         }
         scanForFds();
     }
+```
 
 该方法的功能，Parcel成员变量说明：
 
@@ -1406,6 +1472,7 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
 #### 4.3.2 freeDataNoInit
 [-> Parcel.cpp]
 
+```java
     void Parcel::freeDataNoInit()
     {
         if (mOwner) {
@@ -1428,9 +1495,11 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
             if (mObjects) free(mObjects);
         }
     }
+```
 
 #### 4.3.3  releaseObjects
 
+```java
     void Parcel::releaseObjects()
     {
         const sp<ProcessState> proc(ProcessState::self());
@@ -1445,9 +1514,11 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
             release_object(proc, *flat, this, &mOpenAshmemSize);
         }
     }
+```
 
 #### 4.3.4 release_object
 
+```java
     static void release_object(const sp<ProcessState>& proc,
         const flat_binder_object& obj, const void* who, size_t* outAshmemSize)
     {
@@ -1479,6 +1550,7 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
             }
         }
     }
+```
 
 根据flat_binder_object的类型，来决定减少相应的强弱引用。
 
@@ -1487,6 +1559,7 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
 
 当[小节4.3]executeCommand执行完成后， 便会释放局部变量Parcel buffer，则会析构Parcel。
 
+```java
     Parcel::~Parcel()
     {
         freeDataNoInit();
@@ -1500,12 +1573,14 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
             ...
         }
     }
+```
 
 接下来，进入IPC的freeBuffer过程。
 
 #### 4.3.6 freeBuffer
 [-> IPCThreadState.cpp]
 
+```java
     void IPCThreadState::freeBuffer(Parcel* parcel, const uint8_t* data,
                                     size_t /*dataSize*/,
                                     const binder_size_t* /*objects*/,
@@ -1516,12 +1591,14 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
         state->mOut.writeInt32(BC_FREE_BUFFER);
         state->mOut.writePointer((uintptr_t)data);
     }
+```
 
 向Binder驱动写入BC_FREE_BUFFER命令。
 
 ### 4.4   BBinder.transact
 [-> Binder.cpp ::BBinder ]
 
+```java
     status_t BBinder::transact(
         uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags)
     {
@@ -1543,10 +1620,12 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
 
         return err;
     }
+```
 
 ### 4.5 JavaBBinder.onTransact
 [-> android_util_Binder.cpp]
 
+```java
     virtual status_t onTransact(
         uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags = 0)
     {
@@ -1567,6 +1646,7 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
         ...
         return res != JNI_FALSE ? NO_ERROR : UNKNOWN_TRANSACTION;
     }
+```
 
 还记得AndroidRuntime::startReg过程吗, 其中有一个过程便是register_android_os_Binder(),该过程会把gBinderOffsets.mExecTransact便是Binder.java中的execTransact()方法.详见见[Binder系列7—framework层分析](https://panard313.github.io/2015/11/21/binder-framework/)文章中的第二节初始化的过程.
 
@@ -1577,6 +1657,7 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
 ### 4.6 Binder.execTransact
 [Binder.java]
 
+```java
     private boolean execTransact(int code, long dataObj, long replyObj,
             int flags) {
         Parcel data = Parcel.obtain(dataObj);
@@ -1613,12 +1694,14 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
         data.recycle();
         return res;
     }
+```
 
 当发生RemoteException, RuntimeException, OutOfMemoryError, 对于非oneway的情况下都会把异常传递给调用者.
 
 ### 4.7 AMN.onTransact
 [-> ActivityManagerNative.java]
 
+```java
     public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
             throws RemoteException {
         switch (code) {
@@ -1639,9 +1722,11 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
             return true;
         }
     }
+```
 
 ### 4.8 AMS.startService
 
+```java
     public ComponentName startService(IApplicationThread caller, Intent service,
             String resolvedType, String callingPackage, int userId)
             throws TransactionTooLargeException {
@@ -1655,6 +1740,7 @@ startThreadPool()过程会创建新Binder线程，再经过层层调用也会进
         }
     }
 
+```
 
 历经千山万水, 总算是进入了AMS.startService. 当system_server收到BR_TRANSACTION的过程后，通信并没有完全结束，还需将服务启动完成的回应消息
 告诉给发起端进程。
@@ -1667,6 +1753,7 @@ BR_REPLY命令是如何来的呢？【小节4.3】IPC.executeCommand()过程处�
 
 #### 5.1 IPC.sendReply
 
+```java
     status_t IPCThreadState::sendReply(const Parcel& reply, uint32_t flags)
     {
         status_t err;
@@ -1677,6 +1764,7 @@ BR_REPLY命令是如何来的呢？【小节4.3】IPC.executeCommand()过程处�
         //[见小节5.3]
         return waitForResponse(NULL, NULL);
     }
+```
 
 先将数据写入mOut；再进waitForResponse，等待应答，此时同理也是等待BR_TRANSACTION_COMPLETE。
 同理经过IPC.talkWithDriver -> binder_ioctl -> binder_ioctl_write_read -> binder_thread_write，
@@ -1684,6 +1772,7 @@ BR_REPLY命令是如何来的呢？【小节4.3】IPC.executeCommand()过程处�
 
 #### 5.2  BC_REPLY
 
+```java
     // reply =true
     static void binder_transaction(struct binder_proc *proc,
                  struct binder_thread *thread,
@@ -1774,11 +1863,13 @@ BR_REPLY命令是如何来的呢？【小节4.3】IPC.executeCommand()过程处�
         if (target_wait)
             wake_up_interruptible(target_wait);
         return;
+```
 
 binder_transaction -> binder_thread_read -> IPC.waitForResponse，收到BR_REPLY来回收buffer.
 
 #### 5.3 BR_REPLY
 
+```java
     status_t IPCThreadState::waitForResponse(Parcel *reply, status_t *acquireResult)
     {
         int32_t cmd;
@@ -1818,9 +1909,11 @@ binder_transaction -> binder_thread_read -> IPC.waitForResponse，收到BR_REPLY
         }
         ...
     }
+```
 
 #### 5.4 IPC.freeBuffer
 
+```java
     void IPCThreadState::freeBuffer(Parcel* parcel, const uint8_t* data,
                                     size_t /*dataSize*/,
                                     const binder_size_t* /*objects*/,
@@ -1831,12 +1924,14 @@ binder_transaction -> binder_thread_read -> IPC.waitForResponse，收到BR_REPLY
         state->mOut.writeInt32(BC_FREE_BUFFER);
         state->mOut.writePointer((uintptr_t)data);
     }
+```
 
 将BC_FREE_BUFFER写入mOut,再talkWithDriver()
 
 
 ##### 5.5 BC_FREE_BUFFER
 
+```java
     static int binder_thread_write(struct binder_proc *proc,
                 struct binder_thread *thread,
                 binder_uintptr_t binder_buffer, size_t size,
@@ -1885,6 +1980,7 @@ binder_transaction -> binder_thread_read -> IPC.waitForResponse，收到BR_REPLY
       }
       return 0;
     }
+```
 
 接收端线程处理BC_FREE_BUFFER命令:
 
@@ -1893,6 +1989,7 @@ binder_transaction -> binder_thread_read -> IPC.waitForResponse，收到BR_REPLY
 
 ##### 5.6  binder_thread_read
 
+```java
     binder_thread_read（）{
         ...
         while (1) {
@@ -1964,6 +2061,7 @@ binder_transaction -> binder_thread_read -> IPC.waitForResponse，收到BR_REPLY
     }
 
 
+```
 
 ## 六. 总结
 

@@ -54,18 +54,21 @@ tags:
 ### 2.1 DecorView.dispatchTouchEvent
 [-> PhoneWindow.java  ::DecorView]
 
+```java
     public boolean dispatchTouchEvent(MotionEvent ev) {
         final Callback cb = getCallback();
         // [见小节2.2]
         return cb != null && !isDestroyed() && mFeatureId < 0 ? cb.dispatchTouchEvent(ev)
                 : super.dispatchTouchEvent(ev);
     }
+```
 
 此处cb是指Window的内部接口Callback. 对于Activity实现了Window.Callback接口. 故接下来调用Activity类.
 
 ### 2.2 Activity.dispatchTouchEvent
 [-> Activity.java]
 
+```java
     public boolean dispatchTouchEvent(MotionEvent ev) {
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             //第一次按下操作时，用户希望能与设备进行交互，可通过实现该方法
@@ -80,6 +83,7 @@ tags:
         return onTouchEvent(ev); // [见小节2.2.1]
     }
 
+```
     
 如果重写Activity的该方法，则会在分发事件之前拦截所有的触摸事件. 另外此处getWindow()返回的是Activity的mWindow成员变量,
 该变量赋值过程是在Activity.attach()方法, 可知其类型为PhoneWindow.
@@ -87,6 +91,7 @@ tags:
 #### 2.2.1 Activity.onTouchEvent
 [-> Activity.java]
 
+```java
     public boolean onTouchEvent(MotionEvent event) {
         //当窗口需要关闭时，消费掉当前event
         if (mWindow.shouldCloseOnTouch(this, event)) {
@@ -97,13 +102,16 @@ tags:
         return false;
     }
     
+```
     
 ### 2.3 superDispatchTouchEvent
 [-> PhoneWindow.java]
 
+```java
     public boolean superDispatchTouchEvent(KeyEvent event) {
         return mDecor.superDispatcTouchEvent(event); // [见小节2.4]
     }
+```
 
 PhoneWindow的最顶View是DecorView，再交由DecorView处理。而DecorView的父类的父类是ViewGroup,接着调用
 ViewGroup.dispatchTouchEvent()方法。为了精简篇幅，有些中间函数调用不涉及关键逻辑，可能会直接跳过。
@@ -111,6 +119,7 @@ ViewGroup.dispatchTouchEvent()方法。为了精简篇幅，有些中间函数�
 
 ### 2.4 ViewGroup.dispatchTouchEvent
 
+```java
     public boolean dispatchTouchEvent(MotionEvent ev) {
         ...
         boolean handled = false;
@@ -304,6 +313,7 @@ ViewGroup.dispatchTouchEvent()方法。为了精简篇幅，有些中间函数�
         }
         return handled;
     }
+```
 
 #### 2.4.1 onFilterTouchEventForSecurity
 
@@ -320,15 +330,18 @@ ViewGroup.dispatchTouchEvent()方法。为了精简篇幅，有些中间函数�
 
 #### 2.4.2 onInterceptTouchEvent
 
+```java
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         return false;
     }
+```
     
 - 当返回true，表示该事件被当前视图拦截；
 - 当返回false，继续执行事件分发。
 
 #### 2.4.3  buildOrderedChildList
 
+```java
     ArrayList<View> buildOrderedChildList() {
         final int count = mChildrenCount;
         if (count <= 1 || !hasChildWithZ()) return null;
@@ -355,6 +368,7 @@ ViewGroup.dispatchTouchEvent()方法。为了精简篇幅，有些中间函数�
         }
         return mPreSortedChildren;
     }
+```
     
 获取一个视图组的先序列表，通过虚拟的Z轴来排序。
 
@@ -366,6 +380,7 @@ ViewGroup.dispatchTouchEvent()方法。为了精简篇幅，有些中间函数�
 
 #### 2.4.4 dispatchTransformedTouchEvent
 
+```java
     private boolean dispatchTransformedTouchEvent(MotionEvent event, boolean cancel,
             View child, int desiredPointerIdBits) {
         final boolean handled;
@@ -438,17 +453,20 @@ ViewGroup.dispatchTouchEvent()方法。为了精简篇幅，有些中间函数�
         transformedEvent.recycle();
         return handled;
     }
+```
 
 该方法是ViewGroup真正处理事件的地方，分发子View来处理事件，过滤掉不相干的pointer ids。当子视图为null时，MotionEvent将会发送给该ViewGroup。最终调用View.dispatchTouchEvent方法来分发事件。
 
 #### 2.4.5 addTouchTarget
 
+```java
     private TouchTarget addTouchTarget(View child, int pointerIdBits) {
         TouchTarget target = TouchTarget.obtain(child, pointerIdBits);
         target.next = mFirstTouchTarget;
         mFirstTouchTarget = target;
         return target;
     }
+```
 
 调用该方法，获取了TouchTarget，同时mFirstTouchTarget不再为null。
 
@@ -456,6 +474,7 @@ ViewGroup.dispatchTouchEvent()方法。为了精简篇幅，有些中间函数�
 ### 2.5 View.dispatchTouchEvent
 [-> View.java]
 
+```java
     public boolean dispatchTouchEvent(MotionEvent event) {
         ...
         
@@ -493,12 +512,14 @@ ViewGroup.dispatchTouchEvent()方法。为了精简篇幅，有些中间函数�
 
         return result;
     }
+```
 
 1. 先由OnTouchListener的OnTouch()来处理事件，当返回True，则消费该事件，否则进入2。
 2. onTouchEvent处理事件，的那个返回True时，消费该事件。否则不会处理
 
 #### 2.5.1 View.onTouchEvent
 
+```java
     public boolean onTouchEvent(MotionEvent event) {
         final float x = event.getX();
         final float y = event.getY();
@@ -615,6 +636,7 @@ ViewGroup.dispatchTouchEvent()方法。为了精简篇幅，有些中间函数�
         }
         return false;
     }
+```
 
 ## 三. 总结
 

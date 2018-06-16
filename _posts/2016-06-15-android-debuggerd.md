@@ -48,6 +48,7 @@ debuggerd守护进程会打开socket服务端，当需要调用debuggerd服务�
 
 [-> /debuggerd/debuggerd.cpp]
 
+```java
     int main(int argc, char** argv) {
       ...
       bool dump_backtrace = false;
@@ -73,6 +74,7 @@ debuggerd守护进程会打开socket服务端，当需要调用debuggerd服务�
       //【见小节2.2】
       return do_explicit_dump(tid, dump_backtrace);
     }
+```
 
 对于debuggerd命令，必须指定线程tid，否则不做任何操作，直接返回。
 
@@ -80,6 +82,7 @@ debuggerd守护进程会打开socket服务端，当需要调用debuggerd服务�
 
 [-> /debuggerd/debuggerd.cpp]
 
+```java
     static int do_explicit_dump(pid_t tid, bool dump_backtrace) {
       fprintf(stdout, "Sending request to dump task %d.\n", tid);
 
@@ -101,6 +104,7 @@ debuggerd守护进程会打开socket服务端，当需要调用debuggerd服务�
       }
       return 0;
     }
+```
 
 dump_backtrace等于true代表的是输出backtrace到控制台，否则意味着输出到tombstone文件。
 
@@ -108,6 +112,7 @@ dump_backtrace等于true代表的是输出backtrace到控制台，否则意味�
 
 [-> libcutils/debugger.c]
 
+```java
     int dump_backtrace_to_file(pid_t tid, int fd) {
         return dump_backtrace_to_file_timeout(tid, fd, 0);
     }
@@ -133,6 +138,7 @@ dump_backtrace等于true代表的是输出backtrace到控制台，否则意味�
       close(sock_fd);
       return result;
     }
+```
 
 该方法的功能：
 
@@ -144,6 +150,7 @@ dump_backtrace等于true代表的是输出backtrace到控制台，否则意味�
 
 [-> libcutils/debugger.c]
 
+```java
     int dump_tombstone(pid_t tid, char* pathbuf, size_t pathlen) {
       return dump_tombstone_timeout(tid, pathbuf, pathlen, 0);
     }
@@ -174,6 +181,7 @@ dump_backtrace等于true代表的是输出backtrace到控制台，否则意味�
       close(sock_fd);
       return result;
     }
+```
 
 该方法的功能：
 
@@ -185,6 +193,7 @@ dump_backtrace等于true代表的是输出backtrace到控制台，否则意味�
 
 [-> libcutils/debugger.c]
 
+```java
     static int make_dump_request(debugger_action_t action, pid_t tid, int timeout_secs) {
       debugger_msg_t msg;
       memset(&msg, 0, sizeof(msg));
@@ -201,11 +210,13 @@ dump_backtrace等于true代表的是输出backtrace到控制台，否则意味�
       }
       return sock_fd;
     }
+```
 
 该函数的功能是与debuggerd服务端建立socket通信，并发送action请求，以执行相应操作。
 
 ### 2.6 send_request
 
+```java
     static int send_request(int sock_fd, void* msg_ptr, size_t msg_len) {
       int result = 0;
       //写入消息
@@ -221,6 +232,7 @@ dump_backtrace等于true代表的是输出backtrace到控制台，否则意味�
       return result;
     }
 
+```
 
 ### 2.7 小节
 
@@ -239,9 +251,11 @@ dump_backtrace等于true代表的是输出backtrace到控制台，否则意味�
 
 由init进程fork子进程来以daemon方式启动，定义在debuggerd.rc文件（旧版本位于init.rc）
 
+```java
     service debuggerd /system/bin/debuggerd
         group root readproc
         writepid /dev/cpuset/system-background/tasks
+```
 
 init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入main方法，此时不带有任何参数。
 接下来进入main()方法。
@@ -250,6 +264,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> /debuggerd/debuggerd.cpp]
 
+```java
     int main(int argc, char** argv) {
       union selinux_callback cb;
       //当参数个数为1则启动服务
@@ -263,11 +278,13 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       }
       ...
     }
+```
 
 ### 3.3 do_server
 
 [-> /debuggerd/debuggerd.cpp]
 
+```java
     static int do_server() {
       //忽略debuggerd进程自身crash的处理过程。重置所有crash handlers
       signal(SIGABRT, SIG_DFL);
@@ -315,6 +332,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       }
       return 0;
     }
+```
 
 主要功能：
 
@@ -327,6 +345,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> /debuggerd/debuggerd.cpp]
 
+```java
     static void handle_request(int fd) {
       ALOGV("handle_request(%d)\n", fd);
       android::base::unique_fd closer(fd);
@@ -362,11 +381,13 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
         monitor_worker_process(fork_pid, request);
       }
     }
+```
 
 ### 3.5 read_request
 
 [-> /debuggerd/debuggerd.cpp]
 
+```java
     static int read_request(int fd, debugger_request_t* out_request) {
       ucred cr;
       socklen_t len = sizeof(cr);
@@ -422,6 +443,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       }
       return 0;
     }
+```
 
 该方法的功能是首先从socket获取client进程的pid,uid,gid用于权限控制，能处理以下三种情况：
 
@@ -437,6 +459,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> /debuggerd/debuggerd.cpp]
 
+```java
     static void worker_process(int fd, debugger_request_t& request) {
       std::string tombstone_path;
       int tombstone_fd = -1;
@@ -543,6 +566,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       close(amfd);
       exit(!succeeded);
     }
+```
 
 这个流程比较长，这里介绍attach_gdb=false的执行流程
 
@@ -550,6 +574,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> tombstone.cpp]
 
+```java
     int open_tombstone(std::string* out_path) {
       char path[128];
       int fd = -1;
@@ -593,6 +618,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       fchown(fd, AID_SYSTEM, AID_SYSTEM);
       return fd;
     }
+```
 
 其中TOMBSTONE_TEMPLATE为`data/tombstones/tombstone_%02d`，文件个数上限`MAX_TOMBSTONES`=10
 
@@ -606,6 +632,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> BacktraceMap.cpp]
 
+```java
     BacktraceMap* BacktraceMap::Create(pid_t pid, bool /*uncached*/) {
       BacktraceMap* map = new BacktraceMap(pid);
       if (!map->Build()) {
@@ -614,6 +641,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       }
       return map;
     }
+```
 
 解析/proc/[pid]/maps, 生成BacktraceMap.
 
@@ -621,6 +649,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> debuggerd.cpp]
 
+```java
     static int activity_manager_connect() {
       android::base::unique_fd amfd(socket(PF_UNIX, SOCK_STREAM, 0));
       if (amfd.get() < -1) {
@@ -655,6 +684,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
       return amfd.release();
     }
+```
 
 该方法的功能是建立与ActivityManager的socket连接。
 
@@ -664,6 +694,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> debuggerd.cpp]
 
+```java
     static bool perform_dump(const debugger_request_t& request, int fd, int tombstone_fd,
                              BacktraceMap* backtrace_map, const std::set<pid_t>& siblings,
                              int* crash_signal, std::string* amfd_data) {
@@ -726,6 +757,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
       return true;
     }
+```
 
 致命信号有SIGABRT，SIGBUS，SIGFPE，SIGILL，SIGSEGV，SIGSTKFLT，SIGTRAP共7个信息，能造成native crash。
 
@@ -733,6 +765,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> debuggerd.cpp]
 
+```java
     static void activity_manager_write(int pid, int signal, int amfd, const std::string& amfd_data) {
       if (amfd == -1) {
         return;
@@ -759,6 +792,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       //读取应答消息，如果3s超时未收到则读取失败
       android::base::ReadFully(amfd, &eodMarker, 1);
     }
+```
 
 ### 3.7 monitor_worker_process
 
@@ -766,6 +800,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> debuggerd.cpp]
 
+```java
     static void monitor_worker_process(int child_pid, const debugger_request_t& request) {
       struct timespec timeout = {.tv_sec = 10, .tv_nsec = 0 };
       if (should_attach_gdb(request)) {
@@ -843,6 +878,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       }
     }
 
+```
 
 ### 3.8 小节
 
@@ -884,6 +920,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> debuggerd/tombstone.cpp]
 
+```java
     void engrave_tombstone(int tombstone_fd, BacktraceMap* map, pid_t pid, pid_t tid,
                            const std::set<pid_t>& siblings, int signal, int original_si_code,
                            uintptr_t abort_msg_address, std::string* amfd_data) {
@@ -901,11 +938,13 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       //【见小节4.2】
       dump_crash(&log, map, pid, tid, siblings, signal, original_si_code, abort_msg_address);
     }
+```
 
 ### 4.2 dump_crash
 
 [-> debuggerd/tombstone.cpp]
 
+```java
     // Dump该pid所对应进程的所有tombstone信息
     static void dump_crash(log_t* log, BacktraceMap* map, pid_t pid, pid_t tid,
                            const std::set<pid_t>& siblings, int signal, int si_code,
@@ -937,6 +976,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
         dump_logs(log, pid, 0);
       }
     }
+```
 
 主要输出信息：
 
@@ -950,6 +990,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> debuggerd/tombstone.cpp]
 
+```java
     static void dump_header_info(log_t* log) {
       char fingerprint[PROPERTY_VALUE_MAX];
       char revision[PROPERTY_VALUE_MAX];
@@ -961,12 +1002,15 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       _LOG(log, logtype::HEADER, "Revision: '%s'\n", revision);
       _LOG(log, logtype::HEADER, "ABI: '%s'\n", ABI_STRING);
     }
+```
 
 例如：
 
+```java
     Build fingerprint: 'xxx/xxx/MMB29M/gityuan06080845:userdebug/test-keys'
     Revision: '0'
     ABI: 'arm'
+```
 
 ### 4.4 dump_thread(主)
 
@@ -974,6 +1018,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 [-> debuggerd/tombstone.cpp]
 
+```java
     static void dump_thread(log_t* log, pid_t pid, pid_t tid, BacktraceMap* map, int signal,
                             int si_code, uintptr_t abort_msg_address, bool primary_thread) {
       log->current_tid = tid;
@@ -1009,9 +1054,11 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       }
       log->current_tid = log->crashed_tid;
     }
+```
 
 #### 4.4.1 dump_thread_info
 
+```java
     static void dump_thread_info(log_t* log, pid_t pid, pid_t tid) {
       char path[64];
       char threadnamebuf[1024];
@@ -1051,6 +1098,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
     }
 
 
+```
 
 - 获取进程名：`/proc/<pid>/cmdline`
 - 获取线程名：`/proc/<tid>/comm`
@@ -1064,6 +1112,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 #### 4.4.2 dump_signal_info
 
+```java
     static void dump_signal_info(log_t* log, pid_t tid, int signal, int si_code) {
       siginfo_t si;
       memset(&si, 0, sizeof(si));
@@ -1084,6 +1133,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       _LOG(log, logtype::HEADER, "signal %d (%s), code %d (%s), fault addr %s\n",
            signal, get_signame(signal), si.si_code, get_sigcode(signal, si.si_code), addr_desc);
     }
+```
 
 - 对于`SIGBUS`，`SIGFPE`，`SIGILL`，`SIGSEGV`，`SIGTRAP`时触发的dump,则会输出fault addr的具体地址，
 - 对于`SIGSTOP`时,则输出fault addr为"--------"
@@ -1141,6 +1191,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 
 #### 4.4.3 dump_abort_message
 
+```java
     static void dump_abort_message(Backtrace* backtrace, log_t* log, uintptr_t address) {
       if (address == 0) {
         return;
@@ -1168,12 +1219,14 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       _LOG(log, logtype::HEADER, "Abort message: '%s'\n", msg);
     }
 
+```
 
 #### 4.4.4 dump_registers
 输出系统寄存器信息，这里以arm为例来说明
 
 [-> debuggerd/arm/Machine.cpp]
 
+```java
     void dump_registers(log_t* log, pid_t tid) {
       pt_regs r;
       if (ptrace(PTRACE_GETREGS, tid, 0, &r)) {
@@ -1207,12 +1260,14 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
       }
       _LOG(log, logtype::FP_REGISTERS, "    scr %08lx\n", vfp_regs.fpscr);
     }
+```
 
 通过ptrace获取寄存器状态信息，这里输出r0-r9,sl,fp,ip,sp,lr,pc,cpsr 以及32个fpregs和一个fpscr.
 
 #### 4.4.5 dump_backtrace_and_stack
 [-> debuggerd/tombstone.cpp]
 
+```java
     static void dump_backtrace_and_stack(Backtrace* backtrace, log_t* log) {
       if (backtrace->NumFrames()) {
         _LOG(log, logtype::BACKTRACE, "\nbacktrace:\n");
@@ -1224,21 +1279,25 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
         dump_stack(backtrace, log);
       }
     }
+```
 
 **4.4.5.1 输出backtrace信息**
 
 [-> debuggerd/Backtrace.cpp]
 
+```java
     void dump_backtrace_to_log(Backtrace* backtrace, log_t* log, const char* prefix) {
       for (size_t i = 0; i < backtrace->NumFrames(); i++) {
         _LOG(log, logtype::BACKTRACE, "%s%s\n", prefix, backtrace->FormatFrameData(i).c_str());
       }
     }
+```
 
 **4.4.5.2 输出stack信息**
 
 [-> debuggerd/tombstone.cpp]
 
+```java
     static void dump_stack(Backtrace* backtrace, log_t* log) {
       size_t first = 0, last;
       for (size_t i = 0; i < backtrace->NumFrames(); i++) {
@@ -1283,10 +1342,12 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
         }
       }
     }
+```
 
 #### 4.4.6 dump_memory_and_code
 [-> debuggerd/arm/Machine.cpp]
 
+```java
     void dump_memory_and_code(log_t* log, Backtrace* backtrace) {
       pt_regs regs;
       if (ptrace(PTRACE_GETREGS, backtrace->Tid(), 0, &regs)) {
@@ -1306,11 +1367,13 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
         dump_memory(log, backtrace, static_cast<uintptr_t>(regs.ARM_lr), "code around lr:");
       }
     }
+```
 
 #### 4.4.7 dump_all_maps
 
 [-> debuggerd/tombstone.cpp]
 
+```java
     static void dump_all_maps(Backtrace* backtrace, BacktraceMap* map, log_t* log, pid_t tid) {
       bool print_fault_address_marker = false;
       uintptr_t addr = 0;
@@ -1388,6 +1451,7 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
              get_addr_string(addr).c_str());
       }
     }
+```
 
 当内存出现故障时，可搜索关键词：
 
@@ -1396,10 +1460,12 @@ init进程会解析上述rc文件，调用/system/bin/debuggerd文件，进入ma
 ### 4.5 dump_logs
 [-> debuggerd/tombstone.cpp]
 
+```java
     static void dump_logs(log_t* log, pid_t pid, unsigned int tail) {
       dump_log_file(log, pid, "system", tail); //输出system log
       dump_log_file(log, pid, "main", tail); //输出main log
     }
+```
 
 ### 4.6 dump_thread(兄弟)
 
@@ -1407,6 +1473,7 @@ dump_thread(log, pid, sibling, map, 0, 0, 0, false);
 
 [-> debuggerd/tombstone.cpp]
 
+```java
     static void dump_thread(log_t* log, pid_t pid, pid_t tid, BacktraceMap* map, int signal,
                             int si_code, uintptr_t abort_msg_address, bool primary_thread) {
       log->current_tid = tid;
@@ -1428,6 +1495,7 @@ dump_thread(log, pid, sibling, map, 0, 0, 0, false);
 
       log->current_tid = log->crashed_tid;
     }
+```
 
 兄弟线程dump_thread的输出内容：
 

@@ -39,15 +39,18 @@ clearCallingIdentity(), restoreCallingIdentity()这两个方法使用过程都�
 ### 2.1 clearCallingIdentity
 [-> android_util_Binder.cpp]
 
+```java
     static jlong android_os_Binder_clearCallingIdentity(JNIEnv* env, jobject clazz)
     {
         //调用IPCThreadState类的方法执行
         return IPCThreadState::self()->clearCallingIdentity();
     }
+```
 
 #### 2.1.1 IPC.clearCallingIdentity
 [-> IPCThreadState.cpp]
 
+```java
     int64_t IPCThreadState::clearCallingIdentity()
     {
         int64_t token = ((int64_t)mCallingUid<<32) | mCallingPid;
@@ -60,6 +63,7 @@ clearCallingIdentity(), restoreCallingIdentity()这两个方法使用过程都�
         mCallingPid = getpid(); //当前进程pid赋值给mCallingPid
         mCallingUid = getuid(); //当前进程uid赋值给mCallingUid
     }
+```
 
 - mCallingUid(记为UID)，保存Binder IPC通信的调用方进程的Uid；
 - mCallingPid(记为PID)，保存Binder IPC通信的调用方进程的Pid；
@@ -69,6 +73,7 @@ UID和PID是IPCThreadState的成员变量， 都是32位的int型数据，通过
 ### 2.2 restoreCallingIdentity
 [-> android_util_Binder.cpp]
 
+```java
     static void android_os_Binder_restoreCallingIdentity(JNIEnv* env, jobject clazz, jlong token)
     {
         //token记录着uid信息，将其右移32位得到的是uid
@@ -82,29 +87,35 @@ UID和PID是IPCThreadState的成员变量， 都是32位的int型数据，通过
         //调用IPCThreadState类的方法执行
         IPCThreadState::self()->restoreCallingIdentity(token);
     }
+```
 
 #### 2.2.1 IPC.restoreCallingIdentity
 [-> IPCThreadState.cpp]
 
+```java
     void IPCThreadState::restoreCallingIdentity(int64_t token)
     {
         mCallingUid = (int)(token>>32);
         mCallingPid = (int)token;
     }
+```
 
 从`token`中解析出PID和UID，并赋值给相应的变量。该方法正好是`clearCallingIdentity`的反过程。
 
 ### 2.3 getCallingPid
 [-> android_util_Binder.cpp]
 
+```java
     static jint android_os_Binder_getCallingPid(JNIEnv* env, jobject clazz)
     {
         return IPCThreadState::self()->getCallingPid();
     }
+```
 
 #### 2.3.1 IPC.getCallingPid
 [-> IPCThreadState.cpp]
 
+```java
     pid_t IPCThreadState::getCallingPid() const
     {
         return mCallingPid;
@@ -114,10 +125,12 @@ UID和PID是IPCThreadState的成员变量， 都是32位的int型数据，通过
     {
         return mCallingUid;
     }
+```
 
 ### 2.4 远程调用
 #### 2.4.1 binder_thread_read
 
+```java
     binder_thread_read（）{
         while (1) {
           struct binder_work *w;
@@ -144,9 +157,11 @@ UID和PID是IPCThreadState的成员变量， 都是32位的int型数据，通过
           }
           ...
     }
+```
     
 #### 2.4.2 IPC.executeCommand
 
+```java
     status_t IPCThreadState::executeCommand(int32_t cmd)
     {
         BBinder* obj;
@@ -170,6 +185,7 @@ UID和PID是IPCThreadState的成员变量， 都是32位的int型数据，通过
             case :...
         }
     }
+```
 
 关于mCallingPid、mCallingUid的修改过程:是在每次Binder Call的远程进程在执行binder_thread_read()过程，
 会设置pid和uid. 然后在IPCThreadState的transact收到BR_TRANSACION则会修改mCallingPid、mCallingUid。
@@ -216,6 +232,7 @@ UID和PID是IPCThreadState的成员变量， 都是32位的int型数据，通过
 
 [-->ActivityManagerService.java]
 
+```java
     @Override
     public final void attachApplication(IApplicationThread thread) {
         synchronized (this) {
@@ -228,5 +245,6 @@ UID和PID是IPCThreadState的成员变量， 都是32位的int型数据，通过
             Binder.restoreCallingIdentity(origId);
         }
     }
+```
 
 文章[startService流程分析](https://panard313.github.io/2016/02/21/start-service/#activitymanagerproxyattachapplication)中有讲到`attachApplication()`的调用。该方法一般是system_server进程的子线程调用远程进程时使用，而`attachApplicationLocked`方法则是在同一个线程中，故需要在调用该方法前清空远程调用者的uid和pid，调用结束后恢复远程调用者的uid和pid。

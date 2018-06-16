@@ -45,6 +45,7 @@ Activity启动发起后，通过Binder最终交由system进程中的AMS来完成
 
 [-> Activity.java]
 
+```java
     public void startActivity(Intent intent) {
         this.startActivity(intent, null);
     }
@@ -57,10 +58,12 @@ Activity启动发起后，通过Binder最终交由system进程中的AMS来完成
             startActivityForResult(intent, -1);
         }
     }
+```
 
 ### 2.2  startActivityForResult
 [-> Activity.java]
 
+```java
     public void startActivityForResult(Intent intent, int requestCode) {
         startActivityForResult(intent, requestCode, null);
     }
@@ -86,6 +89,7 @@ Activity启动发起后，通过Binder最终交由system进程中的AMS来完成
             ...
         }
     }
+```
 
 execStartActivity()方法的参数:
 
@@ -95,6 +99,7 @@ execStartActivity()方法的参数:
 ### 2.3 execStartActivity
 [-> Instrumentation.java]
 
+```java
     public ActivityResult execStartActivity(
             Context who, IBinder contextThread, IBinder token, Activity target,
             Intent intent, int requestCode, Bundle options) {
@@ -134,6 +139,7 @@ execStartActivity()方法的参数:
         }
         return null;
     }
+```
 
 关于 ActivityManagerNative.getDefault()返回的是ActivityManagerProxy对象. 此处startActivity()的共有10个参数, 下面说说每个参数传递AMP.startActivity()每一项的对应值:
 
@@ -152,6 +158,7 @@ execStartActivity()方法的参数:
 ### 2.4 AMP.startActivity
 [-> ActivityManagerNative.java :: ActivityManagerProxy]
 
+```java
     class ActivityManagerProxy implements IActivityManager
     {
         ...
@@ -191,12 +198,14 @@ execStartActivity()方法的参数:
         }
         ...
     }
+```
 
 AMP经过binder IPC,进入ActivityManagerNative(简称AMN)。接下来程序进入了system_servr进程，开始继续执行。
 
 ### 2.5  AMN.onTransact
 [-> ActivityManagerNative.java]
 
+```java
     public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
           throws RemoteException {
         switch (code) {
@@ -226,10 +235,12 @@ AMP经过binder IPC,进入ActivityManagerNative(简称AMN)。接下来程序进�
         ...
         }
    }
+```
 
 ### 2.6 AMS.startActivity
 [-> ActivityManagerService.java]
 
+```java
     public final int startActivity(IApplicationThread caller, String callingPackage,
             Intent intent, String resolvedType, IBinder resultTo, String resultWho, int requestCode,
             int startFlags, ProfilerInfo profilerInfo, Bundle options) {
@@ -249,6 +260,7 @@ AMP经过binder IPC,进入ActivityManagerNative(简称AMN)。接下来程序进�
                 resolvedType, null, null, resultTo, resultWho, requestCode, startFlags,
                 profilerInfo, null, null, options, false, userId, null, null);
     }
+```
 
 此处mStackSupervisor的数据类型为`ActivityStackSupervisor`
 
@@ -280,6 +292,7 @@ AMP经过binder IPC,进入ActivityManagerNative(简称AMN)。接下来程序进�
 
 [-> ActivityStackSupervisor.java]
 
+```java
     final int startActivityMayWait(IApplicationThread caller, int callingUid,
             String callingPackage, Intent intent, String resolvedType,
             IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
@@ -355,11 +368,13 @@ AMP经过binder IPC,进入ActivityManagerNative(简称AMN)。接下来程序进�
             return res;
         }
     }
+```
 
 该过程主要功能：通过resolveActivity来获取ActivityInfo信息, 然后再进入ASS.startActivityLocked().先来看看
 
 #### 2.7.1 ASS.resolveActivity
 
+```java
     // startFlags = 0; profilerInfo = null; userId代表caller UserId
     ActivityInfo resolveActivity(Intent intent, String resolvedType, int startFlags,
             ProfilerInfo profilerInfo, int userId) {
@@ -380,6 +395,7 @@ AMP经过binder IPC,进入ActivityManagerNative(简称AMN)。接下来程序进�
         }
         return aInfo;
     }
+```
 
 ActivityManager类有如下4个flags用于调试：
 
@@ -394,6 +410,7 @@ AppGlobals.getPackageManager()经过函数层层调用，获取的是Application
 
 [-> PackageManagerService.java]
 
+```java
     public ResolveInfo resolveIntent(Intent intent, String resolvedType,
              int flags, int userId) {
          if (!sUserManager.exists(userId)) return null;
@@ -403,9 +420,11 @@ AppGlobals.getPackageManager()经过函数层层调用，获取的是Application
          //根据priority，preferred选择最佳的Activity
          return chooseBestActivity(intent, resolvedType, flags, query, userId);
      }
+```
 
 #### 2.7.3 PMS.queryIntentActivities
 
+```java
     public List<ResolveInfo> queryIntentActivities(Intent intent,
             String resolvedType, int flags, int userId) {
         ...
@@ -430,12 +449,14 @@ AppGlobals.getPackageManager()经过函数层层调用，获取的是Application
         }
         ...
     }
+```
 
 ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并保存到intent对象。
 
 ### 2.8 ASS.startActivityLocked
 [-> ActivityStackSupervisor.java]
 
+```java
     final int startActivityLocked(IApplicationThread caller,
             Intent intent, String resolvedType, ActivityInfo aInfo,
             IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor,
@@ -560,6 +581,7 @@ ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并
         }
         return err;
     }
+```
 
 其中有两个返回值代表启动Activity失败：
 
@@ -568,6 +590,7 @@ ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并
 
 #### 2.8.1 AMS.checkAppSwitchAllowedLocked
 
+```java
     boolean checkAppSwitchAllowedLocked(int sourcePid, int sourceUid,
             int callingPid, int callingUid, String name) {
         if (mAppSwitchesAllowedTime < SystemClock.uptimeMillis()) {
@@ -592,6 +615,7 @@ ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并
 
         return false;
     }
+```
 
 当mAppSwitchesAllowedTime时间小于当前时长,或者具有STOP_APP_SWITCHES的权限,则允许app发生切换操作.
 
@@ -602,6 +626,7 @@ ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并
 #### 2.8.2 ASS.doPendingActivityLaunchesLocked
 [-> ActivityStackSupervisor.java]
 
+```java
     final void doPendingActivityLaunchesLocked(boolean doResume) {
         while (!mPendingActivityLaunches.isEmpty()) {
             PendingActivityLaunch pal = mPendingActivityLaunches.remove(0);
@@ -614,6 +639,7 @@ ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并
             }
         }
     }
+```
 
 `mPendingActivityLaunches`记录着所有将要启动的Activity, 是由于在`startActivityLocked`的过程时App切换功能被禁止, 也就是不运行切换Activity, 那么此时便会把相应的Activity加入到`mPendingActivityLaunches`队列. 该队列的成员在执行完`doPendingActivityLaunchesLocked`便会清空.
 
@@ -622,6 +648,7 @@ ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并
 ### 2.9 ASS.startActivityUncheckedLocked
 [-> ActivityStackSupervisor.java]
 
+```java
     // sourceRecord是指调用者， r是指本次将要启动的Activity
     final int startActivityUncheckedLocked(final ActivityRecord r, ActivityRecord sourceRecord,
             IVoiceInteractionSession voiceSession, IVoiceInteractor voiceInteractor, int startFlags,
@@ -1028,6 +1055,7 @@ ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并
         }
         return ActivityManager.START_SUCCESS;
     }
+```
 
 找到或创建新的Activit所属于的Task对象，之后调用AS.startActivityLocked
 
@@ -1055,6 +1083,7 @@ ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并
 ### 2.10 AS.startActivityLocked
 [-> ActivityStack.java]
 
+```java
     final void startActivityLocked(ActivityRecord r, boolean newTask,
             boolean doResume, boolean keepCurTransition, Bundle options) {
         TaskRecord rTask = r.task;
@@ -1176,9 +1205,11 @@ ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并
             mStackSupervisor.resumeTopActivitiesLocked(this, r, options);
         }
     }
+```
 
 ### 2.11 ASS.resumeTopActivitiesLocked
 
+```java
     boolean resumeTopActivitiesLocked(ActivityStack targetStack, ActivityRecord target,
             Bundle targetOptions) {
         if (targetStack == null) {
@@ -1206,9 +1237,11 @@ ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并
         }
         return result;
     }
+```
 
 ### 2.12 AS.resumeTopActivityLocked
 
+```java
     final boolean resumeTopActivityLocked(ActivityRecord prev, Bundle options) {
         if (mStackSupervisor.inResumeTopActivity) {
             return false; //防止递归启动
@@ -1228,11 +1261,13 @@ ASS.resolveActivity()方法的核心功能是找到相应的Activity组件，并
         }
         return result;
     }
+```
 
 inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivityLocked()操作.
 
 ### 2.13 AS.resumeTopActivityInnerLocked
 
+```java
     private boolean resumeTopActivityInnerLocked(ActivityRecord prev, Bundle options) {
         ... //系统没有进入booting或booted状态，则不允许启动Activity
 
@@ -1509,6 +1544,7 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
         }
         return true;
     }
+```
 
 主要分支功能：
 
@@ -1518,6 +1554,7 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
 
 #### 2.13.1 ASS.pauseBackStacks
 
+```java
     boolean pauseBackStacks(boolean userLeaving, boolean resuming, boolean dontWait) {
         boolean someActivityPaused = false;
         for (int displayNdx = mActivityDisplays.size() - 1; displayNdx >= 0; --displayNdx) {
@@ -1533,11 +1570,13 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
         }
         return someActivityPaused;
     }
+```
 
 暂停所有处于后台栈的所有Activity。
 
 #### 2.13.2 AS.startPausingLocked
 
+```java
     final boolean startPausingLocked(boolean userLeaving, boolean uiSleeping, boolean resuming,
          boolean dontWait) {
       if (mPausingActivity != null) {
@@ -1594,6 +1633,7 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
           }
           return false;
       }
+```
 
 该方法中，下一步通过Binder调用，进入acitivity所在进程来执行schedulePauseActivity()操作。
 接下来，对于dontWait=true则执行执行completePauseLocked，否则等待app通知或许500ms超时再执行该方法。
@@ -1602,6 +1642,7 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
 
 ### 2.14 ASS.startSpecificActivityLocked
 
+```java
     void startSpecificActivityLocked(ActivityRecord r,
             boolean andResume, boolean checkConfig) {
         ProcessRecord app = mService.getProcessRecordLocked(r.processName,
@@ -1629,12 +1670,14 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
         mService.startProcessLocked(r.processName, r.info.applicationInfo, true, 0,
                 "activity", r.intent.getComponent(), false, false, true);
     }
+```
 
 #### 2.15 AMS.startProcessLocked
 
 在文章[理解Android进程启动之全过程](https://panard313.github.io/2016/10/09/app-process-create-2/)中，详细介绍了AMS.startProcessLocked()整个过程，创建完新进程后会在新进程中调用`AMP.attachApplication
 `，该方法经过binder ipc后调用到`AMS.attachApplicationLocked`。
 
+```java
     private final boolean attachApplicationLocked(IApplicationThread thread,
             int pid) {
         ...
@@ -1650,11 +1693,13 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
         }
         ...
     }
+```
 
 在执行完bindApplication()之后进入ASS.attachApplicationLocked()
 
 #### 2.16 ASS.attachApplicationLocked
 
+```java
     boolean attachApplicationLocked(ProcessRecord app) throws RemoteException {
         final String processName = app.processName;
         boolean didSomething = false;
@@ -1688,9 +1733,11 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
         }
         return didSomething;
     }
+```
 
 ### 2.17 ASS.realStartActivityLocked
 
+```java
     final boolean realStartActivityLocked(ActivityRecord r,
             ProcessRecord app, boolean andResume, boolean checkConfig)
             throws RemoteException {
@@ -1796,10 +1843,12 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
 
         return true;
     }
+```
 
 ### 2.18 ATP.scheduleLaunchActivity
 [-> ApplicationThreadProxy.java]
 
+```java
     public final void scheduleLaunchActivity(Intent intent, IBinder token, int ident,
              ActivityInfo info, Configuration curConfig, Configuration overrideConfig,
              CompatibilityInfo compatInfo, String referrer, IVoiceInteractor voiceInteractor,
@@ -1840,10 +1889,12 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
                  IBinder.FLAG_ONEWAY);
          data.recycle();
      }
+```
 
 ### 2.19 ATN.onTransact
 [-> ApplicationThreadNative.java]
 
+```java
     public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
                 throws RemoteException {
         switch (code) {
@@ -1881,10 +1932,12 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
         ...
         }
     }
+```
 
 ### 2.20 AT.scheduleLaunchActivity
 [-> ApplicationThread.java]
 
+```java
     public final void scheduleLaunchActivity(Intent intent, IBinder token, int ident,
              ActivityInfo info, Configuration curConfig, Configuration overrideConfig,
              CompatibilityInfo compatInfo, String referrer, IVoiceInteractor voiceInteractor,
@@ -1919,10 +1972,12 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
          //【见流程2.21】
          sendMessage(H.LAUNCH_ACTIVITY, r);
      }
+```
 
 ### 2.21 H.handleMessage
 [-> ActivityThread.java ::H]
 
+```java
     public void handleMessage(Message msg) {
         switch (msg.what) {
             case LAUNCH_ACTIVITY: {
@@ -1935,10 +1990,12 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
             ...
         }
     }
+```
 
 ### 2.22 ActivityThread.handleLaunchActivity
 [-> ActivityThread.java]
 
+```java
     private void handleLaunchActivity(ActivityClientRecord r, Intent customIntent) {
         unscheduleGcIdler();
         mSomeActivitiesChanged = true;
@@ -1967,10 +2024,12 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
                 .finishActivity(r.token, Activity.RESULT_CANCELED, null, false);
         }
     }
+```
 
 ### 2.23 ActivityThread.performLaunchActivity
 [-> ActivityThread.java]
 
+```java
     private Activity performLaunchActivity(ActivityClientRecord r, Intent customIntent) {
 
         ActivityInfo aInfo = r.activityInfo;
@@ -2074,6 +2133,7 @@ inResumeTopActivity用于保证每次只有一个Activity执行resumeTopActivity
 
         return activity;
     }
+```
 
 到此，正式进入了Activity的onCreate, onStart, onResume这些生命周期的过程。
 

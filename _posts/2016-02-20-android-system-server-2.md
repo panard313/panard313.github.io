@@ -41,6 +41,7 @@ tags:
 
 ### 1.1 SystemServer.main
 
+```java
     public final class SystemServer {
         ...
         public static void main(String[] args) {
@@ -48,9 +49,11 @@ tags:
             new SystemServer().run();
         }
     }
+```
 
 ### 1.2 SystemServer.run
 
+```java
     private void run() {
         //当系统时间比1970年更早，就设置当前系统时间为1970年
         if (System.currentTimeMillis() < EARLIEST_SUPPORTED_TIME) {
@@ -116,12 +119,14 @@ tags:
         Looper.loop();
         throw new RuntimeException("Main thread loop unexpectedly exited");
     }
+```
 
 LocalServices通过用静态Map变量sLocalServiceObjects，来保存以服务类名为key，以具体服务对象为value的Map结构。
 
 #### 1.2.1  performPendingShutdown
 [-->SystemServer.java]
 
+```java
     private void performPendingShutdown() {
         final String shutdownAction = SystemProperties.get(
                 ShutdownThread.SHUTDOWN_ACTION_PROPERTY, "");
@@ -138,10 +143,12 @@ LocalServices通过用静态Map变量sLocalServiceObjects，来保存以服务�
             ShutdownThread.rebootOrShutdown(null, reboot, reason);
         }
     }
+```
     
 ### 1.3 createSystemContext
 [-->SystemServer.java]
 
+```java
     private void createSystemContext() {
         //创建system_server进程的上下文信息
         ActivityThread activityThread = ActivityThread.systemMain();
@@ -149,6 +156,7 @@ LocalServices通过用静态Map变量sLocalServiceObjects，来保存以服务�
         //设置主题
         mSystemContext.setTheme(android.R.style.Theme_DeviceDefault_Light_DarkActionBar);
     }
+```
 
 [理解Application创建过程](https://panard313.github.io/2017/04/02/android-application/)已介绍过createSystemContext()过程，
 该过程会创建对象有ActivityThread，Instrumentation, ContextImpl，LoadedApk，Application。
@@ -156,6 +164,7 @@ LocalServices通过用静态Map变量sLocalServiceObjects，来保存以服务�
 ### 1.4 startBootstrapServices
 [-->SystemServer.java]
 
+```java
     private void startBootstrapServices() {
         //阻塞等待与installd建立socket通道
         Installer installer = mSystemServiceManager.startService(Installer.class);
@@ -206,12 +215,14 @@ LocalServices通过用静态Map变量sLocalServiceObjects，来保存以服务�
         //启动传感器服务
         startSensorService();
     }
+```
 
 该方法所创建的服务：ActivityManagerService, PowerManagerService, LightsService, DisplayManagerService， PackageManagerService， UserManagerService， sensor服务.
 
 
 ### 1.5 startCoreServices
 
+```java
     private void startCoreServices() {
         //启动服务BatteryService，用于统计电池电量，需要LightService.
         mSystemServiceManager.startService(BatteryService.class);
@@ -226,6 +237,7 @@ LocalServices通过用静态Map变量sLocalServiceObjects，来保存以服务�
         //启动服务WebViewUpdateService
         mSystemServiceManager.startService(WebViewUpdateService.class);
     }
+```
 
 启动服务BatteryService，UsageStatsService，WebViewUpdateService。
 
@@ -234,6 +246,7 @@ LocalServices通过用静态Map变量sLocalServiceObjects，来保存以服务�
 该方法比较长，有近千行代码，逻辑很简单，主要是启动一系列的服务，这里就不具体列举源码了，在第四节直接对其中的服务进行一个简单分类。
 
 
+```java
         private void startOtherServices() {
             ...
             SystemConfig.getInstance();
@@ -276,6 +289,7 @@ LocalServices通过用静态Map变量sLocalServiceObjects，来保存以服务�
                 }
             });
         }
+```
 
 SystemServer启动各种服务中最后的一个环节便是AMS.systemReady()，详见[ActivityManagerService启动过程](https://panard313.github.io/2016/02/21/activity-manager-service/).
 
@@ -293,6 +307,7 @@ SystemServiceManager的startBootPhase()贯穿system_server进程的整个启动�
 
 **各个启动阶段所在源码的大致位置：**
 
+```java
     public final class SystemServer {
 
         private void startBootstrapServices() {
@@ -326,6 +341,7 @@ SystemServiceManager的startBootPhase()贯穿system_server进程的整个启动�
           }
         }
     }
+```
     
 接下来再说说简单每个阶段的大概完成的工作：
 

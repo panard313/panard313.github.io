@@ -25,6 +25,7 @@ Bp端只需要覆写binderDied()方法，实现一些后尾清除类的工作，
 
 #### 1.1 实例说明
 
+```java
     public final class ActivityManagerService {
         private final boolean attachApplicationLocked(IApplicationThread thread, int pid) {
             ...
@@ -47,11 +48,13 @@ Bp端只需要覆写binderDied()方法，实现一些后尾清除类的工作，
             }
         }
     }
+```
 
 前面涉及到linkToDeath和unlinkToDeath方法，实现如下：
 
 [-> Binder.java]
 
+```java
     public class Binder implements IBinder {
         public void linkToDeath(DeathRecipient recipient, int flags) {
         }
@@ -66,6 +69,7 @@ Bp端只需要覆写binderDied()方法，实现一些后尾清除类的工作，
                 throws RemoteException;
         public native boolean unlinkToDeath(DeathRecipient recipient, int flags);
     }
+```
 
 可见，以上两个方法：
 
@@ -79,6 +83,7 @@ BinderProxy调用linkToDeath()方法是一个native方法, 通过jni进入如下
 ### 2.1 linkToDeath
 [-> android_util_Binder.cpp]
 
+```java
     static void android_os_BinderProxy_linkToDeath(JNIEnv* env, jobject obj,
             jobject recipient, jint flags)
     {
@@ -106,6 +111,7 @@ BinderProxy调用linkToDeath()方法是一个native方法, 通过jni进入如下
             }
         }
     }
+```
 
 过程说明:
 
@@ -116,6 +122,7 @@ BinderProxy调用linkToDeath()方法是一个native方法, 通过jni进入如下
 #### 2.1.1 JavaDeathRecipient
 [-> android_util_Binder.cpp]
 
+```java
     class JavaDeathRecipient : public IBinder::DeathRecipient
     {
     public:
@@ -129,6 +136,7 @@ BinderProxy调用linkToDeath()方法是一个native方法, 通过jni进入如下
             incRefsCreated(env); //[见小节2.1.2]
         }
     }
+```
 
 该方法主要功能：
 
@@ -138,6 +146,7 @@ BinderProxy调用linkToDeath()方法是一个native方法, 通过jni进入如下
 #### 2.1.2 incRefsCreated
 [-> android_util_Binder.cpp]
 
+```java
     static void incRefsCreated(JNIEnv* env)
     {
         int old = android_atomic_inc(&gNumRefsCreated);
@@ -148,6 +157,7 @@ BinderProxy调用linkToDeath()方法是一个native方法, 通过jni进入如下
                     gBinderInternalOffsets.mForceGc);
         }
     }
+```
 
 该方法的主要是增加引用计数incRefsCreated，每计数增加2000则执行一次forceGc;
 
@@ -160,6 +170,7 @@ BinderProxy调用linkToDeath()方法是一个native方法, 通过jni进入如下
 #### 2.1.3  clearReference
 [-> android_util_Binder.cpp ::JavaDeathRecipient]
 
+```java
     void clearReference()
      {
          sp<DeathRecipientList> list = mList.promote();
@@ -167,12 +178,14 @@ BinderProxy调用linkToDeath()方法是一个native方法, 通过jni进入如下
              list->remove(this); //从列表中移除引用
          }
      }
-     
+```
+
 清除引用，将JavaDeathRecipient从DeathRecipientList列表中移除.
 
 ### 2.2 linkToDeath
 [-> BpBinder.cpp]
 
+```java
     status_t BpBinder::linkToDeath(
         const sp<DeathRecipient>& recipient, void* cookie, uint32_t flags)
     {
@@ -202,6 +215,7 @@ BinderProxy调用linkToDeath()方法是一个native方法, 通过jni进入如下
         }
         return DEAD_OBJECT;
     }
+```
 
 #### 2.2.1 DeathRecipient关系图
 
@@ -212,6 +226,7 @@ Java层的BinderProxy.mOrgue指向DeathRecipientList，而DeathRecipientList记�
 ### 2.3 requestDeathNotification
 [-> IPCThreadState.cpp]
 
+```java
     status_t IPCThreadState::requestDeathNotification(int32_t handle, BpBinder* proxy)
     {
         mOut.writeInt32(BC_REQUEST_DEATH_NOTIFICATION);
@@ -219,18 +234,21 @@ Java层的BinderProxy.mOrgue指向DeathRecipientList，而DeathRecipientList记�
         mOut.writePointer((uintptr_t)proxy);
         return NO_ERROR;
     }
+```
 
 进入Binder driver后, 直接调用后进入binder_thread_write, 处理BC_REQUEST_DEATH_NOTIFICATION命令
 
 ### 2.4  flushCommands
 [-> IPCThreadState.cpp]
 
+```java
     void IPCThreadState::flushCommands()
     {
         if (mProcess->mDriverFD <= 0)
             return;
         talkWithDriver(false);
     }
+```
 
 flushCommands就是把命令向驱动发出，此处参数为false，则不会阻塞等待读。
 向Kernel层的binder driver发送BC_REQUEST_DEATH_NOTIFICATION命令，经过ioctl执行到
@@ -241,6 +259,7 @@ binder_ioctl_write_read()方法。
 ### 3.1 binder_ioctl_write_read
 [-> kernel/drivers/android/binder.c]
 
+```java
     static int binder_ioctl_write_read(struct file *filp,
                     unsigned int cmd, unsigned long arg,
                     struct binder_thread *thread)
@@ -271,10 +290,12 @@ binder_ioctl_write_read()方法。
     out:
         return ret;
     }
+```
 
 ### 3.2 binder_thread_write
 [-> kernel/drivers/android/binder.c]
 
+```java
     static int binder_thread_write(struct binder_proc *proc,
           struct binder_thread *thread,
           binder_uintptr_t binder_buffer, size_t size,
@@ -284,7 +305,7 @@ binder_ioctl_write_read()方法。
       //proc, thread都是指当前发起端进程的信息
       struct binder_context *context = proc->context;
       void __user *buffer = (void __user *)(uintptr_t)binder_buffer;
-      void __user *ptr = buffer + *consumed; 
+      void __user *ptr = buffer + *consumed;
       void __user *end = buffer + size;
       while (ptr < end && thread->return_error == BR_OK) {
         get_user(cmd, (uint32_t __user *)ptr); //获取BC_REQUEST_DEATH_NOTIFICATION
@@ -306,7 +327,7 @@ binder_ioctl_write_read()方法。
                 if (cmd == BC_REQUEST_DEATH_NOTIFICATION) {
                     //native Bp可注册多个，但Kernel只允许注册一个死亡通知
                     if (ref->death) {
-                        break; 
+                        break;
                     }
                     death = kzalloc(sizeof(*death), GFP_KERNEL);
 
@@ -314,9 +335,9 @@ binder_ioctl_write_read()方法。
                     death->cookie = cookie; //BpBinder指针
                     ref->death = death;
                     //当目标binder服务所在进程已死,则直接发送死亡通知。这是非常规情况
-                    if (ref->node->proc == NULL) { 
+                    if (ref->node->proc == NULL) {
                         ref->death->work.type = BINDER_WORK_DEAD_BINDER;
-                        //当前线程为binder线程,则直接添加到当前线程的todo队列. 
+                        //当前线程为binder线程,则直接添加到当前线程的todo队列.
                         if (thread->looper & (BINDER_LOOPER_STATE_REGISTERED | BINDER_LOOPER_STATE_ENTERED)) {
                             list_add_tail(&ref->death->work.entry, &thread->todo);
                         } else {
@@ -333,6 +354,7 @@ binder_ioctl_write_read()方法。
         *consumed = ptr - buffer;
       }
    }
+```
 
 该方法在处理BC_REQUEST_DEATH_NOTIFICATION过程，正好遇到对端目标binder服务所在进程已死的情况，
 向todo队列增加BINDER_WORK_DEAD_BINDER事务，直接发送死亡通知，但这属于非常规情况。
@@ -346,10 +368,11 @@ binder_ioctl_write_read()方法。
 binder_open打开binder驱动/dev/binder，这是字符设备，获取文件描述符。在进程结束的时候会有一个关闭文件系统的过程中会调用驱动close方法，该方法相对应的是release()方法。当binder的fd被释放后，此处调用相应的方法是binder_release().
 
 但并不是每个close系统调用都会触发调用release()方法. 只有真正释放设备数据结构才调用release(),内核维持一个文件结构被使用多少次的计数，即便是应用程序没有明显地关闭它打开的文件也适用: 内核在进程exit()时会释放所有内存和关闭相应的文件资源, 通过使用close系统调用最终也会release binder.
-        
+
 ### 4.1 release
 [-> binder.c]
 
+```java
     static const struct file_operations binder_fops = {
       .owner = THIS_MODULE,
       .poll = binder_poll,
@@ -360,9 +383,11 @@ binder_open打开binder驱动/dev/binder，这是字符设备，获取文件描�
       .flush = binder_flush,
       .release = binder_release, //对应于release的方法
     };
-        
+```
+
 ### 4.2 binder_release
 
+```java
     static int binder_release(struct inode *nodp, struct file *filp)
     {
       struct binder_proc *proc = filp->private_data;
@@ -371,14 +396,16 @@ binder_open打开binder驱动/dev/binder，这是字符设备，获取文件描�
       binder_defer_work(proc, BINDER_DEFERRED_RELEASE);
       return 0;
     }
+```
 
 ### 4.3 binder_defer_work
 
+```java
     static void binder_defer_work(struct binder_proc *proc, enum binder_deferred_state defer)
     {
       mutex_lock(&binder_deferred_lock); //获取锁
       //添加BINDER_DEFERRED_RELEASE
-      proc->deferred_work |= defer; 
+      proc->deferred_work |= defer;
       if (hlist_unhashed(&proc->deferred_work_node)) {
         hlist_add_head(&proc->deferred_work_node, &binder_deferred_list);
         //向工作队列添加binder_deferred_work [见小节4.4]
@@ -386,9 +413,11 @@ binder_open打开binder驱动/dev/binder，这是字符设备，获取文件描�
       }
       mutex_unlock(&binder_deferred_lock); //释放锁
     }
+```
 
 ### 4.4 queue_work
 
+```java
     //全局工作队列
     static struct workqueue_struct *binder_deferred_workqueue;
 
@@ -401,11 +430,13 @@ binder_open打开binder驱动/dev/binder，这是字符设备，获取文件描�
         return -ENOMEM;
       ...
     }
-    
+
     device_initcall(binder_init);
+```
 
 关于binder_deferred_work的定义：
 
+```java
     static DECLARE_WORK(binder_deferred_work, binder_deferred_func);
 
     #define DECLARE_WORK(n, f)            \
@@ -418,7 +449,8 @@ binder_open打开binder驱动/dev/binder，这是字符设备，获取文件描�
       __WORK_INIT_LOCKDEP_MAP(#n, &(n))        \
       }
 
-      
+```
+
 在Binder设备驱动初始化的过程执行binder_init()方法中，调用
 create_singlethread_workqueue("binder")，创建了名叫“binder”的工作队列(workqueue)。
 workqueue是kernel提供的一种实现简单而有效的内核线程机制，可延迟执行任务。
@@ -427,6 +459,7 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
 
 ### 4.5 binder_deferred_func
 
+```java
     static void binder_deferred_func(struct work_struct *work)
     {
       struct binder_proc *proc;
@@ -463,17 +496,19 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
           binder_deferred_release(proc); //[见小节4.6]
 
         mutex_unlock(&binder_main_lock); //释放锁
-        preempt_enable_no_resched(); 
+        preempt_enable_no_resched();
         if (files)
           put_files_struct(files);
       } while (proc);
     }
+```
 
 可见，binder_release最终调用的是binder_deferred_release；
 同理，binder_flush最终调用的是binder_deferred_flush。
 
 ### 4.6 binder_deferred_release
 
+```java
     static void binder_deferred_release(struct binder_proc *proc)
     {
       struct binder_transaction *t;
@@ -517,7 +552,7 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
         outgoing_refs++;
         binder_delete_ref(ref);
       }
-      
+
       //释放binder_work [见小节4.6.4]
       binder_release_work(&proc->todo);
       binder_release_work(&proc->delivered_death);
@@ -559,11 +594,13 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
       put_task_struct(proc->tsk);
       kfree(proc);
     }
+```
 
 此处proc是来自Bn端的binder_proc
 
 #### 4.6.1 binder_free_thread
 
+```java
     static int binder_free_thread(struct binder_proc *proc,
                 struct binder_thread *thread)
     {
@@ -590,7 +627,7 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
           t = t->from_parent;
         }
       }
-      
+
       //将发起方线程的return_error值设置为BR_DEAD_REPLY【见小节4.6.4.1】
       if (send_reply)
         binder_send_failed_reply(send_reply, BR_DEAD_REPLY);
@@ -600,9 +637,11 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
       binder_stats_deleted(BINDER_STAT_THREAD);
       return active_transactions;
     }
-    
+```
+
 #### 4.6.2 binder_node_release
 
+```java
     static int binder_node_release(struct binder_node *node, int refs)
     {
       struct binder_ref *ref;
@@ -634,16 +673,18 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
           ref->death->work.type = BINDER_WORK_DEAD_BINDER;
           list_add_tail(&ref->death->work.entry, &ref->proc->todo);
           wake_up_interruptible(&ref->proc->wait);
-        } 
+        }
       }
       return refs;
     }
+```
 
 该方法会遍历该binder_node所有的binder_ref, 当存在binder死亡通知，则向相应的binder_ref
 所在进程的todo队列添加BINDER_WORK_DEAD_BINDER事务并唤醒处于proc->wait的binder线程，下一步行动见[见小节5.1]。
 
 #### 4.6.3 binder_delete_ref
 
+```java
     static void binder_delete_ref(struct binder_ref *ref)
     {
       rb_erase(&ref->rb_node_desc, &ref->proc->refs_by_desc);
@@ -660,9 +701,11 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
       kfree(ref);
       binder_stats_deleted(BINDER_STAT_REF);
     }
+```
 
 #### 4.6.4 binder_release_work
 
+```java
     static void binder_release_work(struct list_head *list)
     {
       struct binder_work *w;
@@ -683,12 +726,12 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
             binder_stats_deleted(BINDER_STAT_TRANSACTION);
           }
         } break;
-        
+
         case BINDER_WORK_TRANSACTION_COMPLETE: {
           kfree(w);
           binder_stats_deleted(BINDER_STAT_TRANSACTION_COMPLETE);
         } break;
-        
+
         case BINDER_WORK_DEAD_BINDER_AND_CLEAR:
         case BINDER_WORK_CLEAR_DEATH_NOTIFICATION: {
           struct binder_ref_death *death;
@@ -696,16 +739,18 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
           kfree(death);
           binder_stats_deleted(BINDER_STAT_DEATH);
         } break;
-        
+
         default:
           break;
         }
       }
 
     }
-  
+```
+
 ##### 4.6.4.1 binder_send_failed_reply
 
+```java
     static void binder_send_failed_reply(struct binder_transaction *t,
                  uint32_t error_code)
     {
@@ -736,9 +781,11 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
         }
         t = next;
       }
-    }  
+```
+    }
 #### 4.6.5 binder_free_buf
 
+```java
     static void binder_free_buf(struct binder_proc *proc,
               struct binder_buffer *buffer)
     {
@@ -779,6 +826,7 @@ workqueue是kernel提供的一种实现简单而有效的内核线程机制，�
       }
       binder_insert_free_buffer(proc, buffer);
     }
+```
 
 #### 4.6.6 小结
 
@@ -805,6 +853,7 @@ binder_deferred_release的主要工作有：
 
 ### 5.1 binder_thread_read
 
+```java
     static int binder_thread_read(struct binder_proc *proc,
                       struct binder_thread *thread,
                       binder_uintptr_t binder_buffer, size_t size,
@@ -863,11 +912,13 @@ binder_deferred_release的主要工作有：
         ...
         return 0;
     }
+```
 
 将命令BR_DEAD_BINDER写到用户空间，此时用户空间执行过程：
 
 ### 5.2 IPC.getAndExecuteCommand
 
+```java
     status_t IPCThreadState::getAndExecuteCommand()
     {
         status_t result;
@@ -894,9 +945,11 @@ binder_deferred_release的主要工作有：
         }
         return result;
     }
+```
 
 ### 5.3 IPC.executeCommand
 
+```java
     status_t IPCThreadState::executeCommand(int32_t cmd)
     {
         BBinder* obj;
@@ -916,11 +969,13 @@ binder_deferred_release的主要工作有：
         ...
         return result;
     }
+```
 
 同一个bp端即便注册多次死亡通知，但只会发送一次死亡回调。
 
 ### 5.4 Bp.sendObituary
 
+```java
     void BpBinder::sendObituary()
     {
         mAlive = 0;
@@ -947,9 +1002,11 @@ binder_deferred_release的主要工作有：
             delete obits;
         }
     }
+```
 
 ### 5.5 reportOneDeath
 
+```java
     void BpBinder::reportOneDeath(const Obituary& obit)
     {
         //将弱引用提升到sp
@@ -958,11 +1015,13 @@ binder_deferred_release的主要工作有：
         //回调死亡通知的方法
         recipient->binderDied(this);
     }
+```
 
 本文开头的实例传递的是AppDeathRecipient，那么回调如下方法。
 
 ### 5.6 binderDied
 
+```java
     private final class AppDeathRecipient implements IBinder.DeathRecipient {
         ...
         public void binderDied() {
@@ -971,11 +1030,13 @@ binder_deferred_release的主要工作有：
             }
         }
     }
+```
 
 ## 六. unlinkToDeath
 
 ### 6.1 unlinkToDeath
 
+```java
     status_t BpBinder::unlinkToDeath(
         const wp<DeathRecipient>& recipient, void* cookie, uint32_t flags,
         wp<DeathRecipient>* outRecipient)
@@ -1007,9 +1068,11 @@ binder_deferred_release的主要工作有：
         }
         return NAME_NOT_FOUND;
     }
+```
 
 ### 6.2 clearDeathNotification
 
+```java
     status_t IPCThreadState::clearDeathNotification(int32_t handle, BpBinder* proxy)
     {
         mOut.writeInt32(BC_CLEAR_DEATH_NOTIFICATION);
@@ -1017,12 +1080,14 @@ binder_deferred_release的主要工作有：
         mOut.writePointer((uintptr_t)proxy);
         return NO_ERROR;
     }
+```
 
 写入BC_CLEAR_DEATH_NOTIFICATION命令，再经过flushCommands()，则进入Kernel层。
 
 ### 6.3 Kernel层取消死亡通知
 
 #### 6.3.1 binder_thread_write
+```java
     static int binder_thread_write(struct binder_proc *proc,
           struct binder_thread *thread,
           binder_uintptr_t binder_buffer, size_t size,
@@ -1032,7 +1097,7 @@ binder_deferred_release的主要工作有：
       //proc, thread都是指当前发起端进程的信息
       struct binder_context *context = proc->context;
       void __user *buffer = (void __user *)(uintptr_t)binder_buffer;
-      void __user *ptr = buffer + *consumed; 
+      void __user *ptr = buffer + *consumed;
       void __user *end = buffer + size;
       while (ptr < end && thread->return_error == BR_OK) {
         get_user(cmd, (uint32_t __user *)ptr); //获取BC_CLEAR_DEATH_NOTIFICATION
@@ -1047,7 +1112,7 @@ binder_deferred_release的主要工作有：
 
                 get_user(target, (uint32_t __user *)ptr); //获取target
                 ptr += sizeof(uint32_t);
-                get_user(cookie, (void __user * __user *)ptr); 
+                get_user(cookie, (void __user * __user *)ptr);
                 ptr += sizeof(void *);
 
                 ref = binder_get_ref(proc, target); //拿到目标服务的binder_ref
@@ -1081,11 +1146,13 @@ binder_deferred_release的主要工作有：
         }
       }
     }
+```
 
 添加BINDER_WORK_CLEAR_DEATH_NOTIFICATION事务
 
 #### 6.3.2  binder_thread_read
 
+```java
     static int binder_thread_read(struct binder_proc *proc,
                       struct binder_thread *thread,
                       binder_uintptr_t binder_buffer, size_t size,
@@ -1125,14 +1192,14 @@ binder_deferred_release的主要工作有：
                 if (w->type == BINDER_WORK_CLEAR_DEATH_NOTIFICATION)
                   cmd = BR_CLEAR_DEATH_NOTIFICATION_DONE; //清除完成
                 ...
-                
+
                 if (w->type == BINDER_WORK_CLEAR_DEATH_NOTIFICATION) {
                   list_del(&w->entry); //清除死亡通知的work队列
                   kfree(death);
                   binder_stats_deleted(BINDER_STAT_DEATH);
-                } 
+                }
                 ...
-                
+
                 if (cmd == BR_DEAD_BINDER)
                   goto done;
               } break;
@@ -1141,11 +1208,13 @@ binder_deferred_release的主要工作有：
         ...
         return 0;
     }
+```
 
 需要再回到用户空间，查看BR_CLEAR_DEATH_NOTIFICATION_DONE处理过程
 
 ### 6.4 IPC.executeCommand
 
+```java
     status_t IPCThreadState::executeCommand(int32_t cmd)
     {
         BBinder* obj;
@@ -1165,6 +1234,7 @@ binder_deferred_release的主要工作有：
         return result;
     }
 
+```
 
 ## 七. 结论
 

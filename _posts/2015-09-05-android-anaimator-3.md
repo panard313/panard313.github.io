@@ -19,6 +19,7 @@ tags:
 
 每个插值器的源码流程都相同，下面以AccelerateInterpolator为例，说明插值器的内部原理：
 
+```java
     //系统自带的所有插值器都继承了BaseInterpolator
     public class AccelerateInterpolator extends BaseInterpolator implements NativeInterpolatorFactory {
         private final float mFactor;
@@ -73,9 +74,11 @@ tags:
             return NativeInterpolatorFactoryHelper.createAccelerateInterpolator(mFactor);
         }
     }
+```
 
 其中 `BaseInterpolaor`实现了`Interpolator`接口，而`Interpolator`接口并没有定义任何方法和属性，只是单纯地继承了`TimeInterpolator`
 
+```java
     abstract public class BaseInterpolator implements Interpolator {
         private int mChangingConfiguration;
         /**
@@ -92,9 +95,11 @@ tags:
             mChangingConfiguration = changingConfiguration;
         }
     }
+```
 
 `TimeInterpolator`接口自定义了一个方法`getInterpolation`,这就是所有插值器最为核心的方法。
 
+```java
     public interface TimeInterpolator {
 
         /*
@@ -103,13 +108,16 @@ tags:
          */
         float getInterpolation(float input);
     }
+```
 
 通过分析每一个插值器的插值方法的源码，下面总结了所有插值器的插值函数：
 
 ### 1.1 Linear
 - 资源ID: @android:anim/linear_interpolator
 - 构造方法：
+```java
     - `public LinearInterpolator()`; //没有任何可调参数
+```
 
 - 插值函数：
     - 公式：`y=t`
@@ -235,6 +243,7 @@ tags:
 
 每个估值器的源码流程都相似，所有的估值器都实现了TypeEvaluator接口，接口采用泛型，可自定义各种类型的估值器，只需实现如下接口即可：
 
+```java
     public interface TypeEvaluator<T> {
         /*
          *
@@ -246,10 +255,12 @@ tags:
         public T evaluate(float fraction, T startValue, T endValue);
     }
 
+```
 
 ### 2.1 IntEvaluator
 用于评估Integer型的属性值，起始值与结束值，以及evaluate返回值都是Integer类型。评估的返回值与fraction成一次函数，即线性关系。
 
+```java
     public class IntEvaluator implements TypeEvaluator<Integer> {
 
         /**
@@ -266,10 +277,12 @@ tags:
         }
     }
 
+```
 
 ### 2.2 FloatEvaluator
 用于评估Float型的属性值，起始值与结束值，以及evaluate返回值都是Float类型，同样也是线程关系。
 
+```java
     public class FloatEvaluator implements TypeEvaluator<Number> {
 
         /**
@@ -283,10 +296,12 @@ tags:
         return startFloat + fraction * (endValue.floatValue() - startFloat);
     }
     }
+```
 
 ### 2.3 ArgbEvaluator
 用于评估颜色的属性值，采用16进制。将ARGB四个量，同步进行动画渐变，同样也是采用线性的。
 
+```java
     public class ArgbEvaluator implements TypeEvaluator {
         private static final ArgbEvaluator sInstance = new ArgbEvaluator();
 
@@ -319,6 +334,7 @@ tags:
                     (int)((startB + (int)(fraction * (endB - startB))));
         }
     }
+```
 
 ----------
 

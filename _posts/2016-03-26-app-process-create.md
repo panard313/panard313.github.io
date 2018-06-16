@@ -70,6 +70,7 @@ tags:
 
 [-> Process.java]
 
+```java
     public static final ProcessStartResult start(final String processClass,
                               final String niceName,
                               int uid, int gid, int[] gids,
@@ -89,11 +90,13 @@ tags:
             throw new RuntimeException("");
         }
     }
+```
 
 ### 2. startViaZygote
 
 [-> Process.java]
 
+```java
     private static ProcessStartResult startViaZygote(final String processClass,
                                   final String niceName,
                                   final int uid, final int gid,
@@ -131,6 +134,7 @@ tags:
             return zygoteSendArgsAndGetResult(openZygoteSocketIfNeeded(abi), argsForZygote);
         }
     }
+```
 
 该过程主要工作是生成`argsForZygote`数组，该数组保存了进程的uid、gid、groups、target-sdk、nice-name等一系列的参数。
 
@@ -138,6 +142,7 @@ tags:
 ### 3. zygoteSendArgsAndGetResult
 [-> Process.java]
 
+```java
     private static ProcessStartResult zygoteSendArgsAndGetResult(
             ZygoteState zygoteState, ArrayList<String> args)
             throws ZygoteStartFailedEx {
@@ -176,11 +181,13 @@ tags:
             throw new ZygoteStartFailedEx(ex);
         }
     }
+```
 
 这个方法的主要功能是通过socket通道向Zygote进程发送一个参数列表，然后进入阻塞等待状态，直到远端的socket服务端发送回来新创建的进程pid才返回。
 
 #### 3.1 openZygoteSocketIfNeeded
 
+```java
     private static ZygoteState openZygoteSocketIfNeeded(String abi) throws ZygoteStartFailedEx {
         if (primaryZygoteState == null || primaryZygoteState.isClosed()) {
             try {
@@ -205,6 +212,7 @@ tags:
         }
         ...
     }
+```
 
 `openZygoteSocketIfNeeded(abi)`方法是根据当前的abi来选择与zygote还是zygote64来进行通信。
 
@@ -219,6 +227,7 @@ tags:
 
 [-->ZygoteInit.java]
 
+```java
     public static void main(String argv[]) {
         try {
             runSelectLoop(abiList); //【见小节5】
@@ -230,12 +239,14 @@ tags:
             throw ex;
         }
     }
+```
 
 后续会讲到runSelectLoop()方法会抛出异常`MethodAndArgsCaller`，从而进入caller.run()方法。
 
 ### 5. runSelectLoop
 [-> ZygoteInit.java]
 
+```java
     private static void runSelectLoop(String abiList) throws MethodAndArgsCaller {
         ArrayList<FileDescriptor> fds = new ArrayList<FileDescriptor>();
         ArrayList<ZygoteConnection> peers = new ArrayList<ZygoteConnection>();
@@ -280,6 +291,7 @@ tags:
             }
         }
     }
+```
 
 该方法主要功能：
 
@@ -289,6 +301,7 @@ tags:
 #### 5.1 acceptCommandPeer
 [-> ZygoteInit.java]
 
+```java
     private static ZygoteConnection acceptCommandPeer(String abiList) {
         try {
             return new ZygoteConnection(sServerSocket.accept(), abiList);
@@ -296,6 +309,7 @@ tags:
             ...
         }
     }
+```
 
 接收客户端发送过来的connect()操作，Zygote作为服务端执行accept()操作。
 再后面客户端调用write()写数据，Zygote进程调用read()读数据。
@@ -307,6 +321,7 @@ tags:
 
 [-> ZygoteConnection.java]
 
+```java
     boolean runOnce() throws ZygoteInit.MethodAndArgsCaller {
 
         String args[];
@@ -377,11 +392,13 @@ tags:
             IoUtils.closeQuietly(serverPipeFd);
         }
     }
+```
 
 ### 7. forkAndSpecialize
 
 [-> Zygote.java]
 
+```java
     public static int forkAndSpecialize(int uid, int gid, int[] gids, int debugFlags,
           int[][] rlimits, int mountExternal, String seInfo, String niceName, int[] fdsToClose,
           String instructionSet, String appDataDir) {
@@ -393,6 +410,7 @@ tags:
         VM_HOOKS.postForkCommon(); //【见小节11】
         return pid;
     }
+```
 
 VM_HOOKS是Zygote对象的静态成员变量：VM_HOOKS = new ZygoteHooks();
 
@@ -409,25 +427,30 @@ VM_HOOKS是Zygote对象的静态成员变量：VM_HOOKS = new ZygoteHooks();
 
 [-> ZygoteHooks.java]
 
+```java
      public void preFork() {
         Daemons.stop(); //停止4个Daemon子线程【见小节8.1】
         waitUntilAllThreadsStopped(); //等待所有子线程结束【见小节8.2】
         token = nativePreFork(); //完成gc堆的初始化工作【见小节8.3】
     }
+```
 
 #### 8.1 Daemons.stop
 
+```java
     public static void stop() {
         HeapTaskDaemon.INSTANCE.stop(); //Java堆整理线程
         ReferenceQueueDaemon.INSTANCE.stop(); //引用队列线程
         FinalizerDaemon.INSTANCE.stop(); //析构线程
         FinalizerWatchdogDaemon.INSTANCE.stop(); //析构监控线程
     }
+```
 
 此处守护线程Stop方式是先调用目标线程interrrupt()方法，然后再调用目标线程join()方法，等待线程执行完成。
 
 #### 8.2 waitUntilAllThreadsStopped
 
+```java
     private static void waitUntilAllThreadsStopped() {
         File tasks = new File("/proc/self/task");
         // 当/proc中线程数大于1，就出让CPU直到只有一个线程，才退出循环
@@ -435,12 +458,14 @@ VM_HOOKS是Zygote对象的静态成员变量：VM_HOOKS = new ZygoteHooks();
             Thread.yield();
         }
     }
+```
 
 #### 8.3 nativePreFork
 nativePreFork通过JNI最终调用如下方法：
 
 [-> dalvik_system_ZygoteHooks.cc]
 
+```java
     static jlong ZygoteHooks_nativePreFork(JNIEnv* env, jclass) {
         Runtime* runtime = Runtime::Current();
         runtime->PreZygoteFork(); // 见下文
@@ -450,13 +475,16 @@ nativePreFork通过JNI最终调用如下方法：
         //将线程转换为long型并保存到token，该过程是非安全的
         return reinterpret_cast<jlong>(ThreadForEnv(env));
     }
+```
 
 至于runtime->PreZygoteFork的过程：
 
+```java
     void Runtime::PreZygoteFork() {
         // 堆的初始化工作。这里就不继续再往下追art虚拟机
         heap_->PreZygoteFork();
     }
+```
 
 VM_HOOKS.preFork()的主要功能便是停止Zygote的4个Daemon子线程的运行，等待并确保Zygote是单线程（用于提升fork效率），并等待这些线程的停止，初始化gc堆的工作, 并将线程转换为long型并保存到token
 
@@ -465,6 +493,7 @@ nativeForkAndSpecialize()通过JNI最终调用调用如下方法：
 
 [-> com_android_internal_os_Zygote.cpp]
 
+```java
     static jint com_android_internal_os_Zygote_nativeForkAndSpecialize(
         JNIEnv* env, jclass, jint uid, jint gid, jintArray gids,
         jint debug_flags, jobjectArray rlimits,
@@ -480,11 +509,13 @@ nativeForkAndSpecialize()通过JNI最终调用调用如下方法：
                 rlimits, capabilities, capabilities, mount_external, se_info,
                 se_name, false, fdsToClose, instructionSet, appDataDir);
     }
+```
 
 ### 10. ForkAndSpecializeCommon
 
 [-> com_android_internal_os_Zygote.cpp]
 
+```java
     static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArray javaGids,
                                          jint debug_flags, jobjectArray javaRlimits,
                                          jlong permittedCapabilities, jlong effectiveCapabilities,
@@ -533,6 +564,7 @@ nativeForkAndSpecialize()通过JNI最终调用调用如下方法：
       }
       return pid;
     }
+```
 
 #### 10.1 fork()
 
@@ -554,6 +586,7 @@ copy-on-write原理：写时拷贝是指子进程与父进程的页表都所指�
 ##### 10.1.1 fork.cpp
 [-> bionic/fork.cpp]
 
+```java
     #define FORK_FLAGS (CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID | SIGCHLD)
     int fork() {
       __bionic_atfork_run_prepare(); //[见小节2.1.1]
@@ -573,6 +606,7 @@ copy-on-write原理：写时拷贝是指子进程与父进程的页表都所指�
       }
       return result;
     }
+```
 
 功能说明：在执行syscall的前后都有相应的回调方法。
 
@@ -586,19 +620,23 @@ copy-on-write原理：写时拷贝是指子进程与父进程的页表都所指�
 #### 10.2 Zygote.callPostForkChildHooks
 [-> Zygote.java]
 
+```java
     private static void callPostForkChildHooks(int debugFlags, boolean isSystemServer,
             String instructionSet) {
         //调用ZygoteHooks.postForkChild()
         VM_HOOKS.postForkChild(debugFlags, isSystemServer, instructionSet);
     }
+```
 
 [-> ZygoteHooks.java]
 
+```java
     public void postForkChild(int debugFlags, String instructionSet) {
         //【见流程10.3】
         nativePostForkChild(token, debugFlags, instructionSet);
         Math.setRandomSeedInternal(System.currentTimeMillis());
     }
+```
 
 在这里，设置了新进程Random随机数种子为当前系统时间，也就是在进程创建的那一刻就决定了未来随机数的情况，也就是伪随机。
 
@@ -607,6 +645,7 @@ nativePostForkChild通过JNI最终调用调用如下方法：
 
 [-> dalvik_system_ZygoteHooks.cc]
 
+```java
     static void ZygoteHooks_nativePostForkChild(JNIEnv* env, jclass, jlong token, jint debug_flags,
                                                 jstring instruction_set) {
         //此处token是由[小节8.3]创建的，记录着当前线程
@@ -627,11 +666,13 @@ nativePostForkChild通过JNI最终调用调用如下方法：
           Runtime::Current()->DidForkFromZygote(env, Runtime::NativeBridgeAction::kUnload, nullptr);
         }
     }
+```
 
 #### 10.4 DidForkFromZygote
 
 [-> Runtime.cc]
 
+```java
     void Runtime::DidForkFromZygote(JNIEnv* env, NativeBridgeAction action, const char* isa) {
       is_zygote_ = false;
       if (is_native_bridge_loaded_) {
@@ -658,6 +699,7 @@ nativePostForkChild通过JNI最终调用调用如下方法：
       //启动JDWP线程，当命令debuger的flags指定"suspend=y"时，则暂停runtime
       Dbg::StartJdwp();
     }
+```
 
 关于信号处理过程，其代码位于signal_catcher.cc文件中，后续会单独讲解。
 
@@ -665,6 +707,7 @@ nativePostForkChild通过JNI最终调用调用如下方法：
 
 [-> ZygoteHooks.java]
 
+```java
     public void postForkCommon() {
         Daemons.start();
     }
@@ -675,6 +718,7 @@ nativePostForkChild通过JNI最终调用调用如下方法：
         FinalizerWatchdogDaemon.INSTANCE.start();
         HeapTaskDaemon.INSTANCE.start();
     }
+```
 
 VM_HOOKS.postForkCommon的主要功能是在fork新进程后，启动Zygote的4个Daemon线程，java堆整理，引用队列，以及析构线程。
 
@@ -690,6 +734,7 @@ VM_HOOKS.postForkCommon的主要功能是在fork新进程后，启动Zygote的4�
 
 其调用关系链：
 
+```java
     Zygote.forkAndSpecialize
         ZygoteHooks.preFork
             Daemons.stop
@@ -706,6 +751,7 @@ VM_HOOKS.postForkCommon的主要功能是在fork新进程后，启动Zygote的4�
                             Runtime::DidForkFromZygote
         ZygoteHooks.postForkCommon
             Daemons.start
+```
 
 **时序图：** 点击查看[大图](https://panard313.github.io/images/android-process/fork_and_specialize.jpg)
 
@@ -722,6 +768,7 @@ VM_HOOKS.postForkCommon的主要功能是在fork新进程后，启动Zygote的4�
 
 [-> ZygoteConnection.java]
 
+```java
     private void handleChildProc(Arguments parsedArgs,
             FileDescriptor[] descriptors, FileDescriptor pipeFd, PrintStream newStderr)
             throws ZygoteInit.MethodAndArgsCaller {
@@ -761,11 +808,13 @@ VM_HOOKS.postForkCommon的主要功能是在fork新进程后，启动Zygote的4�
                     parsedArgs.remainingArgs, null);
         }
     }
+```
 
 ### 14. zygoteInit
 
 [-->RuntimeInit.java]
 
+```java
     public static final void zygoteInit(int targetSdkVersion, String[] argv, ClassLoader classLoader)
             throws ZygoteInit.MethodAndArgsCaller {
 
@@ -775,11 +824,13 @@ VM_HOOKS.postForkCommon的主要功能是在fork新进程后，启动Zygote的4�
         nativeZygoteInit(); // zygote初始化 【见流程14.2】
         applicationInit(targetSdkVersion, argv, classLoader); // 应用初始化【见流程14.3】
     }
+```
 
 #### 14.1 commonInit
 
 [-->RuntimeInit.java]
 
+```java
     private static final void commonInit() {
         // 设置默认的未捕捉异常处理方法
         Thread.setDefaultUncaughtExceptionHandler(new UncaughtHandler());
@@ -803,30 +854,37 @@ VM_HOOKS.postForkCommon的主要功能是在fork新进程后，启动Zygote的4�
         // 设置socket的tag，用于网络流量统计
         NetworkManagementSocketTagger.install();
     }
+```
 
 默认的HTTP User-agent格式，例如：
 
+```java
      "Dalvik/1.1.0 (Linux; U; Android 6.0.1；LenovoX3c70 Build/LMY47V)".
+```
 
 #### 14.2 nativeZygoteInit
 nativeZygoteInit()所对应的jni方法如下：
 
 [-->AndroidRuntime.cpp]
 
+```java
     static void com_android_internal_os_RuntimeInit_nativeZygoteInit(JNIEnv* env, jobject clazz)
     {
         //此处的gCurRuntime为AppRuntime，是在AndroidRuntime.cpp中定义的
         gCurRuntime->onZygoteInit();
     }
+```
 
 ##### 14.2.1 onZygoteInit
 [-->app_main.cpp]
 
+```java
     virtual void onZygoteInit()
     {
         sp<ProcessState> proc = ProcessState::self();
         proc->startThreadPool(); //启动新binder线程
     }
+```
 
 - ProcessState::self():主要工作是调用open()打开/dev/binder驱动设备，再利用mmap()映射内核的地址空间，将Binder驱动的fd赋值ProcessState对象中的变量mDriverFD，用于交互操作。startThreadPool()是创建一个新的binder线程，不断进行talkWithDriver().
 - startThreadPool(): 启动Binder线程池, 详见[进程的Binder线程池工作过程](https://panard313.github.io/2016/10/29/binder-thread-pool/)
@@ -835,6 +893,7 @@ nativeZygoteInit()所对应的jni方法如下：
 #### 14.3 applicationInit
 [-->RuntimeInit.java]
 
+```java
     private static void applicationInit(int targetSdkVersion, String[] argv, ClassLoader classLoader)
             throws ZygoteInit.MethodAndArgsCaller {
         //true代表应用程序退出时不调用AppRuntime.onExit()，否则会在退出前调用
@@ -856,6 +915,7 @@ nativeZygoteInit()所对应的jni方法如下：
         //调用startClass的static方法 main() 【见流程15】
         invokeStaticMain(args.startClass, args.startArgs, classLoader);
     }
+```
 
 此处args.startClass为"android.app.ActivityThread"。
 
@@ -863,6 +923,7 @@ nativeZygoteInit()所对应的jni方法如下：
 
 [-->RuntimeInit.java]
 
+```java
     private static void invokeStaticMain(String className, String[] argv, ClassLoader classLoader)
             throws ZygoteInit.MethodAndArgsCaller {
         Class<?> cl = Class.forName(className, true, classLoader);
@@ -875,6 +936,7 @@ nativeZygoteInit()所对应的jni方法如下：
         //通过抛出异常，回到ZygoteInit.main()。这样做好处是能清空栈帧，提高栈帧利用率。【见流程16】
         throw new ZygoteInit.MethodAndArgsCaller(m, argv);
     }
+```
 
 invokeStaticMain()方法中抛出的异常`MethodAndArgsCaller` caller，该方法的参数`m`是指main()方法, `argv`是指ActivityThread.
 根据前面的【流程4】中可知，下一步进入caller.run()方法，也就是MethodAndArgsCaller.run()。
@@ -883,6 +945,7 @@ invokeStaticMain()方法中抛出的异常`MethodAndArgsCaller` caller，该方�
 
 [-->ZygoteInit.java]
 
+```java
     public static class MethodAndArgsCaller extends Exception
             implements Runnable {
 
@@ -903,12 +966,14 @@ invokeStaticMain()方法中抛出的异常`MethodAndArgsCaller` caller，该方�
             }
         }
     }
+```
 
 到此，总算是进入到了ActivityThread类的main()方法。
 
 ### 17. ActivityThread.main
 [--> ActivityThread.java]
 
+```java
     public static void main(String[] args) {
         ...
         Environment.initForCurrentUser();
@@ -930,6 +995,7 @@ invokeStaticMain()方法中抛出的异常`MethodAndArgsCaller` caller，该方�
 
         throw new RuntimeException("Main thread loop unexpectedly exited");
     }
+```
 
 ## 五. 总结
 

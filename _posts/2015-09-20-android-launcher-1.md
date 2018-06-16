@@ -23,6 +23,7 @@ tags:
 ### 初始化参数
 PagedView是滑屏最主要的类,下面是init()方法出初始化参数，假设以1080*1440分辨率，即densiy=3为例，来计算各个阈值。
 
+```java
     protected void init() {
         mDirtyPageContent = new ArrayList<Boolean>();
         mDirtyPageContent.ensureCapacity(32);
@@ -55,6 +56,7 @@ PagedView是滑屏最主要的类,下面是init()方法出初始化参数，假�
         mMinSnapVelocity = (int) (MIN_SNAP_VELOCITY * mDensity);
         setOnHierarchyChangeListener(this);
     }
+```
 
 下面主要讲述：Workspace，PagedView 这两个关于滑屏最为核心的类，也是代码量最大的类。
 
@@ -76,9 +78,12 @@ PagedView是滑屏最主要的类,下面是init()方法出初始化参数，假�
 
 决定是否屏幕是否开始滑动的阈值计算：
 
+```java
     mTouchSlop = configuration.getScaledPagingTouchSlop()
     mTouchSlop = res.getDimensionPixelSize(
                 com.android.internal.R.dimen.config_viewConfigurationTouchSlop)*2;
+```
+
 常量定义在文件`data/res/values/config.xml`中`<dimen name="config_viewConfigurationTouchSlop">8dp</dimen>`。
 故mTouchSlop = 8dp * 2 = 16dp，这是系统默认值。
 
@@ -105,6 +110,7 @@ PagedView是滑屏最主要的类,下面是init()方法出初始化参数，假�
 ### 1. determineScrollingStart滑动检测
 用于判断是否进行滑动操作
 
+```java
     protected void determineScrollingStart(MotionEvent ev, float touchSlopScale) {
         // Disallow scrolling if we don't have a valid pointer index
         final int pointerIndex = ev.findPointerIndex(mActivePointerId);
@@ -138,10 +144,12 @@ PagedView是滑屏最主要的类,下面是init()方法出初始化参数，假�
             }
         }
     }
+```
 
 ### 2. snapToPage滑屏方法
 手指离开屏幕后，调用的滑动动画的方法
 
+```java
     protected void snapToPage(int whichPage, int delta, int duration, boolean immediate,
                               TimeInterpolator interpolator) {
 
@@ -191,10 +199,12 @@ PagedView是滑屏最主要的类,下面是init()方法出初始化参数，假�
         mForceScreenScrolled = true;
         invalidate();
     }
+```
 
 ### 3.ScrollInterpolator插值器
 滑屏时的插值器
 
+```java
     private static class ScrollInterpolator implements Interpolator {
         public ScrollInterpolator() {
         }
@@ -205,9 +215,12 @@ PagedView是滑屏最主要的类,下面是init()方法出初始化参数，假�
         }
     }
 
+```
 
 ### 4. LauncherScroller滑动器
 launcher桌面的滑动器
+
+```java
     mDeceleration = computeDeceleration(ViewConfiguration.getScrollFriction());
     mPhysicalCoeff = computeDeceleration(0.84f); // look and feel tuning
 
@@ -225,6 +238,7 @@ launcher桌面的滑动器
                 mCurrVelocity : mVelocity - mDeceleration * timePassed() / 2000.0f;
     }
 
+```
 
 ### 5.computeScroll
 computeScroll()：重写了父类的computeScroll()；主要功能是计算拖动的位移量、更新背景、设置要显示的屏幕

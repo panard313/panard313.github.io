@@ -56,12 +56,15 @@ tags:
 #### 2.1.1 `ValueAnimator`
 ValueAnimator是整个属性动画框架的核心类，使用方法如下：
 
+```java
     ValueAnimator valueAnim = ValueAnimator.ofFloat(0f, 1f);
     valueAnim.setDuration(250);
     fadeAnim.start();
+```
 
 再通过动画的`AnimatorUpdateListener`获取动画每一帧的返回值，如果有需要还可以增加`AnimatorListenerAdapter`来指定动画开始、结束、取消、重复等事件发生时的处理方法。
 
+```java
     valueAnim.addUpdateListener(new AnimatorUpdateListener() {
         @Override
             public void onAnimationUpdate(ValueAnimator animation) {
@@ -78,22 +81,27 @@ ValueAnimator是整个属性动画框架的核心类，使用方法如下：
             balls.remove(((ObjectAnimator)animation).getTarget());
         }
     });
+```
 
 #### 2.1.2 `ObjectAnimator`
 对象动画，继承`ValueAnimator`, 允许指定`target object`，并且`target object`需要有setter方法。
 
+```java
     ObjectAnimator anim = ObjectAnimator.ofFloat(targetObject, "alpha", 0f, 1f);
     anim.setDuration(1000);
     anim.start();
+```
 
 #### 2.1.3 `AnimatorSet`
 动画的集合，用于组合一系列动画。
 
+```java
     AnimatorSet  animatorSet = new AnimatorSet();
     animatorSet.play(bounceAnim).before(squashAnim1);
     animatorSet.play(squashAnim1).with(squashAnim2);
     animatorSet.play(bounceBackAnim).after(stretchAnim2);
     animatorSet.start();
+```
 
 ### 2.2 插值器（Interpolators）
 时间插值器，定义了一个时间的映射关系，可能为如下的插值器：
@@ -114,6 +122,7 @@ ValueAnimator是整个属性动画框架的核心类，使用方法如下：
 
 所有插值器都实现了TimeInterpolator接口，需要自定义插值器，只需实现如下接口：
 
+```java
     public interface TimeInterpolator {
 
         /*
@@ -122,6 +131,7 @@ ValueAnimator是整个属性动画框架的核心类，使用方法如下：
          */
         float getInterpolation(float input);
     }
+```
 
 想要更加深入地了解插值器，可查看[**Android动画之原理篇（三）**](https://panard313.github.io/2015/09/05/android-anaimator-3/)。
 
@@ -137,6 +147,7 @@ ValueAnimator是整个属性动画框架的核心类，使用方法如下：
 
 所有的估值器都实现了TypeEvaluator接口，自定义估值器，只需实现如下接口：
 
+```java
     public interface TypeEvaluator<T> {
         /*
          *
@@ -147,6 +158,7 @@ ValueAnimator是整个属性动画框架的核心类，使用方法如下：
          */
         public T evaluate(float fraction, T startValue, T endValue);
     }
+```
 
 ----------
 

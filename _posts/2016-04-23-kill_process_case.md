@@ -18,6 +18,7 @@ tags:
 
 [理解杀进程的实现原理](https://panard313.github.io/2016/04/16/kill-signal/), 介绍了杀进程的过程, 接下来本文介绍系统framework层, ActivityManagerService在哪些场景会调用ProcessRecord.java中的kill()方法来杀进程.
 
+```java
     void kill(String reason, boolean noisy) {
         if (!killedByAm) {
             if (noisy) {
@@ -34,10 +35,13 @@ tags:
         }
     }
 
+```
 
 reason对于分析问题很重要, 实例说明:
 
+```java
     am_kill : [0,26328,com.gityuan.app,0,stop com.gityuan.app]
+```
 
 这是Eventlog,可知最后一个参数**stop com.gityuan.app**, 代表的是reason = stop `packageName`, 那么显然这个app是由于调用forceStopPackageLocked而被杀.
 先看重点说说force-stop
@@ -46,7 +50,9 @@ reason对于分析问题很重要, 实例说明:
 
 对于force-stop系统这把杀进程的利器, 还会额外出现一个reason来更详细的说明触发force-stop的原因.
 
+```java
     Slog.i(TAG, "Force stopping " + packageName + " appid=" + appId + " user=" + userId + ": " + reason);
+```
 
 以下场景都会调用force-stop, 输出reason表格如下:
 
@@ -134,7 +140,9 @@ PKMS服务往往是调用killApplication从而间接调用forceStopPackage方法
 
 	Process.killProcess(int pid) //可杀任何指定进程,或者直接发signal
 	adb shell kill -9 <pid>  //可杀任何指定的进程  
+```java
     直接lmk杀进程
+```
 
 也就是说进程被杀而无log输出,那么可能是通过直接调用kill或者发信号, 再或许是lmk所杀.
 

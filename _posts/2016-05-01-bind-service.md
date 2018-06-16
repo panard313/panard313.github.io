@@ -24,12 +24,16 @@ startService的过程，本文介绍另一种通过bind方式来启动服务。
 
 定义AIDL文件：
 
+
+```java
     interface IRemoteService {
         String getBlog();
     }
+```
 
 服务端（远程服务进程)
 
+```java
     public class RemoteService extends Service {
         ...
 
@@ -46,9 +50,11 @@ startService的过程，本文介绍另一种通过bind方式来启动服务。
             }
         };
     }
+```
 
 Client端（发起端进程)
 
+```java
     private IRemoteService mBpRemoteService;
 
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -68,12 +74,14 @@ Client端（发起端进程)
     Intent intent = new Intent(this, RemoteService.class);
     //Client端通过bindService去绑定远程服务【见下文】
     bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+```
 
 ## 二. 发起端进程
 
 ### 1. CW.bindService
 [-> ContextWrapper.java]
 
+```java
     public class ContextWrapper extends Context {
         public boolean bindService(Intent service, ServiceConnection conn,
             int flags) {
@@ -81,10 +89,12 @@ Client端（发起端进程)
             return mBase.bindService(service, conn, flags);
         }
     }
+```
 
 ### 2. CI.bindService
 [-> ContextImpl.java]
 
+```java
     class ContextImpl extends Context {
         public boolean bindService(Intent service, ServiceConnection conn,
                 int flags) {
@@ -93,10 +103,12 @@ Client端（发起端进程)
             return bindServiceCommon(service, conn, flags, Process.myUserHandle());
         }
     }
+```
 
 ### 3. CI.bindServiceCommon
 [-> ContextImpl.java]
 
+```java
     private boolean bindServiceCommon(Intent service, ServiceConnection conn, int flags,
             UserHandle user) {
         IServiceConnection sd;
@@ -123,6 +135,7 @@ Client端（发起端进程)
             throw new RuntimeException("Failure from system", e);
         }
     }
+```
 
 该方法主要功能:
 
@@ -134,6 +147,7 @@ Client端（发起端进程)
 #### 3.1 getServiceDispatcher
 [-> LoadedApk.java]
 
+```java
     public final IServiceConnection getServiceDispatcher(ServiceConnection c,
              Context context, Handler handler, int flags) {
          synchronized (mServices) {
@@ -158,6 +172,7 @@ Client端（发起端进程)
              return sd.getIServiceConnection();
          }
      }
+```
 
 说明:
 
@@ -169,6 +184,7 @@ Client端（发起端进程)
 #### 3.2 ServiceDispatcher
 [-> LoadedApk.java ::ServiceDispatcher]
 
+```java
     static final class ServiceDispatcher {
         //内部类
         private final ServiceDispatcher.InnerConnection mIServiceConnection;
@@ -216,6 +232,7 @@ Client端（发起端进程)
             return mIServiceConnection;
         }
     }
+```
 
 ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispatcher的静态内部类,
 通过getIServiceConnection()方法返回的便是构造方法中创建的InnerConnection对象.
@@ -223,6 +240,7 @@ ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispa
 ### 4. AMP.bindService
 [-> ActivityManagerNative.java :: AMP]
 
+```java
     public int bindService(IApplicationThread caller, IBinder token,
             Intent service, String resolvedType, IServiceConnection connection,
             int flags,  String callingPackage, int userId) throws RemoteException {
@@ -246,6 +264,7 @@ ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispa
         reply.recycle();
         return res;
     }
+```
 
 经过Binder IPC便进入了system_server进程.
 
@@ -253,6 +272,7 @@ ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispa
 
 ### 5. AMN.onTransact
 
+```java
     public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
             throws RemoteException {
       switch (code) {
@@ -280,6 +300,7 @@ ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispa
         ...
       }
     }
+```
 
 该方法的主要功能:
 
@@ -293,6 +314,7 @@ ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispa
 
 ### 6. AMS.bindService
 
+```java
     public int bindService(IApplicationThread caller, IBinder token, Intent service,
             String resolvedType, IServiceConnection connection, int flags, String callingPackage,
             int userId) throws TransactionTooLargeException {
@@ -303,10 +325,12 @@ ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispa
                     resolvedType, connection, flags, callingPackage, userId);
         }
     }
+```
 
 ### 7. AS.bindServiceLocked
 [-> ActiveServices.java]
 
+```java
     int bindServiceLocked(IApplicationThread caller, IBinder token, Intent service,
             String resolvedType, IServiceConnection connection, int flags,
             String callingPackage, int userId) throws TransactionTooLargeException {
@@ -435,6 +459,7 @@ ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispa
         }
         return 1;
     }
+```
 
 该方法主要功能:
 
@@ -449,6 +474,7 @@ ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispa
 #### 7.1 AS.retrieveServiceLocked
 [-> ActiveServices.java]
 
+```java
     private ServiceLookupResult retrieveServiceLocked(Intent service,
         String resolvedType, String callingPackage, int callingPid, int callingUid, int userId,
         boolean createIfNeeded, boolean callingFromFg) {
@@ -547,6 +573,7 @@ ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispa
         }
         return null;
     }
+```
 
 服务查询过程：
 
@@ -564,6 +591,7 @@ ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispa
 #### 7.2 SR.retrieveAppBindingLocked
 [-> ServiceRecord.java]
 
+```java
     public AppBindRecord retrieveAppBindingLocked(Intent intent,
             ProcessRecord app) {
         Intent.FilterComparison filter = new Intent.FilterComparison(intent);
@@ -583,12 +611,14 @@ ServiceDispatcher是LoadedApk的静态内部类。InnerConnection是ServiceDispa
         i.apps.put(app, a);
         return a;
     }
+```
 
 AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程信息。
 
 ### 8. bringUpServiceLocked
 [-> ActiveServices.java]
 
+```java
         private final String bringUpServiceLocked(ServiceRecord r, int intentFlags, boolean execInFg,
                 boolean whileRestarting) throws TransactionTooLargeException {
             // 进程已存在的情况
@@ -631,10 +661,12 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
 
             return null;
         }
+```
 
 ### 9. realStartServiceLocked
 [-> ActiveServices.java]
 
+```java
     private final void realStartServiceLocked(ServiceRecord r,
             ProcessRecord app, boolean execInFg) throws RemoteException {
         ...
@@ -689,6 +721,7 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
         }
         ...
     }
+```
 
 该方法有几个重要的时间点：
 
@@ -702,6 +735,7 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
 ### 10.  scheduleCreateService
 [-> ApplicationThread.java]
 
+```java
     public final void scheduleCreateService(IBinder token,
                 ServiceInfo info, CompatibilityInfo compatInfo, int processState) {
         updateProcessState(processState, false);
@@ -712,6 +746,7 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
         //发送消息 【见流程11】
         sendMessage(H.CREATE_SERVICE, s);
     }
+```
 
 通过handler机制, 将H.CREATE_SERVICE消息发送给远程服务进程的主线程的handler来处理
 
@@ -719,6 +754,7 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
 
 [-> ActivityThread.java]
 
+```java
     private void handleCreateService(CreateServiceData data) {
         //当应用处于后台即将进行GC，而此时被调回到活动状态，则跳过本次gc。
         unscheduleGcIdler();
@@ -747,6 +783,7 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
             ...
         }
     }
+```
 
 再回到前面的【流程9】realStartServiceLocked()过程，执行完scheduleCreateService()操作，
 接下来，继续回到system_server进程，开始执行requestServiceBindingsLocked过程。
@@ -754,8 +791,10 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
 #### 11.1 onCreate
 [-> Service.java]
 
+```java
     public void onCreate() {
     }
+```
 
 用户自行覆写该方法, 也可以选择不覆写该方法.
 
@@ -764,6 +803,7 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
 ### 12. requestServiceBindingsLocked
 [-> ActiveServices.java]
 
+```java
     private final void requestServiceBindingsLocked(ServiceRecord r, boolean execInFg)
             throws TransactionTooLargeException {
         for (int i=r.bindings.size()-1; i>=0; i--) {
@@ -774,12 +814,14 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
             }
         }
     }
+```
 
 通过bindService方式启动的服务, 那么该serviceRecord的bindings则一定不会空.
 
 ### 13. requestServiceBindingLocked
 [-> ActiveServices.java]
 
+```java
     private final boolean requestServiceBindingLocked(ServiceRecord r, IntentBindRecord i,
             boolean execInFg, boolean rebind) throws TransactionTooLargeException {
         if (r.app == null || r.app.thread == null) {
@@ -811,10 +853,12 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
         return true;
     }
 
+```
 
 ### 14. ATP.scheduleBindService
 [-> ApplicationThreadProxy.java]
 
+```java
     public final void scheduleBindService(IBinder token, Intent intent, boolean rebind,
             int processState) throws RemoteException {
         Parcel data = Parcel.obtain();
@@ -828,12 +872,14 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
                 IBinder.FLAG_ONEWAY);
         data.recycle();
     }
+```
 
 ## 五. 远程服务进程
 
 ### 15. ATN.onTransact
 [-> ApplicationThreadNative.java]
 
+```java
     public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
             throws RemoteException {
         switch (code) {
@@ -849,10 +895,12 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
         }
         ...
     }
+```
 
 ### 13. scheduleBindService
 [-> ApplicationThread.java]
 
+```java
     public final void scheduleBindService(IBinder token, Intent intent,
             boolean rebind, int processState) {
         updateProcessState(processState, false);
@@ -863,12 +911,14 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
         //【见流程14】
         sendMessage(H.BIND_SERVICE, s);
     }
+```
 
 通过handler机制, 将H.BIND_SERVICE消息发送给远程服务进程的主线程的handler来处理
 
 ### 14. AT.handleBindService
 [-> ActivityThread.java]
 
+```java
     private void handleBindService(BindServiceData data) {
         Service s = mServices.get(data.token);
         if (s != null) {
@@ -893,17 +943,21 @@ AppBindRecord对象记录着当前ServiceRecord,intent以及发起方的进程�
             }
         }
     }
+```
 
 #### 14.1 onRebind
 [-> Service.java]
 
+```java
     public abstract IBinder onBind(Intent intent);
+```
 
 Service的onBind()是抽象方法, 所以大家创建Service子类时必须要覆写该方法, 返回IBinder对象, 也可以直接返回NULL.
 
 ### 15. AMP.publishService
 [-> ActivityManagerNative.java  ::ActivityManagerProxy]
 
+```java
     public void publishService(IBinder token,
             Intent intent, IBinder service) throws RemoteException {
         Parcel data = Parcel.obtain();
@@ -919,6 +973,7 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
         data.recycle();
         reply.recycle();
     }
+```
 
 经过Binder IPC进入system_server进程交由AMS来处理
 
@@ -926,6 +981,7 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
 
 ### 16. AMS.publishService
 
+```java
     public void publishService(IBinder token, Intent intent, IBinder service) {
         ...
         synchronized(this) {
@@ -936,6 +992,7 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
             mServices.publishServiceLocked((ServiceRecord)token, intent, service);
         }
     }
+```
 
 远程服务的onBind()的返回值的IBinder(Bn端), 在AMP.publishService()过程中经过data.writeStrongBinder(service)传递到底层,
 再回到system_server进程中AMN.onTransact()中经过data.readStrongBinder()方法会获取该service所相对应的代理对象(Bp端).  
@@ -945,6 +1002,7 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
 ### 17. publishServiceLocked
 [-> ActiveServices.java]
 
+```java
     void publishServiceLocked(ServiceRecord r, Intent intent, IBinder service) {
         final long origId = Binder.clearCallingIdentity();
         try {
@@ -977,6 +1035,7 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
             Binder.restoreCallingIdentity(origId);
         }
     }
+```
 
 [小节7]AS.bindServiceLocked的过程中初始化, 可知c.conn是指通往发起端进程的IServiceConnection.Stub.Proxy代理对象.
 通过Binder IPC调用, 进入发起方进程的IServiceConnection.Stub对象. 由于LoadedApk.ServiceDispatcher.InnerConnection  继承于IServiceConnection.Stub.
@@ -987,6 +1046,7 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
 ### 18. InnerConnection.connected
 [-> LoadedApk.ServiceDispatcher.InnerConnection]
 
+```java
     private static class InnerConnection extends IServiceConnection.Stub {
         final WeakReference<LoadedApk.ServiceDispatcher> mDispatcher;
 
@@ -1002,10 +1062,12 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
         }
     }
 
+```
 
 ### 19. ServiceDispatcher.connected
 [-> LoadedApk.ServiceDispatcher]
 
+```java
     public void connected(ComponentName name, IBinder service) {
         if (mActivityThread != null) {
             //这是主线程的Handler 【见流程20】
@@ -1014,10 +1076,12 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
             doConnected(name, service);
         }
     }
+```
 
 ### 20. RunConnection.run
 [-> LoadedApk.ServiceDispatcher.RunConnection]
 
+```java
     private final class RunConnection implements Runnable {
 
         RunConnection(ComponentName name, IBinder service, int command) {
@@ -1038,6 +1102,7 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
         final IBinder mService;
         final int mCommand;
     }
+```
 
 - 此处的mName是指远程服务的组件名对象ComponentName;
 - 此处的mService是指远程服务的onBind()返回的IBinder代理对象;
@@ -1045,6 +1110,7 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
 ### 21. doConnected
 [-> LoadedApk.ServiceDispatcher]
 
+```java
     public void doConnected(ComponentName name, IBinder service) {
         ServiceDispatcher.ConnectionInfo old;
         ServiceDispatcher.ConnectionInfo info;
@@ -1090,9 +1156,11 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
             mConnection.onServiceConnected(name, service);
         }
     }
+```
 
 此处创建了死亡监听对象,也是内部类:LoadedApk.ServiceDispatcher.DeathMonitor,定义如下:
 
+```java
     private final class DeathMonitor implements IBinder.DeathRecipient
     {
         DeathMonitor(ComponentName name, IBinder service) {
@@ -1108,6 +1176,7 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
         final IBinder mService;
     }
 
+```
 
 ## 八. 总结
 

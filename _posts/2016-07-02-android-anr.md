@@ -42,6 +42,7 @@ Service Timeout是位于"ActivityManager"线程中的AMS.MainHandler收到`SERVI
 #### 2.1.1  AS.realStartServiceLocked
 [-> ActiveServices.java]
 
+```java
     private final void realStartServiceLocked(ServiceRecord r,
             ProcessRecord app, boolean execInFg) throws RemoteException {
         ...
@@ -60,9 +61,11 @@ Service Timeout是位于"ActivityManager"线程中的AMS.MainHandler收到`SERVI
             ...
         }
     }
+```
 
 #### 2.1.2  AS.bumpServiceExecutingLocked
 
+```java
     private final void bumpServiceExecutingLocked(ServiceRecord r, boolean fg, String why) {
         ... 
         scheduleServiceTimeoutLocked(r.app);
@@ -82,6 +85,7 @@ Service Timeout是位于"ActivityManager"线程中的AMS.MainHandler收到`SERVI
             proc.execServicesFg ? (now+SERVICE_TIMEOUT) : (now+ SERVICE_BACKGROUND_TIMEOUT));
     }
 
+```
     
 该方法的主要工作发送delay消息(`SERVICE_TIMEOUT_MSG`). 炸弹已埋下, 我们并不希望炸弹被引爆, 那么就需要在炸弹爆炸之前拆除炸弹.
 
@@ -93,6 +97,7 @@ Service Timeout是位于"ActivityManager"线程中的AMS.MainHandler收到`SERVI
 #### 2.2.1  AT.handleCreateService
 [-> ActivityThread.java]
 
+```java
         private void handleCreateService(CreateServiceData data) {
             ...
             java.lang.ClassLoader cl = packageInfo.getClassLoader();
@@ -117,12 +122,16 @@ Service Timeout是位于"ActivityManager"线程中的AMS.MainHandler收到`SERVI
                 ...
             }
         }
+```
 
 在这个过程会创建目标服务对象,以及回调onCreate()方法, 紧接再次经过多次调用回到system_server来执行serviceDoneExecuting.
+```java
     
+```
 
 #### 2.2.2 AS.serviceDoneExecutingLocked
 
+```java
     private void serviceDoneExecutingLocked(ServiceRecord r, boolean inDestroying,
                 boolean finishing) {
         ...
@@ -137,6 +146,7 @@ Service Timeout是位于"ActivityManager"线程中的AMS.MainHandler收到`SERVI
         }
         ...
     }
+```
     
 该方法的主要工作是当service启动完成，则移除服务超时消息`SERVICE_TIMEOUT_MSG`。
 
@@ -151,6 +161,7 @@ Service Timeout是位于"ActivityManager"线程中的AMS.MainHandler收到`SERVI
 #### 2.3.1 MainHandler.handleMessage
 [-> ActivityManagerService.java ::MainHandler]
 
+```java
     final class MainHandler extends Handler {
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -164,9 +175,11 @@ Service Timeout是位于"ActivityManager"线程中的AMS.MainHandler收到`SERVI
             ...
         }
     }
+```
     
 #### 2.3.2 AS.serviceTimeout
 
+```java
     void serviceTimeout(ProcessRecord proc) {
         String anrMessage = null;
 
@@ -208,6 +221,7 @@ Service Timeout是位于"ActivityManager"线程中的AMS.MainHandler收到`SERVI
             mAm.appNotResponding(proc, null, null, false, anrMessage);
         }
     }
+```
 
 其中anrMessage的内容为"executing service [发送超时serviceRecord信息]";
 
@@ -230,6 +244,7 @@ processNextBroadcast来处理广播.其流程为先处理并行广播,再处理�
 #### 3.1.1 processNextBroadcast
 [-> BroadcastQueue.java]
 
+```java
     final void processNextBroadcast(boolean fromMsg) {
         synchronized(mService) {
             ...
@@ -272,6 +287,7 @@ processNextBroadcast来处理广播.其流程为先处理并行广播,再处理�
             ...
         }
     }
+```
 
 对于广播超时处理时机：
 
@@ -282,6 +298,7 @@ processNextBroadcast来处理广播.其流程为先处理并行广播,再处理�
 
 #### 3.1.2 setBroadcastTimeoutLocked
 
+```java
     final void setBroadcastTimeoutLocked(long timeoutTime) {
         if (! mPendingBroadcastTimeoutMessage) {
             Message msg = mHandler.obtainMessage(BROADCAST_TIMEOUT_MSG, this);
@@ -289,6 +306,7 @@ processNextBroadcast来处理广播.其流程为先处理并行广播,再处理�
             mPendingBroadcastTimeoutMessage = true;
         }
     }
+```
 
 设置定时广播BROADCAST_TIMEOUT_MSG，即当前往后推mTimeoutPeriod时间广播还没处理完毕，则进入广播超时流程。
 
@@ -299,12 +317,14 @@ processNextBroadcast来处理广播.其流程为先处理并行广播,再处理�
 
 #### 3.2.1 cancelBroadcastTimeoutLocked
 
+```java
     final void cancelBroadcastTimeoutLocked() {
         if (mPendingBroadcastTimeoutMessage) {
             mHandler.removeMessages(BROADCAST_TIMEOUT_MSG, this);
             mPendingBroadcastTimeoutMessage = false;
         }
     }
+```
 
 移除广播超时消息BROADCAST_TIMEOUT_MSG
 
@@ -313,6 +333,7 @@ processNextBroadcast来处理广播.其流程为先处理并行广播,再处理�
 #### 3.3.1 BroadcastHandler.handleMessage
 [-> BroadcastQueue.java  ::BroadcastHandler]
 
+```java
     private final class BroadcastHandler extends Handler {
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -327,10 +348,12 @@ processNextBroadcast来处理广播.其流程为先处理并行广播,再处理�
             ...
         }
     }
+```
 
 #### 3.3.2 broadcastTimeoutLocked
 [-> BroadcastRecord.java]
 
+```java
     //fromMsg = true
     final void broadcastTimeoutLocked(boolean fromMsg) {
         if (fromMsg) {
@@ -414,6 +437,7 @@ processNextBroadcast来处理广播.其流程为先处理并行广播,再处理�
             mHandler.post(new AppNotResponding(app, anrMessage));
         }
     }
+```
 
 1. mOrderedBroadcasts已处理完成，则不会anr;
 2. 正在执行dexopt，则不会anr;
@@ -445,6 +469,7 @@ ContentProvider 超时为CONTENT_PROVIDER_PUBLISH_TIMEOUT = 10s. 这个跟前面
 
 #### 4.1.1  AMS.attachApplicationLocked
 
+```java
     private final boolean attachApplicationLocked(IApplicationThread thread,
             int pid) {
         ProcessRecord app;
@@ -469,6 +494,7 @@ ContentProvider 超时为CONTENT_PROVIDER_PUBLISH_TIMEOUT = 10s. 这个跟前面
         thread.bindApplication(...);
         ...
     }
+```
     
 10s之后引爆该炸弹
 
@@ -478,6 +504,7 @@ ContentProvider 超时为CONTENT_PROVIDER_PUBLISH_TIMEOUT = 10s. 这个跟前面
 
 #### 4.2.1 AMS.publishContentProviders
 
+```java
     public final void publishContentProviders(IApplicationThread caller,
            List<ContentProviderHolder> providers) {
        ...
@@ -526,6 +553,7 @@ ContentProvider 超时为CONTENT_PROVIDER_PUBLISH_TIMEOUT = 10s. 这个跟前面
            }
        }    
     }
+```
 
 ### 4.3 引爆炸弹
 
@@ -535,6 +563,7 @@ ContentProvider 超时为CONTENT_PROVIDER_PUBLISH_TIMEOUT = 10s. 这个跟前面
 #### 4.3.1 MainHandler.handleMessage
 [-> ActivityManagerService.java ::MainHandler]
 
+```java
     final class MainHandler extends Handler {
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -551,18 +580,22 @@ ContentProvider 超时为CONTENT_PROVIDER_PUBLISH_TIMEOUT = 10s. 这个跟前面
             ...
         }
     }
+```
 
 #### 4.3.2 AMS.processContentProviderPublishTimedOutLocked
 
 
+```java
     private final void processContentProviderPublishTimedOutLocked(ProcessRecord app) {
         cleanupAppInLaunchingProvidersLocked(app, true); //[见4.3.3]
         //[见小节4.3.4]
         removeProcessLocked(app, false, true, "timeout publishing content providers");
     }
+```
 
 #### 4.3.3 AMS.cleanupAppInLaunchingProvidersLocked
 
+```java
     boolean cleanupAppInLaunchingProvidersLocked(ProcessRecord app, boolean alwaysBad) {
         boolean restart = false;
         for (int i = mLaunchingProviders.size() - 1; i >= 0; i--) {
@@ -580,6 +613,7 @@ ContentProvider 超时为CONTENT_PROVIDER_PUBLISH_TIMEOUT = 10s. 这个跟前面
     }
     
 
+```
 
 removeDyingProviderLocked()的功能跟进程的存活息息相关：详见[ContentProvider引用计数](https://panard313.github.io/2016/05/03/content_provider_release/) []小节4.5]
 
@@ -588,6 +622,7 @@ removeDyingProviderLocked()的功能跟进程的存活息息相关：详见[Cont
 
 #### 4.3.4 AMS.removeProcessLocked
 
+```java
     private final boolean removeProcessLocked(ProcessRecord app,
             boolean callerWillRestart, boolean allowRestart, String reason) {
         final String name = app.processName;
@@ -628,6 +663,7 @@ removeDyingProviderLocked()的功能跟进程的存活息息相关：详见[Cont
         }
         return needRestart;
     }
+```
     
 ## 五、总结
 

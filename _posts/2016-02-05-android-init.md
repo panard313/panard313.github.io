@@ -31,6 +31,7 @@ init是Linux系统中用户空间的第一个进程，进程号为1。Kernel启�
 ### 1.1 main
 [-> init.cpp]
 
+```c++
     int main(int argc, char** argv) {
         ...
         umask(0); //设置文件属性0777
@@ -97,6 +98,7 @@ init是Linux系统中用户空间的第一个进程，进程号为1。Kernel启�
         }
         return 0;
     }
+```
 
 ### 1.2 log系统
 
@@ -106,16 +108,19 @@ init是Linux系统中用户空间的第一个进程，进程号为1。Kernel启�
 接下来，设置log的输出级别为KLOG_NOTICE_LEVEL(5)，当log级别小于5时则会输出到kernel log，
 默认值为3.
 
+```c++
     #define KLOG_ERROR_LEVEL   3
     #define KLOG_WARNING_LEVEL 4
     #define KLOG_NOTICE_LEVEL  5
     #define KLOG_INFO_LEVEL    6
     #define KLOG_DEBUG_LEVEL   7
     #define KLOG_DEFAULT_LEVEL  3 //默认为3
+```
 
 ### 1.3 console_init_action
 [-> init.cpp]
 
+```c++
     static int console_init_action(int nargs, char **args)
     {
         char console[PROP_VALUE_MAX];
@@ -152,21 +157,25 @@ init是Linux系统中用户空间的第一个进程，进程号为1。Kernel启�
 
         return 0;
     }
+```
 
 这便是开机显示的底部带ANDROID字样的画面。
 
 ### 1.4 restart_processes
 [-> init.cpp]
 
+```c++
     static void restart_processes()
     {
         process_needs_restart = 0;
         service_for_each_flags(SVC_RESTARTING,
                                restart_service_if_needed);
     }
+```
 
 检查service_list中的所有服务，对于带有SVC_RESTARTING标志的服务，则都会调用其相应的restart_service_if_needed。
 
+```c++
     static void restart_service_if_needed(struct service *svc)
     {
         time_t next_start_time = svc->time_started + 5;
@@ -182,6 +191,7 @@ init是Linux系统中用户空间的第一个进程，进程号为1。Kernel启�
             process_needs_restart = next_start_time;
         }
     }
+```
 
 之后再调用service_start来启动服务。
 
@@ -199,6 +209,7 @@ init是Linux系统中用户空间的第一个进程，进程号为1。Kernel启�
 ### 2.1 signal_handler_init
 [-> signal_handler.cpp]
 
+```c++
     void signal_handler_init() {
         int s[2];
         // 创建socket pair
@@ -217,11 +228,13 @@ init是Linux系统中用户空间的第一个进程，进程号为1。Kernel启�
         reap_any_outstanding_children(); 【见小节2.2】
         register_epoll_handler(signal_read_fd, handle_signal);  //【见小节2.3】
     }
+```
 
 每个进程在处理其他进程发送的signal信号时都需要先注册，当进程的运行状态改变或终止时会产生某种signal信号，init进程是所有用户空间进程的父进程，当其子进程终止时产生SIGCHLD信号，init进程调用信号安装函数sigaction()，传递参数给sigaction结构体，便完成信号处理的过程。
 
 这里有两个重要的函数：SIGCHLD_handler和handle_signal，如下：
 
+```c++
     //写入数据
     static void SIGCHLD_handler(int) {
         //向signal_write_fd写入1，直到成功为止
@@ -237,10 +250,12 @@ init是Linux系统中用户空间的第一个进程，进程号为1。Kernel启�
         read(signal_read_fd, buf, sizeof(buf));
         reap_any_outstanding_children(); 【见流程3-1】
     }
+```
 
 ### 2.2 reap_any_outstanding_children
 [-> signal_handler.cpp]
 
+```c++
     static void reap_any_outstanding_children() {
         while (wait_for_one_process()) { }
     }
@@ -321,12 +336,14 @@ init是Linux系统中用户空间的第一个进程，进程号为1。Kernel启�
         svc->NotifyStateChange("restarting");
         return true;
     }
+```
 
 另外：通过`getprop | grep init.svc` 可查看所有的service运行状态。状态总共分为：running, stopped, restarting
 
 ### 2.3 register_epoll_handler
 [-> signal_handler.cpp]
 
+```c++
     void register_epoll_handler(int fd, void (*fn)()) {
         epoll_event ev;
         ev.events = EPOLLIN; //可读
@@ -336,6 +353,7 @@ init是Linux系统中用户空间的第一个进程，进程号为1。Kernel启�
             ERROR("epoll_ctl failed: %s\n", strerror(errno));
         }
     }
+```
 
 ## 三、rc文件语法
 
@@ -510,6 +528,7 @@ Zygote服务会随着main class的启动而启动，退出后会由init重启zyg
 ### 5.1 初始化
 [-> property_service.cpp]
 
+```c++
     void property_init() {
         //用于保证只初始化_system_property_area_区域一次
         if (property_area_initialized) {
@@ -526,6 +545,7 @@ Zygote服务会随着main class的启动而启动，退出后会由init重启zyg
             return;
         }
     }
+```
 
 在properyty_init函数中，先调用init_property_area函数，创建一块用于存储属性的共享内存，而共享内存是可以跨进程的。
 

@@ -40,6 +40,7 @@ SystemServer的在Android体系中所处的地位，SystemServer由Zygote fork�
 
 [-->ZygoteInit.java]
 
+```java
     private static boolean startSystemServer(String abiList, String socketName)
             throws MethodAndArgsCaller, RuntimeException {
         ...
@@ -84,6 +85,7 @@ SystemServer的在Android体系中所处的地位，SystemServer由Zygote fork�
         }
         return true;
     }
+```
 
 准备参数并fork新进程，从上面可以看出system server进程参数信息为uid=1000,gid=1000,进程名为sytem_server，从zygote进程fork新进程后，需要关闭zygote原有的socket。另外，对于有两个zygote进程情况，需等待第2个zygote创建完成。
 
@@ -91,6 +93,7 @@ SystemServer的在Android体系中所处的地位，SystemServer由Zygote fork�
 
 [-->Zygote.java]
 
+```java
     public static int forkSystemServer(int uid, int gid, int[] gids, int debugFlags,
             int[][] rlimits, long permittedCapabilities, long effectiveCapabilities) {
         VM_HOOKS.preFork();
@@ -103,6 +106,7 @@ SystemServer的在Android体系中所处的地位，SystemServer由Zygote fork�
         VM_HOOKS.postForkCommon();
         return pid;
     }
+```
 
 nativeForkSystemServer()方法在AndroidRuntime.cpp中注册的，调用com_android_internal_os_Zygote.cpp中的register_com_android_internal_os_Zygote()方法建立native方法的映射关系，所以接下来进入如下方法。
 
@@ -110,6 +114,7 @@ nativeForkSystemServer()方法在AndroidRuntime.cpp中注册的，调用com_andr
 
 [-->com_android_internal_os_Zygote.cpp]
 
+```java
     static jint com_android_internal_os_Zygote_nativeForkSystemServer(
             JNIEnv* env, jclass, uid_t uid, gid_t gid, jintArray gids,
             jint debug_flags, jobjectArray rlimits, jlong permittedCapabilities,
@@ -131,6 +136,7 @@ nativeForkSystemServer()方法在AndroidRuntime.cpp中注册的，调用com_andr
       }
       return pid;
     }
+```
 
 当system_server进程创建失败时，将会重启zygote进程。这里需要注意，对于Android 5.0以上系统，有两个zygote进程，分别是zygote、zygote64两个进程，system_server的父进程，一般来说64位系统其父进程是zygote64进程
 
@@ -143,6 +149,7 @@ nativeForkSystemServer()方法在AndroidRuntime.cpp中注册的，调用com_andr
 
 [-->com_android_internal_os_Zygote.cpp]
 
+```java
     static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArray javaGids,
                                          jint debug_flags, jobjectArray javaRlimits,
                                          jlong permittedCapabilities, jlong effectiveCapabilities,
@@ -189,6 +196,7 @@ nativeForkSystemServer()方法在AndroidRuntime.cpp中注册的，调用com_andr
       }
       return pid;
     }
+```
 
 fork()创建新进程，采用copy on write方式，这是linux创建进程的标准方法，会有两次return,对于pid==0为子进程的返回，对于pid>0为父进程的返回。  到此system_server进程已完成了创建的所有工作，接下来开始了system_server进程的真正工作。在前面startSystemServer()方法中，zygote进程执行完forkSystemServer()后，新创建出来的system_server进程便进入handleSystemServerProcess()方法。关于fork()，可查看另一个文章[理解Android进程创建流程](https://panard313.github.io/2016/03/26/app-process-create/#nativeforkandspecialize)。
 
@@ -196,6 +204,7 @@ fork()创建新进程，采用copy on write方式，这是linux创建进程的�
 
 [-->ZygoteInit.java]
 
+```java
     private static void handleSystemServerProcess(
             ZygoteConnection.Arguments parsedArgs)
             throws ZygoteInit.MethodAndArgsCaller {
@@ -242,6 +251,7 @@ fork()创建新进程，采用copy on write方式，这是linux创建进程的�
         /* should never reach here */
     }
 
+```
 
 此处`systemServerClasspath`环境变量主要有/system/framework/目录下的services.jar，ethernet-service.jar, wifi-service.jar这3个文件
 
@@ -249,6 +259,7 @@ fork()创建新进程，采用copy on write方式，这是linux创建进程的�
 
 [-->ZygoteInit.java]
 
+```java
     private static void performSystemServerDexOpt(String classPath) {
         final String[] classPathElements = classPath.split(":");
         //创建一个与installd的建立socket连接
@@ -273,6 +284,7 @@ fork()创建新进程，采用copy on write方式，这是linux创建进程的�
             installer.disconnect(); //断开与installd的socket连接
         }
     }
+```
 
 将classPath字符串中的apk，分别进行dex优化操作。真正执行优化工作通过socket通信将相应的命令参数，发送给installd来完成。
 
@@ -280,6 +292,7 @@ fork()创建新进程，采用copy on write方式，这是linux创建进程的�
 
 [-->RuntimeInit.java]
 
+```java
     public static final void zygoteInit(int targetSdkVersion, String[] argv, ClassLoader classLoader)
             throws ZygoteInit.MethodAndArgsCaller {
 
@@ -290,11 +303,13 @@ fork()创建新进程，采用copy on write方式，这是linux创建进程的�
         nativeZygoteInit(); // zygote初始化 【见小节9】
         applicationInit(targetSdkVersion, argv, classLoader); // 应用初始化【见小节10】
     }
+```
 
 ### 8. commonInit
 
 [-->RuntimeInit.java]
 
+```java
     private static final void commonInit() {
         // 设置默认的未捕捉异常处理方法
         Thread.setDefaultUncaughtExceptionHandler(new UncaughtHandler());
@@ -319,6 +334,7 @@ fork()创建新进程，采用copy on write方式，这是linux创建进程的�
         // 设置socket的tag，用于网络流量统计
         NetworkManagementSocketTagger.install();
     }
+```
 
 默认的HTTP User-agent格式，例如：
 
@@ -330,19 +346,23 @@ nativeZygoteInit()方法在AndroidRuntime.cpp中，进行了jni映射，对应�
 
 [-->AndroidRuntime.cpp]
 
+```java
     static void com_android_internal_os_RuntimeInit_nativeZygoteInit(JNIEnv* env, jobject clazz)
     {
         //此处的gCurRuntime为AppRuntime，是在AndroidRuntime.cpp中定义的
         gCurRuntime->onZygoteInit();
     }
+```
 
 [-->app_main.cpp]
 
+```java
     virtual void onZygoteInit()
     {
         sp<ProcessState> proc = ProcessState::self();
         proc->startThreadPool(); //启动新binder线程
     }
+```
 
 ProcessState::self()是单例模式，主要工作是调用open()打开/dev/binder驱动设备，再利用mmap()映射内核的地址空间，将Binder驱动的fd赋值ProcessState对象中的变量mDriverFD，用于交互操作。startThreadPool()是创建一个新的binder线程，不断进行talkWithDriver()，在binder系列文章中的[注册服务(addService)](https://panard313.github.io/2015/11/14/binder-add-service/)详细这两个方法的执行原理。
 
@@ -351,6 +371,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
 
 [-->RuntimeInit.java]
 
+```java
     private static void applicationInit(int targetSdkVersion, String[] argv, ClassLoader classLoader)
             throws ZygoteInit.MethodAndArgsCaller {
         //true代表应用程序退出时不调用AppRuntime.onExit()，否则会在退出前调用
@@ -372,6 +393,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
         //调用startClass的static方法 main() 【见小节11】
         invokeStaticMain(args.startClass, args.startArgs, classLoader);
     }
+```
 
 在startSystemServer()方法中通过硬编码初始化参数，可知此处args.startClass为"com.android.server.SystemServer"。
 
@@ -379,6 +401,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
 
 [-->RuntimeInit.java]
 
+```java
     private static void invokeStaticMain(String className, String[] argv, ClassLoader classLoader)
             throws ZygoteInit.MethodAndArgsCaller {
         Class<?> cl = Class.forName(className, true, classLoader);
@@ -402,6 +425,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
         throw new ZygoteInit.MethodAndArgsCaller(m, argv);
     }
 
+```
 
 ### 12. MethodAndArgsCaller
 
@@ -409,6 +433,7 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
 
 [-->ZygoteInit.java]
 
+```java
     public static void main(String argv[]) {
         try {
             startSystemServer(abiList, socketName);//启动system_server
@@ -420,11 +445,13 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
             throw ex;
         }
     }
+```
 
 现在已经很明显了，是invokeStaticMain()方法中抛出的异常`MethodAndArgsCaller`，从而进入caller.run()方法。
 
 [-->ZygoteInit.java]
 
+```java
     public static class MethodAndArgsCaller extends Exception
             implements Runnable {
 
@@ -445,5 +472,6 @@ ProcessState::self()是单例模式，主要工作是调用open()打开/dev/bind
             }
         }
     }
+```
 
 到此，总算是进入到了SystemServer类的main()方法， 在文章[Android系统启动-SystemServer下篇](https://panard313.github.io/2016/02/20/android-system-server-2/)中会紧接着这里开始讲述。

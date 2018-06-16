@@ -32,6 +32,7 @@ tags:
 
 ### 1. AMS.appNotResponding
 
+```java
     final void appNotResponding(ProcessRecord app, ActivityRecord activity,
             ActivityRecord parent, boolean aboveSystem, final String annotation) {
         ...
@@ -156,6 +157,7 @@ tags:
         }
         
     }
+```
 
 当发生ANR时, 会按顺序依次执行:
 
@@ -173,6 +175,7 @@ ANR输出重要进程的traces信息，这些进程包含:
 
 ### 2. AMS.dumpStackTraces
 
+```java
     public static File dumpStackTraces(boolean clearTraces, ArrayList<Integer> firstPids,
             ProcessCpuTracker processCpuTracker, SparseArray<Boolean> lastPids, String[] nativeProcs) {
         //默认为 data/anr/traces.txt
@@ -195,11 +198,13 @@ ANR输出重要进程的traces信息，这些进程包含:
         dumpStackTraces(tracesPath, firstPids, processCpuTracker, lastPids, nativeProcs);
         return tracesFile;
     }
+```
 
 这里会保证data/anr/traces.txt文件内容是全新的方式，而非追加。
 
 ### 3. AMS.dumpStackTraces
 
+```java
     private static void dumpStackTraces(String tracesPath, ArrayList<Integer> firstPids,
             ProcessCpuTracker processCpuTracker, SparseArray<Boolean> lastPids, String[] nativeProcs) {
         FileObserver observer = new FileObserver(tracesPath, FileObserver.CLOSE_WRITE) {
@@ -265,6 +270,7 @@ ANR输出重要进程的traces信息，这些进程包含:
             observer.stopWatching();
         }
     }
+```
     
 该方法的主要功能，依次输出：
 
@@ -283,6 +289,7 @@ top 5进程的traces过程中, 同样是间隔200ms, 另外进程使用情况的
 ### 4. dumpNativeBacktraceToFile
 Debug.dumpNativeBacktraceToFile(pid, tracesPath)经过JNI调用如下方法：
 
+```java
     static void android_os_Debug_dumpNativeBacktraceToFile(JNIEnv* env, jobject clazz,
         jint pid, jstring fileName)
     {
@@ -308,10 +315,12 @@ Debug.dumpNativeBacktraceToFile(pid, tracesPath)经过JNI调用如下方法：
 
         close(fd);
     }
+```
 
 ### 5. dump_backtrace_to_file
 [-> debugger.c]
 
+```java
     int dump_backtrace_to_file(pid_t tid, int fd) {
         return dump_backtrace_to_file_timeout(tid, fd, 0);
     }
@@ -337,6 +346,7 @@ Debug.dumpNativeBacktraceToFile(pid, tracesPath)经过JNI调用如下方法：
       close(sock_fd);
       return result;
     }
+```
 
 可见，这个过程主要是通过向debuggerd守护进程发送命令DEBUGGER_ACTION_DUMP_BACKTRACE， debuggerd收到该命令，在子进程中调用
 dump_backtrace()来输出backtrace，更多内容见[Native进程之Trace原理](https://panard313.github.io/2016/11/27/native-traces/)。

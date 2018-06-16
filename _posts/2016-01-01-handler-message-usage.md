@@ -29,6 +29,7 @@ tags:
 
 HandlerThread 继承于 Thread类
 
+```java
     public HandlerThread(String name) {
         super(name);
         mPriority = Process.THREAD_PRIORITY_DEFAULT; //默认优先级
@@ -38,11 +39,13 @@ HandlerThread 继承于 Thread类
         super(name);
         mPriority = priority;
     }
+```
 
 ### 1.2 getLooper
 
 获取HandlerThread线程中的Looper对象
 
+```java
     public Looper getLooper() {
         // 当线程没有启动或者已经结束时，则返回null
         if (!isAlive()) {
@@ -60,9 +63,11 @@ HandlerThread 继承于 Thread类
         }
         return mLooper;
     }
+```
 
 ### 1.3 运行
 
+```java
     @Override
     public void run() {
         mTid = Process.myTid();  //获取线程的tid
@@ -76,9 +81,11 @@ HandlerThread 继承于 Thread类
         Looper.loop();   //进入循环模式
         mTid = -1;
     }
+```
 
 ### 1.4 退出
 
+```java
     public boolean quit() {
         Looper looper = getLooper();
         if (looper != null) {
@@ -96,6 +103,7 @@ HandlerThread 继承于 Thread类
         }
         return false;
     }
+```
 
 quit()与quitSafely()的区别，仅仅在于是否移除当前正在处理的消息。移除当前正在处理的消息可能会出现不安全的行为。
 
@@ -107,6 +115,7 @@ quit()与quitSafely()的区别，仅仅在于是否移除当前正在处理的�
 
 示例代码：
 
+```java
     // Step 1: 创建并启动HandlerThread线程，内部包含Looper
     HandlerThread handlerThread = new HandlerThread("gityuan.com");
     handlerThread.start();
@@ -122,6 +131,7 @@ quit()与quitSafely()的区别，仅仅在于是否移除当前正在处理的�
                 System.out.println("thread id="+Thread.currentThread().getId());
             }
         });
+```
 
 或者 handler.postDelayed(Runnable r, long delayMillis)用于延迟执行。
 
@@ -130,6 +140,7 @@ quit()与quitSafely()的区别，仅仅在于是否移除当前正在处理的�
 
 示例代码：
 
+```java
     class LooperThread extends Thread {
         public Handler mHandler;
 
@@ -152,3 +163,4 @@ quit()与quitSafely()的区别，仅仅在于是否移除当前正在处理的�
 
     // Step 3: 发送消息
     LooperThread.mHandler.sendEmptyMessage(10);
+```

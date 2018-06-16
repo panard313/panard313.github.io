@@ -186,27 +186,32 @@ UserInfo代表的是一个用户的信息，涉及到的flags及其含义，如�
 ### 2.1 启动阶段
 [-> PackageManagerService.java]
 
+```java
     public PackageManagerService(...) {
         ...
         //【见小节2.2】
         sUserManager = new UserManagerService(context, this, mInstallLock, mPackages);
         ...
     }
+```
 
 UMS是在PackageManagerService对象初始化的过程中创建。
 
 ### 2.2 UserManagerService
 [-> UserManagerService.java]
 
+```java
     UserManagerService(Context context, PackageManagerService pm,
             Object installLock, Object packagesLock) {
         this(context, pm, installLock, packagesLock,
                 Environment.getDataDirectory(),
                 new File(Environment.getDataDirectory(), "user"));
     }
+```
     
 dataDir一般为`/data`，baseUserPath则为`/data/user`，紧接着进入如下方法：
 
+```java
     private UserManagerService(Context context, PackageManagerService pm,
            Object installLock, Object packagesLock,
            File dataDir, File baseUserPath) {
@@ -236,6 +241,7 @@ dataDir一般为`/data`，baseUserPath则为`/data/user`，紧接着进入如下
            }
        }
    }
+```
    
 其中MainHandler是用于处理消息WRITE_USER_MSG的Handler，UMS初始化过程的主要功能：
 
@@ -249,6 +255,7 @@ dataDir一般为`/data`，baseUserPath则为`/data/user`，紧接着进入如下
 
 **Service**
 
+```java
     public boolean bindService(Intent service, ServiceConnection conn,
             int flags) {
         warnIfCallingFromSystemProcess();
@@ -261,9 +268,11 @@ dataDir一般为`/data`，baseUserPath则为`/data/user`，紧接着进入如下
         //mUser也是通过Process.myUserHandle()方法获取
         return startServiceCommon(service, mUser);
     }
+```
 
 **Broadcast**
 
+```java
     public void sendBroadcast(Intent intent) {
         warnIfCallingFromSystemProcess();
         String resolvedType = intent.resolveTypeIfNeeded(getContentResolver());
@@ -277,12 +286,14 @@ dataDir一般为`/data`，baseUserPath则为`/data/user`，紧接着进入如下
             throw new RuntimeException("Failure from system", e);
         }
     }
+```
 
 无论是广播，服务，Activity，在没有指定UserId的情况下，都采用默认的当前进程uid所对应的userId。
 
 ### 3.2 服务端(AMS)
 广播，服务，Activity启动的过程，经过Binder进入system_server进程，则都会会采用如下方法将userId进行转换：
 
+```java
     int handleIncomingUser(int callingPid, int callingUid, int userId, boolean allowAll,
             int allowMode, String name, String callerPackage) {
         final int callingUserId = UserHandle.getUserId(callingUid);
@@ -316,6 +327,7 @@ dataDir一般为`/data`，baseUserPath则为`/data/user`，紧接着进入如下
         return (userId == UserHandle.USER_CURRENT || userId == UserHandle.USER_CURRENT_OR_SELF)
                 ? mCurrentUserId : userId;
     }
+```
 
 该方法主要功能：
 

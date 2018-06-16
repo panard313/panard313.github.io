@@ -32,6 +32,7 @@ ClassLoader即常说的类加载器，其功能是用于从Class文件加载所�
 
 ClassLoader.java
 
+```java
     public static ClassLoader getSystemClassLoader() {
         initSystemClassLoader(); //初始化系统类加载器 【见下文】
         if (scl == null) {
@@ -46,9 +47,11 @@ ClassLoader.java
         }
         return scl;
     }
+```
 
 系统类加载器初始化：
 
+```java
     private static synchronized void initSystemClassLoader() {
         if (!sclSet) {
             if (scl != null)
@@ -77,6 +80,7 @@ ClassLoader.java
             sclSet = true;
         }
     }
+```
 
 ## 二、双亲委派模型
 
@@ -89,6 +93,7 @@ ClassLoader的双亲委派模型中，各个ClassLoader之间的关系是通过�
 这样的好处是不同层次的类加载器具有不同优先级，比如所有Java对象的超级父类java.lang.Object，位于rt.jar，无论哪个类加载器加载该类，最终都是由启动类加载器进行加载，保证安全。即使用户自己编写一个java.lang.Object类并放入程序中，虽能正常编译，但不会被加载运行，保证不会出现混乱。那么有人会继续追问，如果自己再自定义一个类加载器来加载自己定义的java.lang.Object类呢? 这样做也是不会成功的，虚拟机将会抛出一异常。
 
 
+```java
     protected Class<?> loadClass(String name, boolean resolve)
         throws ClassNotFoundException
     {
@@ -128,6 +133,7 @@ ClassLoader的双亲委派模型中，各个ClassLoader之间的关系是通过�
             return c;
         }
     }
+```
 
 当开发者需要自定义类加载器时，可通过覆写loadClass()方法或者findClass()。
 
@@ -137,6 +143,7 @@ ClassLoader的双亲委派模型中，各个ClassLoader之间的关系是通过�
 
 自定义类加载器示例：
 
+```java
     package com.yuanhh.classloader;
 
     import java.io.IOException;
@@ -173,11 +180,14 @@ ClassLoader的双亲委派模型中，各个ClassLoader之间的关系是通过�
             System.out.println(obj instanceof com.yuanhh.classloader.ClassLoadDemo);
         }
     }
+```
 
 上面代码的输出结果：
 
+```java
     class com.yuanhh.classloader.ClassLoadDemo
     false
+```
 
 输出结果的第一行，可以看出这个对象的确是`com.yuanhh.classloader.ClassLoadDemo`实例化的对象；但第二句是false，这是由于代码中的obj是由用户自定义的类加载器clazzLoader来加载的，可通过obj.getClass().getClassLoader()获取该对象的类加载器为com.yuanhh.classloader.ClassLoadDemo$xxx，而虚拟机本身会由系统类加载器加载的类ClassLoadDemo，可通过ClassLoadDemo.class.getClassLoader()得其类加载器为sun.misc.Launcher$AppClassLoader@XXX。所以可得出结论：即使都是来自同一个Class文件，加载器不同，仍然是两个不同的类，所以返回值是false。
 

@@ -35,6 +35,7 @@ tags:
 
 所有的编译命令都在`envsetup.sh`文件能找到相对应的function，比如上述的命令`lunch`，`make`，在文件一定能找到
 
+```java
     function lunch(){
         ...
     }
@@ -42,6 +43,7 @@ tags:
     function make(){
         ...
     }
+```
 
 `source envsetup.sh`，需要cd到setenv.sh文件所在路径执行，路径可能在build/envsetup.sh，或者integrate/envsetup.sh，再或者不排除有些厂商会封装自己的.sh脚本，但核心思路是一致的。
 

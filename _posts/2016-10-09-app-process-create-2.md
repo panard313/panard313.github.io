@@ -31,6 +31,7 @@ Activity, Service, ContentProvider, BroadcastReceiver这四大组件,在启动�
 
 [-> ActivityStackSupervisor.java]
 
+```java
     void startSpecificActivityLocked(...) {
         ProcessRecord app = mService.getProcessRecordLocked(r.processName,
                 r.info.applicationInfo.uid, true);
@@ -41,6 +42,7 @@ Activity, Service, ContentProvider, BroadcastReceiver这四大组件,在启动�
         mService.startProcessLocked(r.processName, r.info.applicationInfo, true, 0,
                     "activity", r.intent.getComponent(), false, false, true);
     }
+```
 
 #### 2.1.2 Service
 
@@ -48,6 +50,7 @@ Activity, Service, ContentProvider, BroadcastReceiver这四大组件,在启动�
 
 [-> ActiveServices.java]
 
+```java
     private final String bringUpServiceLocked(...){
         ...
         ProcessRecord app = mAm.getProcessRecordLocked(procName, r.appInfo.uid, false);
@@ -60,6 +63,7 @@ Activity, Service, ContentProvider, BroadcastReceiver这四大组件,在启动�
         ...
     }
 
+```
 
 #### 2.1.3 ContentProvider
 
@@ -67,6 +71,7 @@ ContentProvider处理过程: 调用ContentResolver.query该方法经过层层调
 
 [-> AMS.java]
 
+```java
     private final ContentProviderHolder getContentProviderImpl(...) {
         ...
         ProcessRecord proc = getProcessRecordLocked(cpi.processName, cpr.appInfo.uid, false);
@@ -82,6 +87,7 @@ ContentProvider处理过程: 调用ContentResolver.query该方法经过层层调
     }
 
 
+```
 
 #### 2.1.4 Broadcast
 
@@ -89,6 +95,7 @@ ContentProvider处理过程: 调用ContentResolver.query该方法经过层层调
 
 [-> BroadcastQueue.java]
 
+```java
     final void processNextBroadcast(boolean fromMsg) {
         ...
         ProcessRecord app = mService.getProcessRecordLocked(targetProcess,
@@ -108,11 +115,13 @@ ContentProvider处理过程: 调用ContentResolver.query该方法经过层层调
         }
         ...
     }
+```
 
 ### 2.2 进程启动
 
 在`ActivityManagerService.java`关于启动进程有4个同名不同参数的重载方法StartProcessLocked, 为了便于说明,以下4个方法依次记为`1(a)`,`1(b)`, `2(a)`, `2(b)` :
 
+```java
     //方法 1(a)
     final ProcessRecord startProcessLocked(
         String processName, ApplicationInfo info, boolean knownToBeDead,
@@ -136,9 +145,11 @@ ContentProvider处理过程: 调用ContentResolver.query该方法经过层层调
         ProcessRecord app, String hostingType, String hostingNameStr,
         String abiOverride, String entryPoint, String[] entryPointArgs)
 
+```
 
 **1(a) ==> 1(b):** 方法1(a)将isolatedUid=0,其他参数赋值为null,再调用给1(b)
 
+```java
     final ProcessRecord startProcessLocked(String processName,
             ApplicationInfo info, boolean knownToBeDead, int intentFlags,
             String hostingType, ComponentName hostingName, boolean allowWhileBooting,
@@ -147,14 +158,18 @@ ContentProvider处理过程: 调用ContentResolver.query该方法经过层层调
                 hostingName, allowWhileBooting, isolated, 0 /* isolatedUid */, keepIfLarge,
                 null /* ABI override */, null /* entryPoint */, null /* entryPointArgs */,
                 null /* crashHandler */);进程名至少要有2个字符
+```
+
 **2(a) ==> 2(b):** 方法2(a)将其他3个参数abiOverride,entryPoint, entryPointArgs赋值为null,再调用给2(b)
 
+```java
     private final void startProcessLocked(ProcessRecord app,
             String hostingType, String hostingNameStr) {
         startProcessLocked(app, hostingType, hostingNameStr, null /* abiOverride */,
                 null /* entryPoint */, null /* entryPointArgs */);
     }
 
+```
 
 小结:
 
@@ -178,6 +193,7 @@ ContentProvider处理过程: 调用ContentResolver.query该方法经过层层调
 
 接下来，看看PackageParser.java来解析AndroidManiefst.xml过程就明白进程名的命名要求：
 
+```java
     public class PackageParser {
         ...
         private static String buildCompoundName(String pkg,
@@ -236,6 +252,7 @@ ContentProvider处理过程: 调用ContentResolver.query该方法经过层层调
                     ? null : "must have at least one '.' separator";
         }
     }
+```
 
 看完上面的源码.很显然对于android:process属性值不以”:“开头的进程名必须至少包含“.”字符。
 
@@ -281,6 +298,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
 
 ### 3.1 AMS.startProcessLocked
 
+```java
     final ProcessRecord startProcessLocked(String processName, ApplicationInfo info,
             boolean knownToBeDead, int intentFlags, String hostingType, ComponentName hostingName,
             boolean allowWhileBooting, boolean isolated, int isolatedUid, boolean keepIfLarge,
@@ -347,6 +365,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
         startProcessLocked(app, hostingType, hostingNameStr, abiOverride, entryPoint, entryPointArgs);
         return (app.pid != 0) ? app : null;
     }
+```
 
 主要功能:
 
@@ -368,6 +387,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
 
 ### 3.2 AMS.startProcessLocked
 
+```java
     private final void startProcessLocked(ProcessRecord app, String hostingType,
             String hostingNameStr, String abiOverride, String entryPoint, String[] entryPointArgs) {
         long startTime = SystemClock.elapsedRealtime();
@@ -461,6 +481,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
         }
     }
 
+```
 
 - 根据不同参数,设置相应的debugFlags,比如在AndroidManifest.xml中设置androidd:debuggable为true，代表app运行在debug模式,则增加debugger标识以及开启JNI check功能
 - 调用Process.start来创建新进程;
@@ -472,6 +493,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
 
 [-> ActivityThread.java]
 
+```java
     public static void main(String[] args) {
         //性能统计默认是关闭的
         SamplingProfilerIntegration.start();
@@ -506,6 +528,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
         Looper.loop(); //消息循环运行
         throw new RuntimeException("Main thread loop unexpectedly exited");
     }
+```
 
 - 创建主线程的Looper对象: 该Looper是不运行退出. 也就是说主线程的Looper是在进程创建完成时自动创建完成,如果子线程也需要创建handler通信过程,那么就需要手动创建Looper对象,并且每个线程只能创建一次.
 - 创建ActivityThread对象`thread = new ActivityThread()`: 该过程会初始化几个很重要的变量:
@@ -520,6 +543,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
 ### 3.4. ActivityThread.attach
 [-> ActivityThread.java]
 
+```java
     private void attach(boolean system) {
         sCurrentActivityThread = this;
         mSystemThread = system;
@@ -589,6 +613,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
             }
         });
     }
+```
 
 对于非系统attach的处理流程:
 
@@ -602,6 +627,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
 ### 3.5 AMP.attachApplication
 [-> ActivityManagerProxy.java]
 
+```java
     public void attachApplication(IApplicationThread app) throws RemoteException
     {
         Parcel data = Parcel.obtain();
@@ -613,12 +639,14 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
         data.recycle();
         reply.recycle();
     }
+```
 
 此处 descriptor = "android.app.IActivityManager"
 
 ### 3.6 AMN.onTransact
 [-> ActivityManagerNative.java]
 
+```java
     public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
             throws RemoteException {
         switch (code) {
@@ -636,10 +664,12 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
         }
         }
     }
+```
 
 ### 3.7 AMS.attachApplication
 [-> ActivityManagerService.java]
 
+```java
     public final void attachApplication(IApplicationThread thread) {
         synchronized (this) {
             int callingPid = Binder.getCallingPid();
@@ -648,12 +678,14 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
             Binder.restoreCallingIdentity(origId);
         }
     }
+```
 
 此处的`thread`便是ApplicationThreadProxy对象,用于跟前面通过Process.start()所创建的进程中ApplicationThread对象进行通信.
 
 ### 3.8 AMS.attachApplicationLocked
 [-> ActivityManagerService.java]
 
+```java
     private final boolean attachApplicationLocked(IApplicationThread thread,
             int pid) {
         ProcessRecord app;
@@ -798,6 +830,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
         }
         return true;
     }
+```
 
 1. 根据pid从mPidsSelfLocked中查询到相应的ProcessRecord对象app;
 2. 当app==null,意味着本次创建的进程不存在, 则直接返回.
@@ -814,6 +847,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
 
 [-> ApplicationThreadNative.java ::ApplicationThreadProxy]
 
+```java
     class ApplicationThreadProxy implements IApplicationThread {
         ...
         public final void bindApplication(String packageName, ApplicationInfo info,
@@ -857,6 +891,7 @@ system_server拥有ATP/AMS, 每一个新创建的进程都会有一个相应的A
         }
         ...
     }
+```
 
 ATP经过binder ipc传递到ATN的onTransact过程.
 
@@ -864,6 +899,7 @@ ATP经过binder ipc传递到ATN的onTransact过程.
 
 [-> ApplicationThreadNative.java]
 
+```java
     public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
             throws RemoteException {
         switch (code) {
@@ -902,11 +938,13 @@ ATP经过binder ipc传递到ATN的onTransact过程.
         }
         ...
     }
+```
 
 ### 3.11 AT.bindApplication
 
 [-> ActivityThread.java ::ApplicationThread]
 
+```java
     public final void bindApplication(String processName, ApplicationInfo appInfo,
             List<ProviderInfo> providers, ComponentName instrumentationName,
             ProfilerInfo profilerInfo, Bundle instrumentationArgs,
@@ -961,6 +999,7 @@ ATP经过binder ipc传递到ATN的onTransact过程.
         //发送消息H.BIND_APPLICATION [见小节3.13]
         sendMessage(H.BIND_APPLICATION, data);
     }
+```
 
 其中setCoreSettings()过程就是调用sendMessage(H.SET_CORE_SETTINGS, coreSettings) 来向主线程发送SET_CORE_SETTINGS消息.bindApplication方法的主要功能是依次向主线程发送消息`H.SET_CORE_SETTINGS`和`H.BIND_APPLICATION`. 接下来再来说说这两个消息的处理过程
 
@@ -969,6 +1008,7 @@ ATP经过binder ipc传递到ATN的onTransact过程.
 
 当主线程收到H.SET_CORE_SETTINGS,则调用handleSetCoreSettings
 
+```java
     private void handleSetCoreSettings(Bundle coreSettings) {
         synchronized (mResourcesManager) {
             mCoreSettings = coreSettings;
@@ -987,12 +1027,14 @@ ATP经过binder ipc传递到ATN的onTransact过程.
             }
         }
     }
+```
 
 ### 3.13 AT.handleBindApplication
 [-> ActivityThread.java  ::H]
 
 当主线程收到H.BIND_APPLICATION,则调用handleBindApplication
 
+```java
     private void handleBindApplication(AppBindData data) {
 
         mBoundApplication = data;
@@ -1086,6 +1128,7 @@ ATP经过binder ipc传递到ATN的onTransact过程.
             StrictMode.setThreadPolicy(savedPolicy);
         }
     }
+```
 
 在handleBindApplication()的过程中,会同时设置以下两个值:
 
@@ -1095,6 +1138,7 @@ ATP经过binder ipc传递到ATN的onTransact过程.
 #### 3.13.1 getPackageInfoNoCheck
 [-> ActivityThread.java]
 
+```java
     public final LoadedApk getPackageInfoNoCheck(ApplicationInfo ai,
             CompatibilityInfo compatInfo) {
         return getPackageInfo(ai, compatInfo, null, false, true, false);
@@ -1142,12 +1186,14 @@ ATP经过binder ipc传递到ATN的onTransact过程.
             return packageInfo;
         }
     }
+```
 
 创建LoadedApk对象
 
 ### 3.14 makeApplication
 [-> LoadedApk.java]
 
+```java
     public Application makeApplication(boolean forceDefaultAppClass,
             Instrumentation instrumentation) {
         if (mApplication != null) {
@@ -1201,31 +1247,37 @@ ATP经过binder ipc传递到ATN的onTransact过程.
         }
         return app;
     }
+```
 
 #### 3.14.1 createAppContext
 [-> ContextImpl.java]
 
+```java
     static ContextImpl createAppContext(ActivityThread mainThread, LoadedApk packageInfo) {
         if (packageInfo == null) throw new IllegalArgumentException("packageInfo");
         return new ContextImpl(null, mainThread,
                 packageInfo, null, null, false, null, null, Display.INVALID_DISPLAY);
     }
+```
 
 创建ContextImpl对象
 
 #### 3.14.2 newApplication
 [-> Instrumentation.java]
 
+```java
     public Application newApplication(ClassLoader cl, String className, Context context)
             throws InstantiationException, IllegalAccessException,
             ClassNotFoundException {
         return newApplication(cl.loadClass(className), context);
     }
+```
 
 创建Application对象, 该对象名来自于mApplicationInfo.className.
 
 #### 3.14.3 rewriteRValues
 [-> LoadedApk.java]
+```java
         try {
             rClazz = cl.loadClass(packageName + ".R");
         } catch (ClassNotFoundException e) {
@@ -1252,6 +1304,7 @@ ATP经过binder ipc传递到ATN的onTransact过程.
         throw new RuntimeException("Failed to rewrite resource references for " + packageName,
                 cause);
     }
+```
 
 ## 四. 总结
 

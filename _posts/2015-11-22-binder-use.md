@@ -26,6 +26,7 @@ tags:
 
 ### 1.1 服务端
 
+```java
     #include "IMyService.h"
     int main() {
         //获取service manager引用
@@ -36,11 +37,13 @@ tags:
         IPCThreadState::self()->joinThreadPool(); //把主线程加入线程池
         return 0;
     }
+```
 
 将名为"service.myservice"的BnMyService服务添加到ServiceManager，并启动服务
 
 ### 1.2 客户端
 
+```java
     #include "IMyService.h"
     int main() {
         //获取service manager引用
@@ -53,6 +56,7 @@ tags:
         cs->sayHello();
         return 0;
     }
+```
 
 获取名为"service.myservice"的服务，再进行类型，最后调用远程方法`sayHello()`
 
@@ -60,6 +64,7 @@ tags:
 
 **(1)IMyService.h**
 
+```java
     namespace android
     {
         class IMyService : public IInterface
@@ -90,6 +95,7 @@ tags:
             virtual void sayHello();
         };
     }
+```
 
 主要功能：
 
@@ -100,6 +106,7 @@ tags:
 
 **(2)IMyService.cpp**
 
+```java
     #include "IMyService.h"
     namespace android
     {
@@ -143,6 +150,7 @@ tags:
             printf("BnMyService::sayHello\n");
         };
     }
+```
 
 ### 1.4 原理图
 
@@ -198,6 +206,7 @@ Client端
 
 可执行程序
 
+```java
     public class ServerDemo {
         public static void main(String[] args) {
             System.out.println("MyService Start");
@@ -210,19 +219,23 @@ Client端
             Looper.loop();
         }
     }
+```
 
 **(2)IMyService.java**
 
 定义sayHello()方法，DESCRIPTOR属性
 
+```java
     public interface IMyService extends IInterface {
         static final java.lang.String DESCRIPTOR = "com.gityuan.frameworkBinder.MyServer";
         public void sayHello(String str) throws RemoteException ;
         static final int TRANSACTION_say = android.os.IBinder.FIRST_CALL_TRANSACTION;
     }
+```
 
 **(3)MyService.java**
 
+```java
     public class MyService extends Binder implements IMyService{
 
         public MyService() {
@@ -272,6 +285,7 @@ Client端
             System.out.println("MyService:: Hello, " + str);
         }
     }
+```
 
 ### 2.2 Client端
 
@@ -279,6 +293,7 @@ Client端
 
 可执行程序
 
+```java
     public class ClientDemo {
 
         public static void main(String[] args) throws RemoteException {
@@ -289,6 +304,7 @@ Client端
             System.out.println("Client end");
         }
     }
+```
 
 **(2)IMyService.java**
 
@@ -296,6 +312,7 @@ Client端
 
 **(3)MyServiceProxy.java**
 
+```java
     public class MyServiceProxy implements IMyService {
         private android.os.IBinder mRemote;  //代表BpBinder
 
@@ -328,6 +345,7 @@ Client端
             return mRemote;
         }
     }
+```
 
 ### 2.3 原理图
 
