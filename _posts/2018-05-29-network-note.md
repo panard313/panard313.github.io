@@ -15,3 +15,6 @@ lang: zh-Hans
 ## [gityuan.com android blog](https://github.com/yuanhuihui/yuanhuihui.github.io)
 
 ## [Android system CSDN blogs](https://blog.csdn.net/zhangbijun1230/article/category/6500595)
+
+## [chendongqi android system blog git](https://github.com/chendongqi/blog.git)
+## [chendongqi android system blog git](http://chendongqi.me/)
