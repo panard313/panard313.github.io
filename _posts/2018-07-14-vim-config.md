@@ -1,7 +1,7 @@
 ---
 layout: article
 title: vim 配置参数列表
-key: 20180603
+key: 20180714
 tags:
   - vim
 lang: zh-Hans
