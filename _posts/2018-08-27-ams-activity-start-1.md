@@ -1,5 +1,5 @@
 ---
-layout: article 
+layout: article
 title: 启动Activity的过程：一
 key: 20180827
 tags:
@@ -11,98 +11,102 @@ lang: zh-Hans
 
 # 启动Activity的过程：一
 
-从这一篇博客开始，我们将阅读AMS启动一个Activity的代码流程。 
+从这一篇博客开始，我们将阅读AMS启动一个Activity的代码流程。
 自己对Activity的启动过程也不是很了解，这里就初步做一个代码阅读笔记，为以后的迭代打下一个基础。
 
-## 一、基础知识 
+## 一、基础知识
 在分析Activity的启动过程前，有必要先了解一下Activity相关的基础知识。
 
-### 1、Task和Activity的设计理念 
-关于Android中Task和Activity的介绍，个人觉得《深入理解Android》中的例子不错。 
+### 1、Task和Activity的设计理念
+关于Android中Task和Activity的介绍，个人觉得《深入理解Android》中的例子不错。
 
 我们就借鉴其中的例子，进行相应的说明：
 
+![图1](/images/android-n-ams/start-1-1.jpg)
 
+上图列出了用户在Android系统上想干的三件事，分别用A、B、C表示。
 
-上图列出了用户在Android系统上想干的三件事，分别用A、B、C表示。 
+在Android中，每一件事可以被看作是一个Task；一个Task可以被细分成多个子步骤，每个子步骤可以被看作是一个Activity。
 
-在Android中，每一件事可以被看作是一个Task；一个Task可以被细分成多个子步骤，每个子步骤可以被看作是一个Activity。 
-
-从上图可以看出，A、B两个Task使用了不同的Activity来完成相应的任务，即A、B两个Task的Activity之间没有复用。 
+从上图可以看出，A、B两个Task使用了不同的Activity来完成相应的任务，即A、B两个Task的Activity之间没有复用。
 
 但是在Task C中，分别使用了Task A中的A1、Task B中的B2。
 
-这么设计的原因是：用户想做的事情（Task）即使完全不同，但是当细分Task为Activity时，就可能出现Activity功能类似的情况。 
+这么设计的原因是：用户想做的事情（Task）即使完全不同，但是当细分Task为Activity时，就可能出现Activity功能类似的情况。
 
-当Task A和Task B中已经有能满足需求的Activity时，Task C就会优先复用而不是重新创建Activity。 
+当Task A和Task B中已经有能满足需求的Activity时，Task C就会优先复用而不是重新创建Activity。
 
 通过重用Activity可以节省一定的开销，同时为用户提供一致的界面和用户体验。
 
 对Android的设计理念有一定的了解后，我们看看Android是如何组织Task及它所包含的Activity。
 
+![图2](/images/android-n-ams/start-1-2.jpg)
 
+上图为一个比较经典的示例：图中的Task包含4个Activity。用户可以单击按钮跳转到下一个Activity。同时，通过返回键可以回到上一个Activity。
 
-上图为一个比较经典的示例：图中的Task包含4个Activity。用户可以单击按钮跳转到下一个Activity。同时，通过返回键可以回到上一个Activity。 
+图中虚线下方为Activity的组织方式。从图中可以看出，Android是以Stack的方式来管理Activity的。
 
-图中虚线下方为Activity的组织方式。从图中可以看出，Android是以Stack的方式来管理Activity的。 
-
-先启动的Activity成为栈底成员，被启动的Activity将作为栈顶成员显示在界面上。 
+先启动的Activity成为栈底成员，被启动的Activity将作为栈顶成员显示在界面上。
 
 当按返回键时，栈顶成员出栈，前一个Activity成为栈顶显示在界面上。
 
-以上是一个Task的情况。当有多个Task时，Android系统只支持一个处于前台的Task，其余的Task均处于后台。 
+以上是一个Task的情况。当有多个Task时，Android系统只支持一个处于前台的Task，其余的Task均处于后台。
 
 这些后台Task内部Activity保持顺序不变。用户可以一次将整个Task挪到后台或置为前台，如下图所示：
 
 
+![图3](/images/androig-n-ams/start-1-3.png)
 
 在AMS中，将用ActivityRecord来作为Activity的记录者、TaskRecord作为Task的记录者，TaskRecord中有对应的ActivityStack专门管理ActivityRecord。
 
-### 2、启动模式 
+### 2、启动模式
 Android定义了4种Activity的启动模式，分别为Standard、SingleTop、SingleTask和SingleInstance。
 
-- Standard模式 
-我们平时直接创建的Activity都是这种模式。 
+- Standard模式
+我们平时直接创建的Activity都是这种模式。
 
-这种模式的Activity的特点是：只要你创建并启动了Activity实例，Android就会向当前的任务栈中加入新创建的实例。退出该Activity时，Android就会在任务栈中销毁该实例。 
+这种模式的Activity的特点是：只要你创建并启动了Activity实例，Android就会向当前的任务栈中加入新创建的实例。退出该Activity时，Android就会在任务栈中销毁该实例。
 
 因此，一个Task中可以有多个相同类型的Activity（类型相同，但不是同一个对象）。
 
-Standard模式启动Activity的栈结构如下图所示： 
+Standard模式启动Activity的栈结构如下图所示：
 
+![图4](/images/androig-n-ams/start-1-4.jpg)
 
-- SingleTop模式 
-这种模式会考虑当前要激活的Activity实例在任务栈中是否正处于栈顶。 
+- SingleTop模式
+这种模式会考虑当前要激活的Activity实例在任务栈中是否正处于栈顶。
 
-如果处于栈顶则无需重新创建新的实例，将重用已存在的实例， 
+如果处于栈顶则无需重新创建新的实例，将重用已存在的实例，
 
 否则会在任务栈中创建新的实例。
 
-SingleTop模式启动Activity的栈结构如下图所示： 
+SingleTop模式启动Activity的栈结构如下图所示：
 
+![图5](/images/androig-n-ams/start-1-5.jpg)
 
 注意：当用SingleTop模式启动位于栈顶的Activity时，并不会创建新的Activity，但栈顶Activity的onNewIntent函数将被调用。
 
-- SingleTask模式 
+- SingleTask模式
 在该种模式下，只要Activity在一个栈中存在，那么多次启动此Activity都不会重新创建实例。和SingleTop一样，系统也会回调其onNewIntent。
 
-具体一点，当一个具有singleTask模式的Activity A请求启动后，系统先会寻找是否存在A想要的任务栈。 
+具体一点，当一个具有singleTask模式的Activity A请求启动后，系统先会寻找是否存在A想要的任务栈。
 
-如果不存在对应任务栈，就重新创建一个任务栈，然后创建A的实例后，把A放到任务栈中。 
+如果不存在对应任务栈，就重新创建一个任务栈，然后创建A的实例后，把A放到任务栈中。
 
-如果存在A所需的任务栈，那么系统将判断该任务栈中是否有实例A。 
+如果存在A所需的任务栈，那么系统将判断该任务栈中是否有实例A。
 
-如果有实例A，那么系统就将A调到栈顶并调用其onNewIntent方法（会清空A之上的Activity）。 
+如果有实例A，那么系统就将A调到栈顶并调用其onNewIntent方法（会清空A之上的Activity）。
 
 如果没有实例A，那么系统就创建实例A并压入栈中。
 
-SingleTask模式启动Activity的栈结构如下图所示： 
+SingleTask模式启动Activity的栈结构如下图所示：
 
+![图6](/images/androig-n-ams/start-1-6.jpg)
 
-- SingleInstance模式 
+- SingleInstance模式
 SingleInstance模式是一种加强版的SingleTask模式，它除了具有SingleTask所有的特性外，还加强了一点，那就是具有此模式的Activity只能单独地位于一个任务栈中。
 
-### 3、Intent Flags 
+### 3、Intent Flags
 启动模式主要是配置在xml文件中的，例如：
 ```xml
 <activity android:name=".TestActivity"
@@ -110,47 +114,47 @@ SingleInstance模式是一种加强版的SingleTask模式，它除了具有Singl
 >
 ```
 
-除了启动模式外，Android在用Intent拉起Activity时，还可以使用Intent Flags控制Activity及Task之间的关系。 
+除了启动模式外，Android在用Intent拉起Activity时，还可以使用Intent Flags控制Activity及Task之间的关系。
 
 Intent Flags数量非常多，这里只列举其中的一部分：
 
-- Intent.FLAG_ACTIVITY_NEW_TASK 
+- Intent.FLAG_ACTIVITY_NEW_TASK
     默认的跳转类型，将目标Activity放到一个新的Task中。
 
-- Intent.FLAG_ACTIVITY_CLEAR_TASK 
-    当用这个FLAG启动一个Activity时，系统会先把与该Activity有关联的Task释放掉，然后启动一个新的Task，并把目标Activity放到新的Task。 
+- Intent.FLAG_ACTIVITY_CLEAR_TASK
+    当用这个FLAG启动一个Activity时，系统会先把与该Activity有关联的Task释放掉，然后启动一个新的Task，并把目标Activity放到新的Task。
     该标志必须和Intent.FLAG_ACTIVITY_NEW_TASK一起使用。
 
-- FLAG_ACTIVITY_SINGLE_TOP 
-    这个FLAG就相当于启动模式中的singleTop。 
+- FLAG_ACTIVITY_SINGLE_TOP
+    这个FLAG就相当于启动模式中的singleTop。
     例如:原来栈中结构是A B C D。现在，在D中启动D，那么栈中的结构还是A B C D。
 
-- FLAG_ACTIVITY_CLEAR_TOP 
-    这个FLAG类似于启动模式中的SingleTask。 
-    这种FLAG启动的Activity会其之上的Activity全部弹出栈空间。 
+- FLAG_ACTIVITY_CLEAR_TOP
+    这个FLAG类似于启动模式中的SingleTask。
+    这种FLAG启动的Activity会其之上的Activity全部弹出栈空间。
     例如：原来栈中的结构是A B C D ，从D中跳转到B，栈中的结构就变为了A B了。
 
-- FLAG_ACTIVITY_NO_HISTORY 
-    用这个FLAG启动的Activity，一旦退出，就不会存在于栈中。 
+- FLAG_ACTIVITY_NO_HISTORY
+    用这个FLAG启动的Activity，一旦退出，就不会存在于栈中。
     例如：原来栈中的结构是A B C，现在用这个FLAG启动D。然后在D中启动E，栈中的结构为A B C E。
 
 对这些基础知识有了一定的了解后，我们来看看AMS启动Activity的代码级流程。
 
-在这一篇博客中，我们对代码流程的分析，将截止于启动Activity对应的进程。 
+在这一篇博客中，我们对代码流程的分析，将截止于启动Activity对应的进程。
 
 于是，这部分流程中大部分的内容，将围绕Activity如何选择对应的Task来展开， 由于Task的选择还要涉及对启动模式、Intent Flags等的判断，因此整个代码将极其的琐碎，需要很有耐心才能较仔细地看完。
 
-## 二、am命令 
+## 二、am命令
 我们将看看利用am命令如何启动一个Activity。
 
-之所以选择从am命令入手，是因为当我们从一个Activity拉起另一个Activity时， 
-当前Activity对应的进程需要和AMS进行交互， 
+之所以选择从am命令入手，是因为当我们从一个Activity拉起另一个Activity时，
+当前Activity对应的进程需要和AMS进行交互，
 这就要求我们需要对进程中与AMS交互的对象比较了解时，才比较容易分析。
 
-而从am入手分析，当被启动Activity被创建后，代码流程自然就会涉及到这个进程与AMS的交互， 
+而从am入手分析，当被启动Activity被创建后，代码流程自然就会涉及到这个进程与AMS的交互，
 整个逻辑的顺序很容易理解。
 
-当我们利用adb shell进入到手机的控制台后，可以利用am命令启动Activity、Service等。 
+当我们利用adb shell进入到手机的控制台后，可以利用am命令启动Activity、Service等。
 具体的格式类似于：
 
     am start -W -n 包名(package)/包名.activity名称
@@ -159,13 +163,13 @@ Intent Flags数量非常多，这里只列举其中的一部分：
 
     am start -W -n com.android.browser/com.android.browser.BrowserActivity
 
-上面命令中的-W是一个可选项，表示等待目标activity启动后，am才返回结果； 
-    -n ，表示后接COMPONENT。 
+上面命令中的-W是一个可选项，表示等待目标activity启动后，am才返回结果；
+    -n ，表示后接COMPONENT。
 
 am命令可接的参数有很多种，有兴趣可以研究一下，此处不再一一列举。
 
-如同之前介绍pm安装apk的流程中提及的，pm命令是一个执行脚本。 
-am与pm一样，同样是定义于手机中的执行脚本。 
+如同之前介绍pm安装apk的流程中提及的，pm命令是一个执行脚本。
+am与pm一样，同样是定义于手机中的执行脚本。
 am脚本的文件路径是frameworks/base/cms/am，其内容如下：
 ```shell
 #!/system/bin/sh
@@ -293,11 +297,11 @@ private void runStart() throws Exception {
 }
 ```
 
-从上面的代码可以看出，am最终将调用AMS的startActivityAndWait或startActivityAsUser函数，来启动参数指定的Activity。 
+从上面的代码可以看出，am最终将调用AMS的startActivityAndWait或startActivityAsUser函数，来启动参数指定的Activity。
 
 我们以startActivityAndWait为例进行分析。
 
-## 三、startActivityAndWait流程 
+## 三、startActivityAndWait流程
 startActivityAndWait的参数比较多，先来大致看一下参数的含义：
 
 ```java
@@ -305,13 +309,13 @@ public final WaitResult startActivityAndWait(
 //在多数情况下，一个Activity的启动是由一个应用进程发起的
 //IApplicationThread是应用进程和AMS交互的通道
 //通过am启动Activity时，该参数为null
-IApplicationThread caller, 
+IApplicationThread caller,
 
 //应用进程对应的pacakge
 String callingPackage,
 
 //启动使用的Intent和resolvedType
-Intent intent, String resolvedType, 
+Intent intent, String resolvedType,
 
 //均是给Activity.java中定义的startActivityForResult使用的
 //resultTo用于接收返回的结果，resultWho用于描述接收结果的对象
@@ -322,7 +326,7 @@ IBinder resultTo, String resultWho, int requestCode,
 int startFlags,
 
 //性能统计有关
-ProfilerInfo profilerInfo, 
+ProfilerInfo profilerInfo,
 
 //用于指定Activity的一些选项
 //从前面调用的代码来看，应该是指定Activity需要加入的Task
@@ -352,13 +356,13 @@ public final WaitResult startActivityAndWait(....) {
 }
 ```
 
-上面代码中的ActivityStarter初始化于AMS的构造函数中，专门负载启动Activity相关的工作。 
-当我们通过am命令启动一个Activity时，假设系统之前没有启动过该Activity，那么从功能的角度来看，ActivityStarter调用artActivityMayWait函数后，系统将完成以下工作： 
-- 1、上文提及在Am.java中，为Intent增加了标志位FLAG_ACTIVITY_NEW_TASK，因此系统将为Activity创建ActivityRecord和对应的TaskRecord。 
-- 2、系统需要启动一个新的应用进程以加载并运行该Activity。 
+上面代码中的ActivityStarter初始化于AMS的构造函数中，专门负载启动Activity相关的工作。
+当我们通过am命令启动一个Activity时，假设系统之前没有启动过该Activity，那么从功能的角度来看，ActivityStarter调用artActivityMayWait函数后，系统将完成以下工作：
+- 1、上文提及在Am.java中，为Intent增加了标志位FLAG_ACTIVITY_NEW_TASK，因此系统将为Activity创建ActivityRecord和对应的TaskRecord。
+- 2、系统需要启动一个新的应用进程以加载并运行该Activity。
 - 3、还需要停止当前正在显示的Activity。
 
-接下来，我们跟进一下ActivityStarter的startActivityMayWait函数。 
+接下来，我们跟进一下ActivityStarter的startActivityMayWait函数。
 我们可以将该函数分为三部分进行分析：
 
 ### 1 第一部分
@@ -427,8 +431,8 @@ final int startActivityMayWait(............) {
 }
 ```
 
-从上面的代码来看，startActivityMayWait在第一阶段最主要的工作其实就是： 
-- 1、解析出与Intent相匹配的ActivityInfo。 
+从上面的代码来看，startActivityMayWait在第一阶段最主要的工作其实就是：
+- 1、解析出与Intent相匹配的ActivityInfo。
 - 2、得到启动该Activity的Task，即父Activity的Task或前台Task。
 
 ### 2 第二部分
@@ -442,7 +446,7 @@ int res = startActivityLocked(...............);
 ..................
 ```
 
-这一部分中，涉及到了启动Activity的核心函数startActivityLocked。该函数比较复杂，我们在后面单独分析。 
+这一部分中，涉及到了启动Activity的核心函数startActivityLocked。该函数比较复杂，我们在后面单独分析。
 
 当该函数成功执行完毕后，Activity将会被启动，并形成对应的ActivityRecord被AMS统一管理。
 
@@ -494,11 +498,11 @@ if (outResult != null) {
 ...............
 ```
 
-从上面的代码可以看出，第三阶段的工作就是根据返回值做一些处理。 
+从上面的代码可以看出，第三阶段的工作就是根据返回值做一些处理。
 
 由于我们在输入的命令时，指定了-W选项，因此将进入wait状态等待Activity界面被显示。
 
-## 四、startActivityLocked流程 
+## 四、startActivityLocked流程
 接下来，我们看看上面提及到的核心函数startActivityLocked：
 ```java
 final int startActivityLocked(..............) {
@@ -517,7 +521,7 @@ final int startActivityLocked(..............) {
             callingUid = callerApp.info.uid;
         } else {
             ................
-        } 
+        }
     }
 
     final int userId = aInfo != null ? UserHandle.getUserId(aInfo.applicationInfo.uid) : 0;
@@ -662,31 +666,31 @@ final int startActivityLocked(..............) {
 
 startActivityLocked函数比较长，但主干比较清晰，只是添加许多条件判断。
 
-从代码来看主要工作包括： 
-- 1、处理sourceRecord和resultRecord。 
+从代码来看主要工作包括：
+- 1、处理sourceRecord和resultRecord。
 
-sourceRecord表示发起本次请求的Activity，即父Activity对应的信息； 
+sourceRecord表示发起本次请求的Activity，即父Activity对应的信息；
 
-resultRecord表示接收处理结果的Activity。 
+resultRecord表示接收处理结果的Activity。
 
 在一般情况下，sourceRecord和resultRecord应指向同一个Activity。
 
-- 2、处理app switch。 
+- 2、处理app switch。
 
 如果AMS当前禁止app switch，那么AMS会将本次请求保存起来，以待允许app switch时再进行处理。
 
-从代码可以看出，当AMS可以进行app switch时，在处理本次的请求前，会先调用doPendingActivityLaunchesLocked函数。 
+从代码可以看出，当AMS可以进行app switch时，在处理本次的请求前，会先调用doPendingActivityLaunchesLocked函数。
 
 doPendingActivityLaunchesLocked函数将启动之前因系统禁止app switch而保存的请求。
 
 - 3、调用startActivityUnchecked处理本次Activity的启动请求。
 
-在分析接下来的流程前，我们先看看app switch相关的内容。 
+在分析接下来的流程前，我们先看看app switch相关的内容。
 
-在AMS中，提供了两个函数stopAppSwitches和resumeAppSwitches，用于暂时禁止App切换及恢复切换。 
+在AMS中，提供了两个函数stopAppSwitches和resumeAppSwitches，用于暂时禁止App切换及恢复切换。
 这种需求的考虑是：当某些重要的Activity处于前台时，不希望系统因为用户操作之外的原因切换Activity。
 
-#### 1、stopAppSwitches 
+#### 1、stopAppSwitches
 先来看看stopAppSwitches：
 ```java
 public void stopAppSwitches() {
@@ -708,15 +712,15 @@ public void stopAppSwitches() {
 }
 ```
 
-对于上面的代码，需要注意两点： 
-- 1、此处的控制机制名为app switch，而不是Activity switch。 
-这是因为如果从受保护的Activity中启动另一个Activity，那么这个新的Activity的目的应该是针对同一个任务。 
+对于上面的代码，需要注意两点：
+- 1、此处的控制机制名为app switch，而不是Activity switch。
+这是因为如果从受保护的Activity中启动另一个Activity，那么这个新的Activity的目的应该是针对同一个任务。
 于是这次的启动就不应该受app switch的制约。
 
-- 2、执行stopAppSwitches后，应用程序应该调用resumeAppSwitches以允许app switch。 
+- 2、执行stopAppSwitches后，应用程序应该调用resumeAppSwitches以允许app switch。
 为了防止应用程序有意或者无意没调用resumeAppSwitches，在stopAppSwitches中设置了一个超时时间，过了此超时时间，系统会发送一个消息触发App Switch的操作。
 
-#### 2、resumeAppSwitches 
+#### 2、resumeAppSwitches
 现在我们看看resumeAppSwitches的代码：
 ```java
 public void resumeAppSwitches() {
@@ -732,14 +736,14 @@ public void resumeAppSwitches() {
 }
 ```
 
-从代码可以看出，resumeAppSwitches只设置了mAppSwitchesAllowedTime的值为0，它并不处理在stop和resume这段时间内积攒起的Pending请求。 
+从代码可以看出，resumeAppSwitches只设置了mAppSwitchesAllowedTime的值为0，它并不处理在stop和resume这段时间内积攒起的Pending请求。
 
-根据前面startActivityLocked函数，我们知道如果在执行resume app switch后，又有新的请求需要处理，则先调用doPendingActivityLaunchesLocked处理那些pending的请求。 
+根据前面startActivityLocked函数，我们知道如果在执行resume app switch后，又有新的请求需要处理，则先调用doPendingActivityLaunchesLocked处理那些pending的请求。
 
 此外，resumeAppSwitches函数中并没有撤销stopAppSwitches函数中设置的超时消息，所以当该消息被处理时，同样会触发处理pending请求的流程。
 
-## 五、startActivityUnchecked流程 
-顺着请求的处理流程，我们接下来看看startActivityUnchecked函数。 
+## 五、startActivityUnchecked流程
+顺着请求的处理流程，我们接下来看看startActivityUnchecked函数。
 startActivityUnchecked函数比较长，我们分段看一下。
 
 ### Part-I
@@ -759,7 +763,7 @@ private int startActivityUnchecked(.......) {
 ...................
 ```
 
-我们依次看看上述代码中的几个函数： 
+我们依次看看上述代码中的几个函数：
 - 1、setInitialState
 ```java
 private void setInitialState(.........) {
@@ -807,7 +811,7 @@ private void setInitialState(.........) {
 
 上面的这部分代码，有些参数的用途目前还不太清楚，没有进行记录，以后重新阅读时，再进行添加和修改。
 
-Activity启动时，Intent可以选择的Flag太多了，setInitialState对于一些不太常用的Flag也进行了判断。 
+Activity启动时，Intent可以选择的Flag太多了，setInitialState对于一些不太常用的Flag也进行了判断。
 因此，如果需要真正弄懂这一部分，还是要看看关于Intent中Flag相关的文档。
 
 - 2、computeLaunchingTaskFlags
@@ -902,9 +906,9 @@ private void computeLaunchingTaskFlags() {
 }
 ```
 
-如同函数名一样，这部分代码主要用于决策是否在LaunchFlags中添加FLAG_ACTIVITY_NEW_TASK。 
-主要的思想可以简化为： 
-- 1、如果参数中，指定了希望Activity加入的Task，同时这个Task确实可用（不与当前的LaunchFlags矛盾），那么mInTask和mReuseTask的值不为null，不需要添加FLAG_ACTIVITY_NEW_TASK。 
+如同函数名一样，这部分代码主要用于决策是否在LaunchFlags中添加FLAG_ACTIVITY_NEW_TASK。
+主要的思想可以简化为：
+- 1、如果参数中，指定了希望Activity加入的Task，同时这个Task确实可用（不与当前的LaunchFlags矛盾），那么mInTask和mReuseTask的值不为null，不需要添加FLAG_ACTIVITY_NEW_TASK。
 - 2、如果不满足1中的条件，即没有指定希望Activity加入的Task，或者指定的Task无法使用，在满足条件的情况下，会为LaunchFlags添加FLAG_ACTIVITY_NEW_TASK。
 
 简单的一句话就是：在正常情况下，若现存Task中，没有待启动Activity可以使用的，就重新为其创建一个。
@@ -941,17 +945,17 @@ private void computeSourceStack() {
 
 这一部分代码主要用于记录父Activity对应的TaskRecord信息。
 
-如同注释部分，当父Activity Finishing时，此父Activity对应Task不再作为新Activity的sourceStack，因为该Task有可能会被Android系统清理掉。 
+如同注释部分，当父Activity Finishing时，此父Activity对应Task不再作为新Activity的sourceStack，因为该Task有可能会被Android系统清理掉。
 
 在这种情况下，Android系统将创建新的Task作为sourceStack，同时使这个新Task的信息与父Activity原有sourceTask信息相同。
 
-至此，startActivityUnchecked的第一部分结束。 
+至此，startActivityUnchecked的第一部分结束。
 
-在这一部分中，代码主要判断Activity是否需要插入到现有Task中，同时当存在父Activity时，判断sourceTask是否有效。 
+在这一部分中，代码主要判断Activity是否需要插入到现有Task中，同时当存在父Activity时，判断sourceTask是否有效。
 
 所有的这些判断，最后都用于决策新启动的Activity是否需要携带FLAG_ACTIVITY_NEW_TASK标志，即是否需要新建一个Task对象。
 
-### Part-II 
+### Part-II
 接下来，我们看看startActivityUnchecked的第二部分。
 ```java
 ...................
@@ -1022,7 +1026,7 @@ if (mReusedActivity != null) {
 ..................
 ```
 
-这一段代码主要是针对复用Activity的场景，代码逻辑比较繁杂，但主要目的是： 
+这一段代码主要是针对复用Activity的场景，代码逻辑比较繁杂，但主要目的是：
 
     当判断新启动的Activity可以复用现有Task中的Activity时，则按照Activity的启动模式，对该Activity所在的Task执行相应的操作。
 
@@ -1067,7 +1071,7 @@ private ActivityRecord getReusableIntentActivity() {
             // There can be one and only one instance of single instance activity in the
             // history, and it is always in its own unique task, so we do a special search.
 
-            intentActivity = mSupervisor.findActivityLocked(mIntent, mStartActivity.info, false); 
+            intentActivity = mSupervisor.findActivityLocked(mIntent, mStartActivity.info, false);
         } else if ((mLaunchFlags & FLAG_ACTIVITY_LAUNCH_ADJACENT) != 0) {
             // For the launch adjacent case we only want to put the activity in an existing
             // task if the activity already exists in the history.
@@ -1084,15 +1088,15 @@ private ActivityRecord getReusableIntentActivity() {
 }
 ```
 
-这段代码参照注释，不难理解它的意思： 
+这段代码参照注释，不难理解它的意思：
 
 当我们启动一个Activity时，优先是想进行复用。因此，需要寻找匹配该Activity的Task。
 
-如果在启动参数中，指定了目标Task，那么显然需要利用ActivityStackSupervisor找到指定的Task。 
+如果在启动参数中，指定了目标Task，那么显然需要利用ActivityStackSupervisor找到指定的Task。
 
 如果指定的Task存在，那么新启动的Activity将插入到该Task的Top位置。
 
-如果启动参数未指定启动Task，那么就需要根据Activity信息，利用ActivityStackSupervisor在当前的Task中进行匹配了。 
+如果启动参数未指定启动Task，那么就需要根据Activity信息，利用ActivityStackSupervisor在当前的Task中进行匹配了。
 
 具体的匹配规则，在这里就不做进一步展开了。
 
@@ -1201,15 +1205,15 @@ private ActivityRecord setTargetStackAndMoveToFrontIfNeeded(ActivityRecord inten
 }
 ```
 
-这段代码背后的逻辑还是比较复杂的。 
+这段代码背后的逻辑还是比较复杂的。
 
 不过从代码来看，在正常的情况下，若待启动的Activity可以被复用，那么对应的Task会被移动到前台。
 
-至此，startActivityUnchecked第二部分代码分析完毕。 
+至此，startActivityUnchecked第二部分代码分析完毕。
 
-这部分代码我略去了很多的细节，但仍然很难一眼就看懂。 
+这部分代码我略去了很多的细节，但仍然很难一眼就看懂。
 
-目前，我们仅需要记住这段代码的核心目的：当发现待启动的Activity可以复用时，在必要时将对应的Task移动到前台。 
+目前，我们仅需要记住这段代码的核心目的：当发现待启动的Activity可以复用时，在必要时将对应的Task移动到前台。
 
 至于其它的判断分支，主要依赖于启动模式之类的信息。
 
@@ -1301,11 +1305,11 @@ if (mDoResume) {
 ..............
 ```
 
-startActivityUnchecked第三部分代码最核心的内容是：决定是否为待启动的Activity创建对应的Task，同时将Activity和Task关联起来。 
+startActivityUnchecked第三部分代码最核心的内容是：决定是否为待启动的Activity创建对应的Task，同时将Activity和Task关联起来。
 
 最后，调用ActivityStackSupervisor的resumeFocusedStackTopActivityLocked函数。
 
-## 六、resumeFocusedStackTopActivityLocked流程 
+## 六、resumeFocusedStackTopActivityLocked流程
 顺着代码流程，我们看看ActivityStackSupervisor中的resumeFocusedStackTopActivityLocked函数：
 ```java
 boolean resumeFocusedStackTopActivityLocked(
@@ -1466,31 +1470,31 @@ private boolean resumeTopActivityInnerLocked(ActivityRecord prev, ActivityOption
 }
 ```
 
-resumeTopActivityInnerLocked函数非常繁琐，但整体来讲应该只有两个比较关键的地方： 
-##### 1、如果mResumedActivity不为空，则需要先暂停这个Activity。 
+resumeTopActivityInnerLocked函数非常繁琐，但整体来讲应该只有两个比较关键的地方：
+##### 1、如果mResumedActivity不为空，则需要先暂停这个Activity。
 
-mResumedActivity代表当前已经存在于界面的Activity。当需要启动一个新的Activity时，需要先停止当前的Activity。 
+mResumedActivity代表当前已经存在于界面的Activity。当需要启动一个新的Activity时，需要先停止当前的Activity。
 
 这部分工作由startPausingLocked函数来完成。
 
 当前的Activity被中断后，将重新启动新的Activity。
 
-##### 2、当mResumedActivity为空时，若待启动的Activity对应的应用存在，那么仅需要重新启动该Activity； 
+##### 2、当mResumedActivity为空时，若待启动的Activity对应的应用存在，那么仅需要重新启动该Activity；
 
 否则，需要调用ActivityStackSupervisor的startSpecificActivityLocked函数，启动整个进程。
 
-需要说明的是： 
-- 1、当系统启动第一个Activity，即Home时，mResumedActivity的值才会为null。 
+需要说明的是：
+- 1、当系统启动第一个Activity，即Home时，mResumedActivity的值才会为null。
 因此，即使我们以脚本的方式，启动一个Activity，也必须先中断当前的界面，才能进行后续的操作。
 
-- 2、分析startPausingLocked函数时，将涉及到当前界面对应的进程、新启动Activity所在的进程，与AMS之间的交互，整体比较复杂。 
+- 2、分析startPausingLocked函数时，将涉及到当前界面对应的进程、新启动Activity所在的进程，与AMS之间的交互，整体比较复杂。
 
-因此还是先从简单的情况入手，看看直接启动新Activity所在进程的startSpecificActivityLocked函数。 
+因此还是先从简单的情况入手，看看直接启动新Activity所在进程的startSpecificActivityLocked函数。
 
 从逻辑上看，猜测startPausingLocked函数中断现有Activity后，最终也会调用startSpecificActivityLocked启动新Activity。
 
 
-## 七、startSpecificActivityLocked流程 
+## 七、startSpecificActivityLocked流程
 现在我们跟进一下startSpecificActivityLocked函数：
 ```java
 void startSpecificActivityLocked(ActivityRecord r,
@@ -1788,19 +1792,19 @@ private final void startProcessLocked(......) {
 
 至此，startSpecificActivityLocked函数分析完毕，Android系统开始通过创建zygote创建应用进程。
 
-## 总结 
-至此，AMS启动Activity的第一部分分析完毕。后续部分可以参考启动Activity的过程：二 
+## 总结
+至此，AMS启动Activity的第一部分分析完毕。后续部分可以参考启动Activity的过程：二
 
-这一部分相对比较杂乱，需要考虑Activity的启动模式、Intent Flags等信息，以决定Activity与Task之间的关系。 
+这一部分相对比较杂乱，需要考虑Activity的启动模式、Intent Flags等信息，以决定Activity与Task之间的关系。
 
-这部分代码还需要判断Activity是否复用，是否需要移动对应的Task到前台，及在必要时，按照启动模式和Intent Flags对Task中的内容进行调整。 
+这部分代码还需要判断Activity是否复用，是否需要移动对应的Task到前台，及在必要时，按照启动模式和Intent Flags对Task中的内容进行调整。
 
 最后，判断Activity对应的进程是否存在。若对应进程存在，进需要重启Activity；否则，需要发送消息给zygote启动进程。
 
 
-整体来讲，这部分代码的流程基本可以用下图表示： 
+整体来讲，这部分代码的流程基本可以用下图表示：
 
-大图地址
+![图7](/images/androig-n-ams/start-1-7.jpg)
 
-自己对AMS的驾驭能力还不够，不能较好地精炼出最核心的流程，因此这部分分析不够简洁， 
+自己对AMS的驾驭能力还不够，不能较好地精炼出最核心的流程，因此这部分分析不够简洁，
 目前的分析只能算作一个代码阅读笔记，如有不恰当的地方，欢迎指正。
