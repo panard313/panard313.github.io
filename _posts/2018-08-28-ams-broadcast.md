@@ -173,7 +173,7 @@ localBroadcastManager.sendBroadcast(intent);
 ## 二、registerReceiver流程分析 
 现在我们看一下广播相关的源码，先从BroadcastReceiver的动态注册流程开始分析。
 
-#### 1 ContextImpl中的registerReceiver 
+### 1 ContextImpl中的registerReceiver 
 
 动态注册BroadcastReceiver，将使用Context中定义的registerReceiver函数，具体的实现定义于ContextImpl中：
 ```java
@@ -349,7 +349,7 @@ final class AsyncHandler {
 但整个操作仍然需要保证在10s内返回结果，尤其是处理有序广播和静态广播时。 
 毕竟AMS必须要收到返回结果后，才能向下一个BroadcastReceiver发送广播。
 
-#### 2 AMS中的registerReceiver 
+### 2 AMS中的registerReceiver 
 AMS的registerReceiver函数被调用时，将会保存BroadcastReceiver对应的Binder通信端，我们一起来看看这部分的代码：
 ```java
 public Intent registerReceiver(IApplicationThread caller, String callerPackage,
@@ -588,7 +588,7 @@ public final int broadcastIntent(IApplicationThread caller,
 broadcastIntent中对Broadcast对应的Intent进行一些检查后，调用broadcastIntentLocked进行实际的处理。 
 broadcastIntentLocked函数非常长，大概600行左右吧…….我们只能分段看看它的主要思路。
 
-#### 1 broadcastIntentLocked函数Part I
+### 1 broadcastIntentLocked函数Part I
 ```java
 final int broadcastIntentLocked(.....) {
     intent = new Intent(intent);
@@ -619,7 +619,7 @@ final int broadcastIntentLocked(.....) {
 - 1、根据广播对应Intent中的信息，判断发送方是否有发送该广播的权限； 
 - 2、针对一些特殊的广播，AMS需要进行一些操作。
 
-#### 2 broadcastIntentLocked函数Part II
+### 2 broadcastIntentLocked函数Part II
 ```java
 ..............
 // Add to the sticky list if requested.
@@ -704,7 +704,7 @@ if (sticky) {
 broadcastIntentLocke第二部分主要是处理粘性广播的，整个功能比较清晰， 
 即判断发送粘性广播的条件是否满足，然后将粘性广播保存起来。
 
-#### 3 broadcastIntentLocked函数Part III
+### 3 broadcastIntentLocked函数Part III
 ```java
 .............
 // Figure out who all will receive this broadcast.
@@ -804,7 +804,7 @@ broadcastIntentLocke第三部分的工作主要包括：
 
 从这部分代码可以看出，对于无序广播而言，动态注册的BroadcastReceiver接收广播的优先级，高于静态注册的BroadcastReceiver。
 
-#### 4 broadcastIntentLocked函数Part IV
+### 4 broadcastIntentLocked函数Part IV
 ```java
 .................
 // Merge into one list.
@@ -970,7 +970,7 @@ public void scheduleBroadcastsLocked() {
 上面的代码将发送BROADCAST_INTENT_MSG，触发BroadcastQueue调用processNextBroadcast进行处理。 
 processNextBroadcast函数同样非常的长，大概有500多行。。。。我们还是分段进行分析。
 
-#### 1 processNextBroadcast函数Part I
+### 1 processNextBroadcast函数Part I
 ```java
 final void processNextBroadcast(boolean fromMsg) {
     synchronized(mService) {
@@ -1170,7 +1170,7 @@ void performReceiveLocked(.........) {
 
 ![图5](/images/android-n-ams/broadcast-5.jpg)
 
-#### 2 processNextBroadcast函数Part II 
+### 2 processNextBroadcast函数Part II 
 至此，processNextBroadcast函数已经发送完所有的动态普通广播，我们看看该函数后续的流程：
 ```java
 ..........
@@ -1302,11 +1302,11 @@ do {
 ```
 
 这一部分代码，乍一看有点摸不着头脑的感觉，其实主要做了两个工作： 
-##### 1、判断是否有PendingBroadcast。 
+#### 1、判断是否有PendingBroadcast。 
 
 当存在PendingBroadcast，且当前正在等待启动的进程并没有死亡，那么不能处理下一个BroadcastRecord，必须等待PendingBroadcast处理完毕。
 
-##### 2、处理mOrderedBroadcasts中的BroadcastRecord 
+#### 2、处理mOrderedBroadcasts中的BroadcastRecord 
 
 由于有序广播和静态广播，必须一个接一个的处理。 
 因此每发送完一个广播后，均会重新调用processNextBroadcast函数。
@@ -1327,7 +1327,7 @@ do {
 大图链接
 ![图6](/images/android-n-ams/broadcast-6.jpg)
 
-#### 3 processNextBroadcast函数Part III
+### 3 processNextBroadcast函数Part III
 ```java
 ..............
 // Get the next receiver...
@@ -1395,7 +1395,7 @@ processNextBroadcast的第3部分，主要是处理有序广播发往动态Broad
 从代码可以看出，有序广播具体的方法流程与普通广播一致，均是调用deliverToRegisteredReceiverLocked函数。 
 唯一不同的是，有序广播发往一个BroadcastReceiver后，必须等待处理结果，才能进行下一次发送过程。
 
-#### 4 processNextBroadcast函数 Part IV
+### 4 processNextBroadcast函数 Part IV
 ```java
 ...................
 // Hard case: need to instantiate the receiver, possibly

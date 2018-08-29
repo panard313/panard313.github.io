@@ -690,7 +690,7 @@ doPendingActivityLaunchesLocked函数将启动之前因系统禁止app switch而
 在AMS中，提供了两个函数stopAppSwitches和resumeAppSwitches，用于暂时禁止App切换及恢复切换。
 这种需求的考虑是：当某些重要的Activity处于前台时，不希望系统因为用户操作之外的原因切换Activity。
 
-#### 1、stopAppSwitches
+### 1、stopAppSwitches
 先来看看stopAppSwitches：
 ```java
 public void stopAppSwitches() {
@@ -720,7 +720,7 @@ public void stopAppSwitches() {
 - 2、执行stopAppSwitches后，应用程序应该调用resumeAppSwitches以允许app switch。
 为了防止应用程序有意或者无意没调用resumeAppSwitches，在stopAppSwitches中设置了一个超时时间，过了此超时时间，系统会发送一个消息触发App Switch的操作。
 
-#### 2、resumeAppSwitches
+### 2、resumeAppSwitches
 现在我们看看resumeAppSwitches的代码：
 ```java
 public void resumeAppSwitches() {
@@ -1471,7 +1471,7 @@ private boolean resumeTopActivityInnerLocked(ActivityRecord prev, ActivityOption
 ```
 
 resumeTopActivityInnerLocked函数非常繁琐，但整体来讲应该只有两个比较关键的地方：
-##### 1、如果mResumedActivity不为空，则需要先暂停这个Activity。
+### 1、如果mResumedActivity不为空，则需要先暂停这个Activity。
 
 mResumedActivity代表当前已经存在于界面的Activity。当需要启动一个新的Activity时，需要先停止当前的Activity。
 
@@ -1479,7 +1479,7 @@ mResumedActivity代表当前已经存在于界面的Activity。当需要启动�
 
 当前的Activity被中断后，将重新启动新的Activity。
 
-##### 2、当mResumedActivity为空时，若待启动的Activity对应的应用存在，那么仅需要重新启动该Activity；
+### 2、当mResumedActivity为空时，若待启动的Activity对应的应用存在，那么仅需要重新启动该Activity；
 
 否则，需要调用ActivityStackSupervisor的startSpecificActivityLocked函数，启动整个进程。
 
