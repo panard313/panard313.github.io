@@ -1,7 +1,7 @@
 ---
 layout: article
 title: 启动Activity的过程：二
-key: 20180827
+key: 20180828
 tags:
   - ActivityManagerService
   - ams

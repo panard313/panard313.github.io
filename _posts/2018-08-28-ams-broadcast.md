@@ -1,7 +1,7 @@
 ---
 layout: article
 title: 广播(Broadcast)相关流程分析
-key: 20180827
+key: 20180828
 tags:
   - ActivityManagerService
   - ams
@@ -12,23 +12,23 @@ lang: zh-Hans
 # 广播(Broadcast)相关流程分析
 
 
-## 一、基础知识 
-广播（Broadcast）是一种Android组件间的通信方式。 
+## 一、基础知识
+广播（Broadcast）是一种Android组件间的通信方式。
 
-从本质上来看，广播信息的载体是intent。在这种通信机制下，发送intent的对象就是广播发送方，接收intent的对象就是广播接收者。 
+从本质上来看，广播信息的载体是intent。在这种通信机制下，发送intent的对象就是广播发送方，接收intent的对象就是广播接收者。
 在Android中，为广播接收者定义了一个单独的组件：BroadcastReceiver。
 
-### 1 BroadcastReceiver的注册类型 
-在监听广播前，要将BroadcastReceiver注册到系统中。 
+### 1 BroadcastReceiver的注册类型
+在监听广播前，要将BroadcastReceiver注册到系统中。
 
 BroadcastReceiver总体上可以分为两种注册类型：静态注册和动态注册。
 
-#### 静态注册 
-静态注册是指：通过在AndroidManifest.xml中声明receiver标签，来定义BroadcastReceiver。 
+#### 静态注册
+静态注册是指：通过在AndroidManifest.xml中声明receiver标签，来定义BroadcastReceiver。
 
 PKMS初始化时，通过解析Application的AndroidManifest.xml，就能得到所有静态注册的BroadcastReceiver信息。
 
-当广播发往这种方式注册的BroadcastReceiver时，若该BroadcastReceiver对应的进程没有启动， 
+当广播发往这种方式注册的BroadcastReceiver时，若该BroadcastReceiver对应的进程没有启动，
 AMS需要先启动对应的进程，然后利用Java反射机制构造出BroadcastReceiver，然后才能开始后续的处理。
 
 在AndroidManifest.xml中定义BroadcastReceiver时，对应的标签类似于如下形式：
@@ -45,54 +45,54 @@ AMS需要先启动对应的进程，然后利用Java反射机制构造出Broadca
     </intent-filter>
 </receiver>
 ```
-其中： 
+其中：
 - android:enabled表示此broadcastReceiver是否可用，默认值为true。
 
-- android:exported表示此broadcastReceiver能否接收其它App的发出的广播； 
+- android:exported表示此broadcastReceiver能否接收其它App的发出的广播；
 如果标签中定义了intent-filter字段，则此值默认值为true，否则为false。
 
 - android:name表示BroadcastReceiver的类名。
 
-- android:permission用于指定广播发送方应该具有的权限； 
+- android:permission用于指定广播发送方应该具有的权限；
 即具有对应权限的发送者，才能通过AMS将广播发送给此broadcastReceiver；
 
-- android:process表示broadcastReceiver运行的进程； 
+- android:process表示broadcastReceiver运行的进程；
 BroadcastReceiver默认运行在当前app的进程中，也可以通过此字段指定其运行于其它独立的进程。
 
 - intent-filter用于指定该broadcastReceiver接收广播的类型。
 
-#### 动态注册 
-与静态注册不同，动态注册是指： 
+#### 动态注册
+与静态注册不同，动态注册是指：
 
-应用程序在运行过程中，调用Context的registerReceiver函数注册BroadcastReceiver； 
+应用程序在运行过程中，调用Context的registerReceiver函数注册BroadcastReceiver；
 
 当应用程序不再需要监听广播时，则需要调用unregisterReceiver函数进行反注册。
 
-动态注册BroadcastReceiver时，需要指定对应的IntentFilter。 
-IntentFilter用于描述该BroadcastReceiver期待接受的广播类型。 
+动态注册BroadcastReceiver时，需要指定对应的IntentFilter。
+IntentFilter用于描述该BroadcastReceiver期待接受的广播类型。
 同时，动态注册时也可以指定该BroadcastReceiver要求的权限。
 
 ### 2 广播的种类
 
 从广播的发送特点来看，可以将Android中定义的广播分为以下几类：
 
-#### 普通广播 
+#### 普通广播
 
 普通广播由发送方调用sendBroadcast及相关重载函数发送。
 
-AMS转发这种类型的广播时，根据BroadcastReceiver的注册方式，进行不同的处理流程。 
-- 对于动态注册的广播，理论上可以认为，AMS将在同一时刻，向所有监听此广播的BroadcastReceiver发送消息，因此整体的消息传递的效率比较高。 
+AMS转发这种类型的广播时，根据BroadcastReceiver的注册方式，进行不同的处理流程。
+- 对于动态注册的广播，理论上可以认为，AMS将在同一时刻，向所有监听此广播的BroadcastReceiver发送消息，因此整体的消息传递的效率比较高。
 - 对于静态注册的广播，AMS将按照有序广播的方式，向BroadcastReceiver发送消息。
 
-#### 有序广播 
+#### 有序广播
 
 有序广播由发送方调用sendOrderedBroadcast及相关重载函数发送，是一种串行的广播发送方式。
 
-处理这种类型的广播时，AMS会按照优先级，将广播依次分发给BroadcastReceiver。 
+处理这种类型的广播时，AMS会按照优先级，将广播依次分发给BroadcastReceiver。
 
-AMS收到上一个BroadcastReceiver处理完毕的消息后，才会将广播发送给下一个BroadcastReceiver。 
+AMS收到上一个BroadcastReceiver处理完毕的消息后，才会将广播发送给下一个BroadcastReceiver。
 
-其中，任意一个BroadcastReceiver，都可以中止后续的广播分发流程。 
+其中，任意一个BroadcastReceiver，都可以中止后续的广播分发流程。
 
 同时，上一个BroadcastReceiver可以将额外的信息添加到广播中。
 
@@ -100,55 +100,55 @@ AMS收到上一个BroadcastReceiver处理完毕的消息后，才会将广播发
 
 静态注册的BroadcastReceiver仅申明在AndroidManifest.xml中，因此其所在的进程可能并没有启动。
 
-当AMS向这些BroadcastReceiver发送消息时，可能必须先启动对应的进程。 
-如果同时向静态注册的BroadcastReceiver发送广播，那么可能需要在一段时间内同时创建出大量的进程， 
+当AMS向这些BroadcastReceiver发送消息时，可能必须先启动对应的进程。
+如果同时向静态注册的BroadcastReceiver发送广播，那么可能需要在一段时间内同时创建出大量的进程，
 这将对系统造成极大的负担。
 
-若以有序广播的方式来发送，那么系统可以依次创建进程， 
-同时，每次收到上一个广播处理完毕的消息后，都可以尝试清理掉无用的进程。 
+若以有序广播的方式来发送，那么系统可以依次创建进程，
+同时，每次收到上一个广播处理完毕的消息后，都可以尝试清理掉无用的进程。
 这样即可以避免突发创建大量的进程，又可以及时回收一些系统资源。
 
-因此从Android的设计方式可以看出，从接收广播的效率来讲： 
-- 排在第一的是，接收普通广播的动态注册的BroadcastReceiver， 
-- 其次是，接收有序广播的动态注册的BroadcastReceiver； 
-- 最后是，静态注册的BroadcastReceiver，此时接收的广播是否有序，已经不重要了。 
+因此从Android的设计方式可以看出，从接收广播的效率来讲：
+- 排在第一的是，接收普通广播的动态注册的BroadcastReceiver，
+- 其次是，接收有序广播的动态注册的BroadcastReceiver；
+- 最后是，静态注册的BroadcastReceiver，此时接收的广播是否有序，已经不重要了。
 
 实际上，源码就是按这种顺序来处理的，我们后面将进行深入分析。
 
-#### 粘性广播 
-粘性广播由发送方调用sendStickyBroadcast及相关重载函数发送。 
+#### 粘性广播
+粘性广播由发送方调用sendStickyBroadcast及相关重载函数发送。
 
 需要注意的是，目前这种广播已经被附上Deprecated标签了，不再建议使用。
 
-Android设计这种广播的初衷是： 
+Android设计这种广播的初衷是：
 
-正常情况下，假设发送方发送了一个普通广播A。 
+正常情况下，假设发送方发送了一个普通广播A。
 在广播A发送完毕后，系统中新注册了一个BroadcastReceiver，此时这个BroadcastReceiver是无法收到广播A的。
 
-但是，如果发送方发送的是一个粘性广播B，那么系统将负责存储该粘性广播。 
+但是，如果发送方发送的是一个粘性广播B，那么系统将负责存储该粘性广播。
 于是，即使BroadcastReceiver在广播B发送完后才注册到系统，这个BroadcastReceiver也会立即收到AMS转发的广播B。
 
-粘性广播和有序广播等概念实际上不是冲突的。 
+粘性广播和有序广播等概念实际上不是冲突的。
 粘性仅仅强调系统将会保存这个广播，它的其它处理过程与上文一致。
 
-### 3 适时地限制广播发送范围 
-从上文可知，对于定义了intent-filter的BroadcastReceiver而言，其exported属性默认为true。 
+### 3 适时地限制广播发送范围
+从上文可知，对于定义了intent-filter的BroadcastReceiver而言，其exported属性默认为true。
 这种设计是符合预期的，毕竟我们使用广播的目的，就是使得属于不同应用、不同进程的组件能够彼此通信。
 
-但在某些场景下，这种设计也可能带来一些安全隐患： 
-- 1.其它App可能会针对性的发出与当前App intent-filter相匹配的广播，导致当前App不断接收到广播并处理； 
+但在某些场景下，这种设计也可能带来一些安全隐患：
+- 1.其它App可能会针对性的发出与当前App intent-filter相匹配的广播，导致当前App不断接收到广播并处理；
 - 2.其它App可以注册与当前App一致的intent-filter用于接收广播，获取广播具体信息。
 
-因此，在必要的时候，需要适时地限制广播发送范围，例如： 
-- 1.对于同一App内部发送和接收广播，将exported属性设置成false； 
-- 2.在广播发送和接收时，都增加上相应的permission； 
+因此，在必要的时候，需要适时地限制广播发送范围，例如：
+- 1.对于同一App内部发送和接收广播，将exported属性设置成false；
+- 2.在广播发送和接收时，都增加上相应的permission；
 - 3.发送广播时，指定BroadcastReceiver对应的包名。
 
 通过以上三种方式，可以缩小广播的发送和接收范围，提高效率和安全性。
 
-实际上，在framework/support/v4/java/android/support/v4/content目录下，Android定义了LocalBroadcastManager类，用于发送和接收仅在同一个App应用内传递的广播。 
+实际上，在framework/support/v4/java/android/support/v4/content目录下，Android定义了LocalBroadcastManager类，用于发送和接收仅在同一个App应用内传递的广播。
 
-这个类仅针对动态注册的BroadcastReceiver有效，具体的使用方式与普通的全局广播类似， 
+这个类仅针对动态注册的BroadcastReceiver有效，具体的使用方式与普通的全局广播类似，
 只是注册/反注册BroadcastReceiver和发送广播时，将Context变成了LocalBroadcastManager。
 
 举例如下：
@@ -156,13 +156,13 @@ Android设计这种广播的初衷是：
 //registerReceiver
 localBroadcastManager = LocalBroadcastManager.getInstance(this);
 localBroadcastManager.registerReceiver(mBroadcastReceiver, intentFilter);
-..........     
+..........
 
 //unregisterReceiver
 localBroadcastManager.unregisterReceiver(mBroadcastReceiver);
 ..........
 
-//send broadcast 
+//send broadcast
 Intent intent = new Intent();
 intent.setAction("Test");
 localBroadcastManager.sendBroadcast(intent);
@@ -170,10 +170,10 @@ localBroadcastManager.sendBroadcast(intent);
 ```
 以上是Android中关于广播的基础知识，接下来进入到实际的源码分析。
 
-## 二、registerReceiver流程分析 
+## 二、registerReceiver流程分析
 现在我们看一下广播相关的源码，先从BroadcastReceiver的动态注册流程开始分析。
 
-### 1 ContextImpl中的registerReceiver 
+### 1 ContextImpl中的registerReceiver
 
 动态注册BroadcastReceiver，将使用Context中定义的registerReceiver函数，具体的实现定义于ContextImpl中：
 ```java
@@ -244,65 +244,65 @@ private Intent registerReceiverInternal(BroadcastReceiver receiver, int userId,
 }
 ```
 
-以上代码中主要的工作是： 
+以上代码中主要的工作是：
 
-创建BroadcastReceiver对应的ReceiverDispatcher，得到ReceiverDispatcher内部的IIntentReceiver对象， 
+创建BroadcastReceiver对应的ReceiverDispatcher，得到ReceiverDispatcher内部的IIntentReceiver对象，
 然后利用Binder通信将该对象连同BroadcastReceiver的其它信息注册到AMS中。
 
-IIntentReceiver对应的继承关系如下图所示： 
+IIntentReceiver对应的继承关系如下图所示：
 
 ![图1](/images/android-n-ams/broadcast-1.jpg)
 
-结合上图，我们需要知道的是： 
-- 1、BroadcastReceiver收到的广播实际上是AMS发送的，因此BroadcastReceiver与AMS之间必须进行Binder通信。 
+结合上图，我们需要知道的是：
+- 1、BroadcastReceiver收到的广播实际上是AMS发送的，因此BroadcastReceiver与AMS之间必须进行Binder通信。
 
 从类图可以看出，BroadcastReceiver及其内部成员并没有直接继承Binder类。
 
-负责与AMS通信的，实际上是定义于LoadedApk中的InnerReceiver类，该类继承IIntentReceiver.Stub，作为Binder通信的服务端。 
+负责与AMS通信的，实际上是定义于LoadedApk中的InnerReceiver类，该类继承IIntentReceiver.Stub，作为Binder通信的服务端。
 从上文的代码可以看出，注册BroadcastReceiver时，会将该对象注册到AMS中供其回调。
 
-当InnerReceiver收到AMS的通知后，将会调用ReceiverDispatcher进行处理。 
+当InnerReceiver收到AMS的通知后，将会调用ReceiverDispatcher进行处理。
 由于ReceiverDispatcher持有了实际的BroadcastReceiver，于是最终将广播递交给BroadcastReceiver的onReceive函数进行处理。
 
-以上的设计思路实际上是： 
+以上的设计思路实际上是：
 
-将业务接口（处理广播的BroadcastReceiver类）与通信接口（InnerReceiver类）分离，由统一的管理类（ReceiverDispatcher）进行衔接。 
+将业务接口（处理广播的BroadcastReceiver类）与通信接口（InnerReceiver类）分离，由统一的管理类（ReceiverDispatcher）进行衔接。
 这基本是Java层使用Binder通信的标配，AIDL本身也是这种思路。
 
 - 2、BroadcastRecevier中定义了一个PendingResult类，该类用于异步处理广播消息。
 
-从上文的代码我们知道了，如果没有明确指定BroadcastReceiver对应的handler，那么其onReceive函数将在主线程中被调用。 
-因此当onReceive中需要执行较耗时的操作时，会阻塞主线程，影响用户体验。 
+从上文的代码我们知道了，如果没有明确指定BroadcastReceiver对应的handler，那么其onReceive函数将在主线程中被调用。
+因此当onReceive中需要执行较耗时的操作时，会阻塞主线程，影响用户体验。
 为了解决这种问题，可以在onReceive函数中采用异步的方式处理广播消息。
 
-一提到异步的方式处理广播消息，大家可能会想到在BroadcastReceiver的onReceive中单独创建线程来处理广播消息。 
+一提到异步的方式处理广播消息，大家可能会想到在BroadcastReceiver的onReceive中单独创建线程来处理广播消息。
 然而，这样做存在一些问题。
 
-例如： 
+例如：
 
-对于一个静态注册的BroadcastReceiver 对象，对应的进程初始时可能并没有启动。 
-当AMS向这个BroadcastReceiver对象发送广播时，才会先启动对应的进程。 
-一旦BroadcastReceiver对象处理完广播，i并将返回结果通知给AMS后，AMS就有可能清理掉对应进程。 
-因此，若在onReceive中创建线程处理问题，那么onReceive函数就可能在线程完成工作前返回，导致AMS提前销毁进程。 
+对于一个静态注册的BroadcastReceiver 对象，对应的进程初始时可能并没有启动。
+当AMS向这个BroadcastReceiver对象发送广播时，才会先启动对应的进程。
+一旦BroadcastReceiver对象处理完广播，i并将返回结果通知给AMS后，AMS就有可能清理掉对应进程。
+因此，若在onReceive中创建线程处理问题，那么onReceive函数就可能在线程完成工作前返回，导致AMS提前销毁进程。
 此时，线程也会消亡，使得工作并没有有效完成。
 
-为了解决这个问题，就可以用到BroadcastReceiver提供的PendingResult。 
+为了解决这个问题，就可以用到BroadcastReceiver提供的PendingResult。
 
-具体的做法是： 
+具体的做法是：
 
-先调用BroadcastReceiver的goAsync函数得到一个PendingResult对象， 
-然后将该对象放到工作线程中去释放。 
-这样onReceive函数就可以立即返回而不至于阻塞主线程。 
-同时，Android系统将保证BroadcastReceiver对应进程的生命周期， 
+先调用BroadcastReceiver的goAsync函数得到一个PendingResult对象，
+然后将该对象放到工作线程中去释放。
+这样onReceive函数就可以立即返回而不至于阻塞主线程。
+同时，Android系统将保证BroadcastReceiver对应进程的生命周期，
 直到工作线程处理完广播消息后，调用PendingResult的finish函数为止。
 
-其中原理是： 
+其中原理是：
 
-正常情况下，BroadcastReceiver在onReceive函数结束后， 
+正常情况下，BroadcastReceiver在onReceive函数结束后，
 判断PendingResult不为null，才会将处理完毕的信息通知给AMS。
 
-一旦调用BroadcastReceiver的goAsync函数，就会将BroadcastReceiver中的PendingResult置为null， 
-因此即使onReceive函数返回，也不会将信息通知给AMS。 
+一旦调用BroadcastReceiver的goAsync函数，就会将BroadcastReceiver中的PendingResult置为null，
+因此即使onReceive函数返回，也不会将信息通知给AMS。
 AMS也就不会处理BroadcastReceiver对应的进程。
 
 待工作线程调用PendingResult的finish函数时，才会将处理完毕的信息通知给AMS。
@@ -313,43 +313,43 @@ private class MyBroadcastReceiver extends BroadcastReceiver {
     ..................
     public void onReceive(final Context context, final Intent intent) {
         //得到PendingResult
-        final PendingResult result = goAsync();  
+        final PendingResult result = goAsync();
 
         //放到异步线程中执行
-        AsyncHandler.post(new Runnable() {  
-            @Override  
-            public void run() {  
-                handleIntent(context, intent);//可进行一些耗时操作  
-                result.finish();  
-            }  
-        });  
-    } 
+        AsyncHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                handleIntent(context, intent);//可进行一些耗时操作
+                result.finish();
+            }
+        });
+    }
 }
 
-final class AsyncHandler {  
-    private static final HandlerThread sHandlerThread = new HandlerThread("AsyncHandler");  
-    private static final Handler sHandler;  
+final class AsyncHandler {
+    private static final HandlerThread sHandlerThread = new HandlerThread("AsyncHandler");
+    private static final Handler sHandler;
 
-    static {  
-        sHandlerThread.start();  
-        sHandler = new Handler(sHandlerThread.getLooper());  
-    }  
+    static {
+        sHandlerThread.start();
+        sHandler = new Handler(sHandlerThread.getLooper());
+    }
 
-    public static void post(Runnable r) {  
-        sHandler.post(r);  
-    }  
+    public static void post(Runnable r) {
+        sHandler.post(r);
+    }
 
-    private AsyncHandler() {}  
-}  
+    private AsyncHandler() {}
+}
 ```
 
-需要注意的是： 
+需要注意的是：
 
-在onReceive函数中执行异步操作，主要目的是避免一些操作阻塞了主线程， 
-但整个操作仍然需要保证在10s内返回结果，尤其是处理有序广播和静态广播时。 
+在onReceive函数中执行异步操作，主要目的是避免一些操作阻塞了主线程，
+但整个操作仍然需要保证在10s内返回结果，尤其是处理有序广播和静态广播时。
 毕竟AMS必须要收到返回结果后，才能向下一个BroadcastReceiver发送广播。
 
-### 2 AMS中的registerReceiver 
+### 2 AMS中的registerReceiver
 AMS的registerReceiver函数被调用时，将会保存BroadcastReceiver对应的Binder通信端，我们一起来看看这部分的代码：
 ```java
 public Intent registerReceiver(IApplicationThread caller, String callerPackage,
@@ -501,40 +501,40 @@ public Intent registerReceiver(IApplicationThread caller, String callerPackage,
     }
 }
 ```
-至此，AMS中registerReceiver的流程结束。 
+至此，AMS中registerReceiver的流程结束。
 
-这个函数看起来很长，但主要工作还是比较清晰的，一共可以分为两个部分： 
+这个函数看起来很长，但主要工作还是比较清晰的，一共可以分为两个部分：
 
-- 1、将BroadcastReceiver对应的信息保存到AMS中，同时为当前使用的IntentFilter生成对应的BroadcastFilter。 
+- 1、将BroadcastReceiver对应的信息保存到AMS中，同时为当前使用的IntentFilter生成对应的BroadcastFilter。
 当AMS发送广播时，将根据广播和BroadcastFilter的匹配情况，决定是否为BroadcastReceiver发送消息。
 
-- 2、单独对粘性广播进行处理。 
-由于粘性广播有立即发送的特点，因此当有新的BroadcastReceiver注册到AMS后， 
-AMS需要判断系统中保存的粘性广播中，是否有与该BroadcastReceiver匹配的。 
-若有与新注册BroadcastReceiver匹配的粘性广播，那么AMS为这些广播构造BroadcastRecord， 
+- 2、单独对粘性广播进行处理。
+由于粘性广播有立即发送的特点，因此当有新的BroadcastReceiver注册到AMS后，
+AMS需要判断系统中保存的粘性广播中，是否有与该BroadcastReceiver匹配的。
+若有与新注册BroadcastReceiver匹配的粘性广播，那么AMS为这些广播构造BroadcastRecord，
 并将其加入到发送队列中，同时发送消息触发AMS的广播发送流程。
 
-上述代码的整个过程，还是比较好理解的，唯一麻烦一点的就是涉及到了一些数据结构，需要稍微整理一下： 
+上述代码的整个过程，还是比较好理解的，唯一麻烦一点的就是涉及到了一些数据结构，需要稍微整理一下：
 
 ![图2](/images/android-n-ams/broadcast-2.jpg)
 
-在AMS中，BroadcastReceiver的过滤条件由BroadcastFilter表示，如上图所示，该类继承自IntentFilter。 
+在AMS中，BroadcastReceiver的过滤条件由BroadcastFilter表示，如上图所示，该类继承自IntentFilter。
 
-由于一个BroadcastReceiver可以设置多个过滤条件，故AMS使用ReceiverList来记录一个BroadcastReceiver对应的所有BroadcastFilter。 
-同时，BroadcastFilter中持有对ReceiverList的引用，用于记录自己属于哪个ReceiverList； 
+由于一个BroadcastReceiver可以设置多个过滤条件，故AMS使用ReceiverList来记录一个BroadcastReceiver对应的所有BroadcastFilter。
+同时，BroadcastFilter中持有对ReceiverList的引用，用于记录自己属于哪个ReceiverList；
 ReceiverList中也保存着对IIntentReceiver的引用，用于记录自己对应于哪个BroadcastReceiver。
 
-AMS中利用mRegisterdReceivers这个HashMap，来保存广播对应的ReceiverList，其中的键值就是BroadcastReceiver对应的IIntentReceiver。 
+AMS中利用mRegisterdReceivers这个HashMap，来保存广播对应的ReceiverList，其中的键值就是BroadcastReceiver对应的IIntentReceiver。
 同时，AMS中的mReceiverResolver用于保存所有动态注册BroadcastReceiver对应的BroadcastFilter。注意此处的IntentResolver是一个模板类，并不是一个Map类型的数据结构。
 
-这部分流程比较简单，大致如下图所示： 
+这部分流程比较简单，大致如下图所示：
 
 ![图3](/images/android-n-ams/broadcast-3.jpg)
 
-## 三、sendBroadcast流程分析 
+## 三、sendBroadcast流程分析
 分析完广播接收方注册BroadcastReceiver的流程，现在我们来看看广播发送方sendBroadcast的流程。
 
-与registerReceiver一样，Context.java中定义了多个sendBroadcast的接口，但是殊途同归，这些接口最终的流程基本一致。 
+与registerReceiver一样，Context.java中定义了多个sendBroadcast的接口，但是殊途同归，这些接口最终的流程基本一致。
 因此，我们以比较常见的接口入手，看看整个代码的逻辑。
 ```java
 public void sendBroadcast(Intent intent) {
@@ -554,7 +554,7 @@ public void sendBroadcast(Intent intent) {
     }
 }
 ```
-ContextImpl中的sendBroadcast函数比较简单，进行一些必要的检查后，直接调用AMS中接口。 
+ContextImpl中的sendBroadcast函数比较简单，进行一些必要的检查后，直接调用AMS中接口。
 我们跟进流程，看看AMS中的broadcastIntent函数：
 ```java
 public final int broadcastIntent(IApplicationThread caller,
@@ -585,7 +585,7 @@ public final int broadcastIntent(IApplicationThread caller,
 }
 ```
 
-broadcastIntent中对Broadcast对应的Intent进行一些检查后，调用broadcastIntentLocked进行实际的处理。 
+broadcastIntent中对Broadcast对应的Intent进行一些检查后，调用broadcastIntentLocked进行实际的处理。
 broadcastIntentLocked函数非常长，大概600行左右吧…….我们只能分段看看它的主要思路。
 
 ### 1 broadcastIntentLocked函数Part I
@@ -612,11 +612,11 @@ final int broadcastIntentLocked(.....) {
 }
 ```
 
-这部分的代码较多，主要是针对具体Action的操作，在分析整体流程时，没有必要深究。 
+这部分的代码较多，主要是针对具体Action的操作，在分析整体流程时，没有必要深究。
 当需要研究对应广播引发的操作时，可以再有针对性的研究。
 
-简单地讲，代码主要工作其实只有两个： 
-- 1、根据广播对应Intent中的信息，判断发送方是否有发送该广播的权限； 
+简单地讲，代码主要工作其实只有两个：
+- 1、根据广播对应Intent中的信息，判断发送方是否有发送该广播的权限；
 - 2、针对一些特殊的广播，AMS需要进行一些操作。
 
 ### 2 broadcastIntentLocked函数Part II
@@ -701,7 +701,7 @@ if (sticky) {
 }
 ...............
 ```
-broadcastIntentLocke第二部分主要是处理粘性广播的，整个功能比较清晰， 
+broadcastIntentLocke第二部分主要是处理粘性广播的，整个功能比较清晰，
 即判断发送粘性广播的条件是否满足，然后将粘性广播保存起来。
 
 ### 3 broadcastIntentLocked函数Part III
@@ -712,7 +712,7 @@ broadcastIntentLocke第二部分主要是处理粘性广播的，整个功能比
 //若当前广播是有序广播时，还会插入动态注册的BroadcastReceiver
 List receivers = null;
 
-//registeredReceivers用于保存匹配当前广播的动态注册的BroadcastReceiver 
+//registeredReceivers用于保存匹配当前广播的动态注册的BroadcastReceiver
 //BroadcastFilter中有对应的BroadcastReceiver的引用
 List<BroadcastFilter> registeredReceivers = null;
 
@@ -797,9 +797,9 @@ if (!ordered && NR > 0) {
 .....................
 ```
 
-broadcastIntentLocke第三部分的工作主要包括： 
-- 1、查询与当前广播匹配的静态和动态BroadcastReceiver； 
-- 2、若当前待发送的广播是无序的，那么为动态注册的BroadcastReceiver，构造该广播对应的BroadcastRecord加入到发送队列中， 
+broadcastIntentLocke第三部分的工作主要包括：
+- 1、查询与当前广播匹配的静态和动态BroadcastReceiver；
+- 2、若当前待发送的广播是无序的，那么为动态注册的BroadcastReceiver，构造该广播对应的BroadcastRecord加入到发送队列中，
 并触发广播发送流程。
 
 从这部分代码可以看出，对于无序广播而言，动态注册的BroadcastReceiver接收广播的优先级，高于静态注册的BroadcastReceiver。
@@ -924,34 +924,34 @@ if ((receivers != null && receivers.size() > 0)
 ...............
 ```
 
-简单来说，broadcastIntentLocked的第四部分工作就是为有序广播和静态广播，构造对应的BroadcastRecord（按优先级顺序）， 
+简单来说，broadcastIntentLocked的第四部分工作就是为有序广播和静态广播，构造对应的BroadcastRecord（按优先级顺序），
 然后将BroadcastRecord加入到Ordered Queue中，并触发广播发送流程。
 
-至此，整个broadcastIntentLocked函数分析完毕，除去一些条件判断的细节外，整个工作流程如下图所示： 
+至此，整个broadcastIntentLocked函数分析完毕，除去一些条件判断的细节外，整个工作流程如下图所示：
 
 ![图4](/images/android-n-ams/broadcast-4.jpg)
 
-- 1、处理粘性广播。 
+- 1、处理粘性广播。
 
 由于粘性广播的特性（BroadcastReceiver注册即可接收），系统必须首先保存粘性广播。
 
-- 2、处理普通动态广播。 
+- 2、处理普通动态广播。
 
-普通广播是并发的，系统优先为动态注册的BroadcastReceiver发送广播。 
+普通广播是并发的，系统优先为动态注册的BroadcastReceiver发送广播。
 动态广播对应的BroadcastRecord加入到Parallel Queue中。
 
-- 3、处理静态广播和有序广播。 
+- 3、处理静态广播和有序广播。
 
 这一步主要是为静态注册的BroadcastReceiver发送广播，对应的BroadcastRecord加入到Ordered Queue中。
 
-此外，需要注意的是： 
+此外，需要注意的是：
 
-如果广播是有序的，那么第2步不会为动态注册的BroadcastReceiver发送广播，而是在第3步统一发送。 
+如果广播是有序的，那么第2步不会为动态注册的BroadcastReceiver发送广播，而是在第3步统一发送。
 发送有序广播时，AMS将按照BroadcastReceiver的优先级，依次构造BroadcastRecord加入到Ordered Queue中。
 
-## 四、BroadcastQueue的scheduleBroadcastsLocked函数流程分析 
+## 四、BroadcastQueue的scheduleBroadcastsLocked函数流程分析
 
-从上面的代码，我们知道广播发送方调用sendBroadcast后，AMS会构造对应的BroadcastRecord加入到BroadcastQueue中， 
+从上面的代码，我们知道广播发送方调用sendBroadcast后，AMS会构造对应的BroadcastRecord加入到BroadcastQueue中，
 然后调用BroadcastQueue的scheduleBroadcastsLocked函数。
 
 现在，我们就来看一下scheduleBroadcastsLocked相关的流程。
@@ -967,7 +967,7 @@ public void scheduleBroadcastsLocked() {
 }
 ```
 
-上面的代码将发送BROADCAST_INTENT_MSG，触发BroadcastQueue调用processNextBroadcast进行处理。 
+上面的代码将发送BROADCAST_INTENT_MSG，触发BroadcastQueue调用processNextBroadcast进行处理。
 processNextBroadcast函数同样非常的长，大概有500多行。。。。我们还是分段进行分析。
 
 ### 1 processNextBroadcast函数Part I
@@ -1002,7 +1002,7 @@ final void processNextBroadcast(boolean fromMsg) {
                 //mParallelBroadcasts中的每个成员均为BroadcastFilter类型
                 Object target = r.receivers.get(i);
                 ............
-                //为该BroadcastRecord对应的每个Receiver发送广播 
+                //为该BroadcastRecord对应的每个Receiver发送广播
                 deliverToRegisteredReceiverLocked(r, (BroadcastFilter)target, false, i);
             }
 
@@ -1014,7 +1014,7 @@ final void processNextBroadcast(boolean fromMsg) {
 }
 ```
 
-从上面的代码可以看出，processNextBroadcast函数的第一部分主要是为动态注册的BroadcastReceiver发送普通广播。 
+从上面的代码可以看出，processNextBroadcast函数的第一部分主要是为动态注册的BroadcastReceiver发送普通广播。
 发送普通广播的函数为deliverToRegisteredReceiverLocked：
 ```java
 private void deliverToRegisteredReceiverLocked(BroadcastRecord r,
@@ -1131,7 +1131,7 @@ private void deliverToRegisteredReceiverLocked(BroadcastRecord r,
 }
 ```
 
-deliverToRegisteredReceiverLocked看起来很长，但大部分内容都是进行权限检查等操作，实际的发送工作交给了performReceiveLocked函数。 
+deliverToRegisteredReceiverLocked看起来很长，但大部分内容都是进行权限检查等操作，实际的发送工作交给了performReceiveLocked函数。
 广播是一种可以携带数据的跨进程、跨APP通信机制，为了避免安全泄露的问题，Android才在此处使用了大量的篇幅进行权限检查的工作。
 
 在这一部分的最后，我们跟进一下performReceiveLocked函数：
@@ -1163,14 +1163,14 @@ void performReceiveLocked(.........) {
 }
 ```
 
-对于动态注册的BroadcastReceiver而言，发送广播的流程应该进入到上述代码的If分支。 
+对于动态注册的BroadcastReceiver而言，发送广播的流程应该进入到上述代码的If分支。
 进程的ApplicationThread调用scheduleRegisteredReceiver函数的流程，我们放在后面单独分析。
 
-这一部分整体的流程如下图所示： 
+这一部分整体的流程如下图所示：
 
 ![图5](/images/android-n-ams/broadcast-5.jpg)
 
-### 2 processNextBroadcast函数Part II 
+### 2 processNextBroadcast函数Part II
 至此，processNextBroadcast函数已经发送完所有的动态普通广播，我们看看该函数后续的流程：
 ```java
 ..........
@@ -1301,29 +1301,29 @@ do {
 ....................
 ```
 
-这一部分代码，乍一看有点摸不着头脑的感觉，其实主要做了两个工作： 
-#### 1、判断是否有PendingBroadcast。 
+这一部分代码，乍一看有点摸不着头脑的感觉，其实主要做了两个工作：
+#### 1、判断是否有PendingBroadcast。
 
 当存在PendingBroadcast，且当前正在等待启动的进程并没有死亡，那么不能处理下一个BroadcastRecord，必须等待PendingBroadcast处理完毕。
 
-#### 2、处理mOrderedBroadcasts中的BroadcastRecord 
+#### 2、处理mOrderedBroadcasts中的BroadcastRecord
 
-由于有序广播和静态广播，必须一个接一个的处理。 
+由于有序广播和静态广播，必须一个接一个的处理。
 因此每发送完一个广播后，均会重新调用processNextBroadcast函数。
 
 在发送新的BroadcastRecord时，需要先处理旧有BroadcastRecord的状态。
 
-于是，这段代码后续部分，主要进行了以下操作： 
-- 若所有BroadcastRecord均处理完毕，利用AMS释放掉无用进程； 
-- 更新超时BroadcastRecord的状态，同时越过此BroadcastRecord； 
-- 当一个BroadcastRecord处理完毕后，将结果发送给指定BroadcastReceiver（指定了接收者，才进行此操作）， 
+于是，这段代码后续部分，主要进行了以下操作：
+- 若所有BroadcastRecord均处理完毕，利用AMS释放掉无用进程；
+- 更新超时BroadcastRecord的状态，同时越过此BroadcastRecord；
+- 当一个BroadcastRecord处理完毕后，将结果发送给指定BroadcastReceiver（指定了接收者，才进行此操作），
 同时将该BroadcastRecord从mOrderedBroadcasts中移除。
 
-这一系列动作的最终目的，就是选出下一个处理的BroadcastRecord， 
+这一系列动作的最终目的，就是选出下一个处理的BroadcastRecord，
 然后就可以开始向该BroadcastRecord中下一个BroadcastReceiver发送广播了。
 
-这一部分整体的判断逻辑大致上如下图所示： 
- 
+这一部分整体的判断逻辑大致上如下图所示：
+
 大图链接
 ![图6](/images/android-n-ams/broadcast-6.jpg)
 
@@ -1391,8 +1391,8 @@ if (nextReceiver instanceof BroadcastFilter) {
 .......................
 ```
 
-processNextBroadcast的第3部分，主要是处理有序广播发往动态BroadcastReceiver的场景。 
-从代码可以看出，有序广播具体的方法流程与普通广播一致，均是调用deliverToRegisteredReceiverLocked函数。 
+processNextBroadcast的第3部分，主要是处理有序广播发往动态BroadcastReceiver的场景。
+从代码可以看出，有序广播具体的方法流程与普通广播一致，均是调用deliverToRegisteredReceiverLocked函数。
 唯一不同的是，有序广播发往一个BroadcastReceiver后，必须等待处理结果，才能进行下一次发送过程。
 
 ### 4 processNextBroadcast函数 Part IV
@@ -1554,8 +1554,8 @@ mPendingBroadcastRecvIndex = recIdx;
 .............
 ```
 
-processNextBroadcast第四部分主要是处理静态广播，除了检查是否满足发送条件外，主要进行了以下工作： 
-- 1、若BroadcastReceiver对应的进程已经启动，那么将直接调用进程对应ApplicationThread的scheduleReceiver发送广播； 
+processNextBroadcast第四部分主要是处理静态广播，除了检查是否满足发送条件外，主要进行了以下工作：
+- 1、若BroadcastReceiver对应的进程已经启动，那么将直接调用进程对应ApplicationThread的scheduleReceiver发送广播；
 - 2、若BroadcastReceiver对应的进程没有启动，那么AMS将启动对应的进程。
 
 当对应的进程启动，同时完成Android环境的创建后，AMS在attachApplicationLocked函数中重新处理等待发送的广播，对应代码如下：
@@ -1578,14 +1578,14 @@ if (!badApp && isPendingBroadcastProcessLocked(pid)) {
 ```
 关于进程启动的过程，可以参考启动Activity的过程：二。
 
-这一部分整体的流程大致如下图所示： 
+这一部分整体的流程大致如下图所示：
 
 ![图7](/images/android-n-ams/broadcast-7.jpg)
 
-## 五、应用进程处理广播分析 
+## 五、应用进程处理广播分析
 最后，我们看看应用进程收到广播处理请求后的流程。
 
-### 1、动态广播的处理流程 
+### 1、动态广播的处理流程
 AMS处理动态广播时，最后通过Binder通信调用的是进程对应ApplicationThread的scheduleRegisteredReceiver接口：
 ```java
  public void scheduleRegisteredReceiver(IIntentReceiver receiver, Intent intent,
@@ -1746,7 +1746,7 @@ public void finishReceiver(IBinder who, int resultCode, String resultData,
 
 ![图8](/images/android-n-ams/broadcast-8.jpg)
 
-### 2、静态广播的处理流程 
+### 2、静态广播的处理流程
 AMS处理静态广播时，最后通过Binder通信调用的是进程对应ApplicationThread的scheduleReceiver接口：
 ```java
 public final void scheduleReceiver(Intent intent, ActivityInfo info,
@@ -1848,16 +1848,16 @@ public final void finish() {
     }
 ```
 
-进程处理静态广播时，主要流程与处理动态广播时一致。 
+进程处理静态广播时，主要流程与处理动态广播时一致。
 主要的差别就是：进程需要反射创建出BroadcastReceiver，同时广播处理完毕后，一定要向AMS返回结果。
 
-## 六、总结 
+## 六、总结
 至此，Android中广播相关的流程分析完毕。
 
-从实现原理看上，Android中的广播机制使用了观察者模式，基于消息的发布/订阅模型。 
+从实现原理看上，Android中的广播机制使用了观察者模式，基于消息的发布/订阅模型。
 广播发送者和广播接收者分别属于观察者模式中的消息发布和订阅两端，AMS属于中间的处理中心。
 
-整体来看，流程可粗略概括如下： 
+整体来看，流程可粗略概括如下：
 
 - 1.广播接收者BroadcastReceiver，通过Binder通信向AMS进行注册；
 

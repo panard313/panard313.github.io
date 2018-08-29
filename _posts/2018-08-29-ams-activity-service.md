@@ -1,7 +1,7 @@
 ---
 layout: article
 title: Service 流程分析
-key: 20180827
+key: 20180829
 tags:
   - ActivityManagerService
   - ams
@@ -11,16 +11,16 @@ lang: zh-Hans
 
 # Service 流程分析
 
-## 一、基础知识 
-Service通常被称之为“后台服务”，具体是指其本身的运行并不依赖于用户可视的UI界面。 
+## 一、基础知识
+Service通常被称之为“后台服务”，具体是指其本身的运行并不依赖于用户可视的UI界面。
 例如：点击界面的音乐播放键，由Service进行实际的音乐播放工作。即使用户离开此界面，音乐仍能够继续播放。
 
-不过Service与Activity等相同，都是运行于当前进程的主线程中。 
+不过Service与Activity等相同，都是运行于当前进程的主线程中。
 因此一些耗时操作一般并没有放在Service中进行，而是在Service中启动一个工作线程来进行实际的操作。
 
-### 1 Service的注册 
-在定义Service时，需要在AndroidManifest.xml中进行声明。 
-只有这样，PKMS在初始化时，才能通过解析AndroidManifest.xml，得到该Service的信息。 
+### 1 Service的注册
+在定义Service时，需要在AndroidManifest.xml中进行声明。
+只有这样，PKMS在初始化时，才能通过解析AndroidManifest.xml，得到该Service的信息。
 在客户端实际使用Service时，将申请服务的请求发往AMS，后者将通过PKMS提供的信息，检索到具体的Service。
 
 Service在AndroidManifest.xml中的声明，语法格式如下所示：
@@ -39,11 +39,11 @@ Service在AndroidManifest.xml中的声明，语法格式如下所示：
 ```
 可以看出，Service相关的标签，与android中其它组件基本相同，此处不作赘述。
 
-### 2 启动方式 
+### 2 启动方式
 一般而言，从Service的启动方式上，可以将Service分为Unbounded Service和Bounded Service。
 
-#### 2.1 Unbounded Service 
-Unbounded Service是指：客户端调用ContextImpl的startService等函数启动的Service。 
+#### 2.1 Unbounded Service
+Unbounded Service是指：客户端调用ContextImpl的startService等函数启动的Service。
 这种启动方式的核心代码片段如下：
 ```java
 ..............
@@ -52,13 +52,13 @@ serviceIntent.putExtra("Args", mArgs);
 mContext.startService(serviceIntent);
 ..............
 ```
-从上面的代码可以看出，客户端组件通过调用startService函数，向Service端发送一个Intent，该Intent中可以携带具体的业务请求信息。 
+从上面的代码可以看出，客户端组件通过调用startService函数，向Service端发送一个Intent，该Intent中可以携带具体的业务请求信息。
 Service启动后，会根据Intent中的请求，执行实际的业务。
 
-通常情况下，Service启动、处理完请求后，并不会返回启动结果（除非在业务逻辑中主动进行通知）。 
+通常情况下，Service启动、处理完请求后，并不会返回启动结果（除非在业务逻辑中主动进行通知）。
 即使启动Service的应用组件已经被销毁了，服务将一直在后台运行。
 
-因此，当客户端不再需要使用Service的服务时，需要主动调用ContextImpl的stopService函数。 
+因此，当客户端不再需要使用Service的服务时，需要主动调用ContextImpl的stopService函数。
 此外，从在Service内部，也可以在执行完具体的业务后，通过stopSelf函数停止其本身。
 
 Unbounded Service的基本实现方式如下所示：
@@ -90,25 +90,25 @@ public class TestService extends Service {
 }
 ```
 
-其中，onBind函数是Service基类中的唯一抽象方法，子类必须实现。对于Unbounded Service而言，此函数直接返回 null 即可。 
+其中，onBind函数是Service基类中的唯一抽象方法，子类必须实现。对于Unbounded Service而言，此函数直接返回 null 即可。
 onCreate、onStartCommand和onDestroy都是Unbounded Service相应生命周期阶段的回调函数。
 
-当客户端调用startService启动服务时，AMS收到请求信息后，将判断对应Service是否启动过。 
-如果Service还未启动，将首先回调Service的onCreate函数，然后再执行onStartCommand函数。 
+当客户端调用startService启动服务时，AMS收到请求信息后，将判断对应Service是否启动过。
+如果Service还未启动，将首先回调Service的onCreate函数，然后再执行onStartCommand函数。
 当客户端再次调用startService时，AMS判断Service已经启动，将只调用Service的onStartCommand函数。
 
-在Service的onStartCommand函数中，将根据Intent的信息进行实际的业务处理。 
-注意到onStartCommand函数会返回一个Int型的值，该值与系统的进程管理有关，主要的取值范围如下： 
-- START_STICKY： 
+在Service的onStartCommand函数中，将根据Intent的信息进行实际的业务处理。
+注意到onStartCommand函数会返回一个Int型的值，该值与系统的进程管理有关，主要的取值范围如下：
+- START_STICKY：
 
-当Service因为内存不足而被系统kill后，在接下来的某个时间内，当系统内存足够可用的情况下，系统将会尝试重新创建此Service； 
+当Service因为内存不足而被系统kill后，在接下来的某个时间内，当系统内存足够可用的情况下，系统将会尝试重新创建此Service；
 一旦创建成功后，将回调onStartCommand方法，但一般情况下，参数中的Intent将是null。
 
-- START_NOT_STICKY： 
+- START_NOT_STICKY：
 
 当Service因为内存不足而被系统kill后，在接下来的某个时间内，即使系统内存足够可用，系统也不会尝试重新创建此Service。
 
-- START_REDELIVER_INTENT： 
+- START_REDELIVER_INTENT：
 
 与START_STICKY相同，当Service因为内存不足而被系统kill后，在接下来的某个时间内，当系统内存足够可用的情况下，系统将会尝试重新创建此Service；唯一不同的是，Service创建成功后，回调onStartCommand方法时，传入的参数将是最后一次调用startService时使用的intent。
 
@@ -116,31 +116,31 @@ onCreate、onStartCommand和onDestroy都是Unbounded Service相应生命周期�
 
 最后，客户端无论调用多少次startService，只需要一次stopService即可将此Service终止（毕竟onCreate函数也之调用过一次），此时AMS将回调Service的onDestroy函数。
 
-#### 2.2 Bounded Service 
-Bounded Service一般使用过程如下： 
-- 1、服务端定义继承于基类Service的服务，并重写其onBind方法。 
+#### 2.2 Bounded Service
+Bounded Service一般使用过程如下：
+- 1、服务端定义继承于基类Service的服务，并重写其onBind方法。
 
 在此方法中，需要返回具体的Binder对象供客户端使用。
 
-- 2、客户端通过实现ServiceConnection接口，自定义ServiceConnection对象， 
+- 2、客户端通过实现ServiceConnection接口，自定义ServiceConnection对象，
 
-在其中实现onServiceConnected函数，用于回调获取服务端提供的Binder对象。 
+在其中实现onServiceConnected函数，用于回调获取服务端提供的Binder对象。
 同时，客户端也可以选择性地实现onServiceDisconnected接口，以便在与Service解绑时执行一些操作。
 
-- 3、客户端调用bindService函数与Service端绑定，该函数的参数中包含服务对应的Intent和自定义的ServiceConnection对象。 
+- 3、客户端调用bindService函数与Service端绑定，该函数的参数中包含服务对应的Intent和自定义的ServiceConnection对象。
 
-与Unbounded Service一样，若Service未启动，AMS将负责启动Service，然后才会调用Service的onBind方法，得到服务端返回Binder对象。 
+与Unbounded Service一样，若Service未启动，AMS将负责启动Service，然后才会调用Service的onBind方法，得到服务端返回Binder对象。
 一旦得到Binder对象后，AMS将回调ServiceConnection中实现的onServiceConnected函数，将Binder对象返回给客户端。
 
-- 4、客户端得到Binder对象后，就可以通过Binder对象调用Service提供的公有函数，完成实际的业务请求。 
+- 4、客户端得到Binder对象后，就可以通过Binder对象调用Service提供的公有函数，完成实际的业务请求。
 
 Service端收到业务请求后，就可以执行对应的处理。
 
-- 5、当客户端不再需要使用服务时，就需要通过调用unbindService函数，解除与Service的绑定。 
+- 5、当客户端不再需要使用服务时，就需要通过调用unbindService函数，解除与Service的绑定。
 
 若客户端实现了ServiceConnection的onServiceDisconnected接口，那么与Service解绑后，onServiceDisconnected将被AMS回调。
 
-网上使用Bounded Service的代码示例较多，此处就不再具体给出，可以参考这篇博客Android总结篇系列：Android Service。 
+网上使用Bounded Service的代码示例较多，此处就不再具体给出，可以参考这篇博客Android总结篇系列：Android Service。
 我们仅看看源码中的使用方式，例如在packages/services/mms/src/com/android/mms/service/SendRequest.java中：
 ```java
 /**
@@ -197,23 +197,23 @@ public void onServiceConnected(ComponentName name, IBinder service) {
 }
 ```
 
-### 3 生命周期 
+### 3 生命周期
 这里写图片描述
 
 ![图1](/images/android-n-ams/service-1.jpg)
 
-两种Service生命周期对应的回调函数，可以用上面这张比较经典的图来表示，其中： 
-- Unbounded Service回调函数的顺序依次为：onCreate、onStartCommand、onDestroy； 
-- Bounded Service回调函数的顺序依次为：onCreate、onBind、onUnbind、onDestroy。 
+两种Service生命周期对应的回调函数，可以用上面这张比较经典的图来表示，其中：
+- Unbounded Service回调函数的顺序依次为：onCreate、onStartCommand、onDestroy；
+- Bounded Service回调函数的顺序依次为：onCreate、onBind、onUnbind、onDestroy。
 
 后文分析源码时，可以看到具体的调用过程，此处不做赘述。
 
-### 4 显示启动和隐式启动 
+### 4 显示启动和隐式启动
 最后谈一下Service的显示启动和隐式启动。
 
-#### 4.1 显示启动 
+#### 4.1 显示启动
 
-显示启动是指： 
+显示启动是指：
   客户端将service的具体名称写入到Intent中，此时AMS就可以直接根据名称来找到对应的service。
 
 代码示例：
@@ -228,7 +228,7 @@ startIntent.setComponent(componentName);
 mContext.startService(startIntent);
 ............
 ```
-可以看到显示启动服务，就是在Intent中指定ComponentName。 
+可以看到显示启动服务，就是在Intent中指定ComponentName。
 ComponentName由具体的包名和类名组成。
 
 如果启动的service与当前组件在同一个包内，也可以使用下述方式显示启动service：
@@ -253,11 +253,11 @@ mContext.bindService(bindIntent, mConnection, Context.BIND_AUTO_CREATE);
 ............
 ```
 
-#### 4.2 隐式启动 
+#### 4.2 隐式启动
 
-隐示启动是指： 
-  客户端通过在intent中添加service申明的Action，此时AMS通过Action来匹配具体的service。 
-这种启动方式要求，service在定义Action时，要尽可能的和其它服务区分开来。 
+隐示启动是指：
+  客户端通过在intent中添加service申明的Action，此时AMS通过Action来匹配具体的service。
+这种启动方式要求，service在定义Action时，要尽可能的和其它服务区分开来。
 通常来说，Action将被命名为具体包名、类名和Action名的组合。
 
 代码示例：
@@ -274,7 +274,7 @@ mContext.startService(startIntent);
 
 ## 二、Unbounded Service的启动流程
 
-### 1 ContextImpl中的startService 
+### 1 ContextImpl中的startService
 
 我们从ContextImpl中的startService函数入手，看看Unbounded Service的启动流程。
 ```java
@@ -303,7 +303,7 @@ private ComponentName startServiceCommon(Intent service, UserHandle user) {
 }
 ```
 
-从上面的代码可以看出，拉起服务还是要依赖于AMS的接口。 
+从上面的代码可以看出，拉起服务还是要依赖于AMS的接口。
 在这里，我们进一步看看validateServiceIntent函数：
 ```java
 private void validateServiceIntent(Intent service) {
@@ -324,7 +324,7 @@ private void validateServiceIntent(Intent service) {
 ```
 validateServiceIntent就是上文提到的，Android 5.0后不再支持隐式启动Service的原因。
 
-### 2 AMS中的startService 
+### 2 AMS中的startService
 接下来，我们看看AMS中的startService函数：
 ```java
 public ComponentName startService(IApplicationThread caller, Intent service,
@@ -343,10 +343,10 @@ public ComponentName startService(IApplicationThread caller, Intent service,
 }
 ```
 
-#### 2.1 ActiveServices中的startServiceLocked 
+#### 2.1 ActiveServices中的startServiceLocked
 
-ActiveServices在AMS初始化时创建，用于管理AMS启动的Service。 
-上述代码进行参数有效性检查后，将调用ActiveServices的startServiceLocked函数。 
+ActiveServices在AMS初始化时创建，用于管理AMS启动的Service。
+上述代码进行参数有效性检查后，将调用ActiveServices的startServiceLocked函数。
 
 我们分段看看startServiceLocked函数：
 
@@ -377,8 +377,8 @@ ComponentName startServiceLocked(IApplicationThread caller, Intent service, Stri
     .................
 ```
 
-startServiceLocked函数的第一部分，主要是利用参数信息检索出待启动的Service，这部分工作主要由retrieveServiceLocked函数完成。 
-由于retrieveServiceLocked使用的频率较高（后文还会遇到），同时涉及到ActivesService管理Service的一些数据结构， 
+startServiceLocked函数的第一部分，主要是利用参数信息检索出待启动的Service，这部分工作主要由retrieveServiceLocked函数完成。
+由于retrieveServiceLocked使用的频率较高（后文还会遇到），同时涉及到ActivesService管理Service的一些数据结构，
 因此这里深入分析一下该函数：
 ```java
 private ServiceLookupResult retrieveServiceLocked(.......) {
@@ -506,16 +506,16 @@ private ServiceLookupResult retrieveServiceLocked(.......) {
 }
 ```
 
-retrieveServiceLocked函数看起来比较长，但逻辑还是比较清晰的，最主要的步骤是： 
-- 1、从ActiveServices保存的一些服务对应的记录信息中，找出ServiceRecord； 
-- 2、如果没有找到ServiceRecord，就通过PKMS找出对应的Service信息，然后重新构建出ServiceRecord； 
+retrieveServiceLocked函数看起来比较长，但逻辑还是比较清晰的，最主要的步骤是：
+- 1、从ActiveServices保存的一些服务对应的记录信息中，找出ServiceRecord；
+- 2、如果没有找到ServiceRecord，就通过PKMS找出对应的Service信息，然后重新构建出ServiceRecord；
 - 3、将ServiceRecord保存到ActiveServices的数据结构中。
 
-其中，由于考虑到了带有FLAG_EXTERNAL_SERVICE的Service及单例Service的情况， 
+其中，由于考虑到了带有FLAG_EXTERNAL_SERVICE的Service及单例Service的情况，
 
 因此单独进行了处理，在了解整体逻辑后，单独看这些特殊处理还是比较好理解的。
 
-ActiveServices中，保存ServiceRecord涉及的数据结构主要如下图所示： 
+ActiveServices中，保存ServiceRecord涉及的数据结构主要如下图所示：
 
 ![图2](/images/android-n-ams/service-2.jpg)
 
@@ -585,11 +585,11 @@ ActiveServices中，保存ServiceRecord涉及的数据结构主要如下图所�
 }
 ```
 
-上面这段代码主要是：判断当前Service是否需要延迟启动。 
-若需要延迟启动，则将ServiceRecord保存到smap中的mDelayedStartList中，并结束本启动流程； 
+上面这段代码主要是：判断当前Service是否需要延迟启动。
+若需要延迟启动，则将ServiceRecord保存到smap中的mDelayedStartList中，并结束本启动流程；
 否则，调用startServiceInnerLocked函数，进入启动Service的下一个阶段。
 
-#### 2.2 ActiveServices中的startServiceInnerLocked 
+#### 2.2 ActiveServices中的startServiceInnerLocked
 接下来，我们看看startServiceInnerLocked函数对应的流程：
 ```java
 ComponentName startServiceInnerLocked(ServiceMap smap, Intent service, ServiceRecord r,
@@ -630,8 +630,8 @@ ComponentName startServiceInnerLocked(ServiceMap smap, Intent service, ServiceRe
 }
 ```
 
-从上面的代码可以看出，启动Service的流程中，接下来的工作主要将由bringUpServiceLocked函数来完成。 
-在进一步分析bringUpServiceLocked函数前，我们先来看看ActiveServices内部类ServiceMap中的rescheduleDelayedStarts函数。 
+从上面的代码可以看出，启动Service的流程中，接下来的工作主要将由bringUpServiceLocked函数来完成。
+在进一步分析bringUpServiceLocked函数前，我们先来看看ActiveServices内部类ServiceMap中的rescheduleDelayedStarts函数。
 这个函数遇见的频率比较高，值得深入分析一下：
 ```java
 void rescheduleDelayedStarts() {
@@ -680,11 +680,11 @@ void rescheduleDelayedStarts() {
 }
 ```
 
-rescheduleDelayedStarts的流程还是比较好理解的，主要工作其实就是两个： 
-- 1、判断mStartingBackground中启动的Service是否超时 
+rescheduleDelayedStarts的流程还是比较好理解的，主要工作其实就是两个：
+- 1、判断mStartingBackground中启动的Service是否超时
 - 2、判断能否启动mDelayedStartList中，被延迟启动的服务。
 
-#### 2.3 ActiveServices中的bringUpServiceLocked 
+#### 2.3 ActiveServices中的bringUpServiceLocked
 现在我们回过头来，继续跟进启动Service接下来的流程，即bringUpServiceLocked函数：
 ```java
 private String bringUpServiceLocked(ServiceRecord r, int intentFlags, boolean execInFg,
@@ -808,16 +808,16 @@ private String bringUpServiceLocked(ServiceRecord r, int intentFlags, boolean ex
 }
 ```
 
-bringUpServiceLocked函数比较长，主要是其内部包含了多个场景下的处理流程，其中比较主要的是： 
-- 1、service已经启动过，则调用sendServiceArgsLocked函数，将新的待处理信息发送给Service； 
-- 2、service未启动过，但对应的进程已启动，那么调用realStartServiceLocked函数，启动服务即可； 
+bringUpServiceLocked函数比较长，主要是其内部包含了多个场景下的处理流程，其中比较主要的是：
+- 1、service已经启动过，则调用sendServiceArgsLocked函数，将新的待处理信息发送给Service；
+- 2、service未启动过，但对应的进程已启动，那么调用realStartServiceLocked函数，启动服务即可；
 - 3、service对应的进程并没有启动，那么先启动进程。
 
-这里我们跟进第2种场景的流程即可。 
+这里我们跟进第2种场景的流程即可。
 
-对于第1种场景，当第2种场景中的服务启动后，仍将利用sendServiceArgsLocked函数中的流程，将Intent消息发往Service处理； 
+对于第1种场景，当第2种场景中的服务启动后，仍将利用sendServiceArgsLocked函数中的流程，将Intent消息发往Service处理；
 
-对于第3种场景，当进程启动后，与之前的博客分析Activity和BroadcastReceiver流程类似， 
+对于第3种场景，当进程启动后，与之前的博客分析Activity和BroadcastReceiver流程类似，
 
 在AMS的attachApplicationLocked函数中，将启动等待的service。这部分代码如下所示：
 ```java
@@ -839,7 +839,7 @@ private final boolean attachApplicationLocked(IApplicationThread thread,
 }
 ```
 
-#### 2.4 ActiveServices中的realStartServiceLocked 
+#### 2.4 ActiveServices中的realStartServiceLocked
 
 现在我们来看看ActiveServices中的realStartServiceLocked函数：
 ```java
@@ -932,14 +932,14 @@ private final void realStartServiceLocked(ServiceRecord r,
 }
 ```
 
-从代码来看，对于Unbounded Service而言，realStartServiceLocked函数最主要的工作是： 
-- 1、利用bumpServiceExecutingLocked函数，记录ServiceRecord的执行状态； 
-- 2、利用scheduleCreateService函数，创建出Service对象； 
+从代码来看，对于Unbounded Service而言，realStartServiceLocked函数最主要的工作是：
+- 1、利用bumpServiceExecutingLocked函数，记录ServiceRecord的执行状态；
+- 2、利用scheduleCreateService函数，创建出Service对象；
 - 3、利用sendServiceArgsLocked函数，将Intent中的信息递交给Service处理。
 
 接下来，我们重点来分析一下这三个函数。
 
-##### 2.4.1 bumpServiceExecutingLocked 
+##### 2.4.1 bumpServiceExecutingLocked
 这个函数被调用的频率比较高，当AMS向Service发送命令时，就会利用该函数修改ServiceRecord中的一些信息：
 
 ```java
@@ -985,7 +985,7 @@ private final void bumpServiceExecutingLocked(ServiceRecord r, boolean fg, Strin
 }
 ```
 
-bumpServiceExecutingLocked函数主要用于将进程的ProcessRecord信息，与ServiceRecord关联起来。 
+bumpServiceExecutingLocked函数主要用于将进程的ProcessRecord信息，与ServiceRecord关联起来。
 同时，更新ServiceRecord中的一些信息，并设置命令超时的时间。
 
 这里我们跟进一下scheduleServiceTimeoutLocked函数，看看Service命令执行超时的后果：
@@ -1059,10 +1059,10 @@ void serviceTimeout(ProcessRecord proc) {
 }
 ```
 
-##### 2.4.2 scheduleCreateService 
+##### 2.4.2 scheduleCreateService
 现在我们回过头来看看realStartServiceLocked调用的scheduleCreateService函数。
 
-调用ApplicationThread的scheduleCreateService函数后，将向ActivityThread发送H.CREATE_SERVICE消息， 
+调用ApplicationThread的scheduleCreateService函数后，将向ActivityThread发送H.CREATE_SERVICE消息，
 由ActivityThread的handleCreateService函数进行处理。
 ```java
 private void handleCreateService(CreateServiceData data) {
@@ -1077,7 +1077,7 @@ private void handleCreateService(CreateServiceData data) {
         service = (Service) cl.loadClass(data.info.name).newInstance();
     } catch (Exception e) {
         ..................
-    } 
+    }
 
     try {
         ............
@@ -1115,7 +1115,7 @@ private void handleCreateService(CreateServiceData data) {
 }
 ```
 
-##### 2.4.3 sendServiceArgsLocked 
+##### 2.4.3 sendServiceArgsLocked
 sendServiceArgsLocked函数，需要将Intent信息发送给Service进行处理。
 ```java
 private final void sendServiceArgsLocked(ServiceRecord r, boolean execInFg,
@@ -1152,7 +1152,7 @@ private final void sendServiceArgsLocked(ServiceRecord r, boolean execInFg,
     }
 }
 ```
-Service对应进程ApplicationThread的scheduleServiceArgs函数被调用后，将发送H.SERVICE_ARGS消息， 
+Service对应进程ApplicationThread的scheduleServiceArgs函数被调用后，将发送H.SERVICE_ARGS消息，
 触发其ActivityThread调用handleServiceArgs处理：
 ```java
 private void handleServiceArgs(ServiceArgsData data) {
@@ -1194,10 +1194,10 @@ private void handleServiceArgs(ServiceArgsData data) {
 }
 ```
 
-不难看出handleServiceArgs函数主要是调用Service的onStartCommand函数处理Intent， 
+不难看出handleServiceArgs函数主要是调用Service的onStartCommand函数处理Intent，
 然后再次调用AMS的serviceDoneExecuting函数通知执行结果。
 
-前面我们分析Service的基础知识提到过，onStartCommand函数被调用后，有相应的返回值。 
+前面我们分析Service的基础知识提到过，onStartCommand函数被调用后，有相应的返回值。
 因此我们来看看AMS的serviceDoneExecuting函数，如何处理这部分返回值。
 ```java
 public void serviceDoneExecuting(IBinder token, int type, int startId, int res) {
@@ -1281,7 +1281,7 @@ void serviceDoneExecutingLocked(ServiceRecord r, int type, int startId, int res)
 }
 ```
 
-上面的serviceDoneExecutingLocked函数，主要是针对onStartCommand的返回值进行一些操作， 
+上面的serviceDoneExecutingLocked函数，主要是针对onStartCommand的返回值进行一些操作，
 然后调用重载后的serviceDoneExecutingLocked：
 ```java
 private void serviceDoneExecutingLocked(ServiceRecord r, boolean inDestroying,
@@ -1346,21 +1346,21 @@ private void serviceDoneExecutingLocked(ServiceRecord r, boolean inDestroying,
 }
 ```
 
-从上面的代码可以看出，这个serviceDoneExecutingLocked函数进行的扫尾工作，主要是为了更新ServiceRecord的相关信息。 
+从上面的代码可以看出，这个serviceDoneExecutingLocked函数进行的扫尾工作，主要是为了更新ServiceRecord的相关信息。
 这些信息将被用于判断Service执行命令时是否超时，同时对进程管理也有一定的影响。
 
-至此，Unbounded Service的启动过程分析完毕。 
-整个流程中的函数调用关系还是很清晰的，只是涉及到Service状态的管理，于是会有一些琐碎的分支。 
+至此，Unbounded Service的启动过程分析完毕。
+整个流程中的函数调用关系还是很清晰的，只是涉及到Service状态的管理，于是会有一些琐碎的分支。
 其中部分函数，Bounded Service启动时也会调用。
 
-这部分的流程可以简化为下图： 
+这部分的流程可以简化为下图：
 
 ![图3](/images/android-n-ams/service-3.jpg)
 
-## 三、Unbounded Service的结束流程 
+## 三、Unbounded Service的结束流程
 接下来，我们看看Unbounded Service的结束流程。
 
-### 1 ContextImpl中的stopService 
+### 1 ContextImpl中的stopService
 与启动流程类似，我们从ContextImpl的stopService函数开始，看看Unbounded Service的结束流程。
 ```java
 public boolean stopService(Intent service) {
@@ -1444,13 +1444,13 @@ private void stopServiceLocked(ServiceRecord service) {
         service.tracker.setStarted(false, mAm.mProcessStats.getMemFactorLocked(),
                 SystemClock.uptimeMillis());
     }
-    bringDownServiceIfNeededLocked(service, false, false);  
+    bringDownServiceIfNeededLocked(service, false, false);
 }
 ```
 
 上述代码没有什么特别的地方，主要更新ServiceRecord的状态信息，然后调用bringDownServiceIfNeededLocked函数。
 
-### 3 ActiveServices中的bringDownServiceIfNeededLocked 
+### 3 ActiveServices中的bringDownServiceIfNeededLocked
 
 从函数名可以看出，该函数主要判断能否停止该服务。
 ```java
@@ -1472,7 +1472,7 @@ private final void bringDownServiceIfNeededLocked(ServiceRecord r, boolean knowC
 }
 ```
 
-上面代码中，主要由isServiceNeeded函数判断Service是否还有存在的必要。 
+上面代码中，主要由isServiceNeeded函数判断Service是否还有存在的必要。
 我们分析一下该函数：
 ```java
 //该流程中，参数knowConn和hasConn均为false
@@ -1498,10 +1498,10 @@ private final boolean isServiceNeeded(ServiceRecord r, boolean knowConn, boolean
 }
 ```
 
-通过上述代码，我们知道一个Service如果同时以Bounded Service和Unbounded Service存在， 
+通过上述代码，我们知道一个Service如果同时以Bounded Service和Unbounded Service存在，
 那么必须解绑后，才能被stopService结束。
 
-### 4 ActiveServices中的bringDownServiceLocked 
+### 4 ActiveServices中的bringDownServiceLocked
 接下来，我们继续跟进结束Service流程中的bringDownServiceLocked函数：
 ```java
 private final void bringDownServiceLocked(ServiceRecord r) {
@@ -1612,17 +1612,17 @@ private final void bringDownServiceLocked(ServiceRecord r) {
 }
 ```
 
-从上面的代码可以看出，bringDownServiceLocked函数是Service结束流程中的主力(Unbouneed Service和Bounded Service最终均依赖它结束Service流程)， 
+从上面的代码可以看出，bringDownServiceLocked函数是Service结束流程中的主力(Unbouneed Service和Bounded Service最终均依赖它结束Service流程)，
 
-其主要共走包括： 
-- 1、通知与Service绑定的客户端，该Service不可用；同时，通知对应进程进行unBindService的工作。 
-- 2、通知Service所在进程，调用Service的onDestroy函数。 
+其主要共走包括：
+- 1、通知与Service绑定的客户端，该Service不可用；同时，通知对应进程进行unBindService的工作。
+- 2、通知Service所在进程，调用Service的onDestroy函数。
 - 3、更新ServiceRecord的状态，同时调用ensureNotStartingBackground函数，在必要时启动mDelayedStartList中的服务。
 
-unBindService相关的操作，后文分析Bounded Service的结束流程时还会碰到，此处先略去。 
+unBindService相关的操作，后文分析Bounded Service的结束流程时还会碰到，此处先略去。
 先看看调用ApplicationThread的scheduleStopService函数后的流程。
 
-### 5 ActivityThread中的handleStopService 
+### 5 ActivityThread中的handleStopService
 ApplicationThread的scheduleStopService函数被调用后，将发送H.STOP_SERVICE消息，触发ActivityThread调用handleStopService处理：
 ```java
 private void handleStopService(IBinder token) {
@@ -1660,7 +1660,7 @@ private void handleStopService(IBinder token) {
 }
 ```
 
-从上面的代码可以看出，handleStopService负责调用Service的onDestroy函数， 
+从上面的代码可以看出，handleStopService负责调用Service的onDestroy函数，
 然后通知ContextImpl进行Service结束后的清理工作，最后通知AMS命令执行完毕。
 
 此处，我们看看ContextImpl的scheduleFinalCleanup函数：
@@ -1670,7 +1670,7 @@ final void scheduleFinalCleanup(String who, String what) {
     mMainThread.scheduleContextCleanup(this, who, what);
 }
 ```
-ActivityThread的scheduleContextCleanup函数，将发送CLEAN_UP_CONTEXT信息， 
+ActivityThread的scheduleContextCleanup函数，将发送CLEAN_UP_CONTEXT信息，
 最终仍会调用ContextImpl的performFinalCleanup函数进行处理。
 
 ```java
@@ -1730,19 +1730,19 @@ public void removeContextRegistrations(Context context,
 }
 ```
 
-现在我们明白了，scheduleFinalCleanup的工作，主要针对于BroadcastReceiver和Bounded Service， 
+现在我们明白了，scheduleFinalCleanup的工作，主要针对于BroadcastReceiver和Bounded Service，
 目的是清理它们在AMS中的相关信息。
 
-至此，Unbounded Service的主要流程分析完毕，在之前分析startService的基础上，理解stopService的流程还是比较容易的。 
-以下是stopService中最主要步骤对应的流程图： 
+至此，Unbounded Service的主要流程分析完毕，在之前分析startService的基础上，理解stopService的流程还是比较容易的。
+以下是stopService中最主要步骤对应的流程图：
 
 ![图4](/images/android-n-ams/service-4.jpg)
 
-## 四、Bounded Service的启动流程 
+## 四、Bounded Service的启动流程
 
 分析完Unbounded Service的基本流程后，我们再来看看Bounded Service相关的流程。
 
-### 1 ContextImpl的bindService 
+### 1 ContextImpl的bindService
 先从ContextImpl的bindService开始，分析Bounded Service的启动流程。
 ```java
 public boolean bindService(Intent service, ServiceConnection conn,
@@ -1781,13 +1781,13 @@ private boolean bindServiceCommon(Intent service, ServiceConnection conn, int fl
 }
 ```
 
-从上面的代码可以看出，bindServiceCommon会将请求bindService的请求发送给AMS处理。 
+从上面的代码可以看出，bindServiceCommon会将请求bindService的请求发送给AMS处理。
 不过，在分析AMS中的bindService前，我们不妨先看看LoadedApk中的getServiceDispatcher函数：
 ```java
 public final IServiceConnection getServiceDispatcher(ServiceConnection c,
         Context context, Handler handler, int flags) {
     synchronized (mServices) {
-        LoadedApk.ServiceDispatcher sd = null;      
+        LoadedApk.ServiceDispatcher sd = null;
         ArrayMap<ServiceConnection, LoadedApk.ServiceDispatcher> map = mServices.get(context);
         if (map != null) {
             sd = map.get(c);
@@ -1816,8 +1816,8 @@ public final IServiceConnection getServiceDispatcher(ServiceConnection c,
 }
 ```
 
-客户端调用bindService时，需要传入自定义的ServiceConnection。 
-从上面的代码可以看出，getServiceDispatcher函数将为初次使用的ServiceConnection创建ServiceDispatcher， 
+客户端调用bindService时，需要传入自定义的ServiceConnection。
+从上面的代码可以看出，getServiceDispatcher函数将为初次使用的ServiceConnection创建ServiceDispatcher，
 同时返回其对应的InnerConnection。
 
 如下面的代码所示，InnerConnection继承IServiceConnection.Stub，将作为Binder通信的服务端，供AMS回调。
@@ -1827,7 +1827,7 @@ private static class InnerConnection extends IServiceConnection.Stub {
 }
 ```
 
-### 2 AMS中的bindService 
+### 2 AMS中的bindService
 接下来，我们看看AMS的bindService函数：
 ```java
 public int bindService(IApplicationThread caller, IBinder token, Intent service,
@@ -1843,7 +1843,7 @@ public int bindService(IApplicationThread caller, IBinder token, Intent service,
 }
 ```
 
-AMS的bindService函数进行一些参数检查后，就将工作递交给了ActiveServices的bindServiceLocked函数。 
+AMS的bindService函数进行一些参数检查后，就将工作递交给了ActiveServices的bindServiceLocked函数。
 bindServiceLocked函数较长，我们分段进行分析。
 
 #### 2.1 bindServiceLocked Part-I
@@ -1889,7 +1889,7 @@ bindServiceLocked函数较长，我们分段进行分析。
     ...............
 ```
 
-bindServiceLocked的第一阶段，主要是进行一些条件检查、根据参数初始化一些变量， 
+bindServiceLocked的第一阶段，主要是进行一些条件检查、根据参数初始化一些变量，
 然后利用retrieveServiceLocked函数检索出待启动服务对应的ServiceRecord。
 
 #### 2.2 bindServiceLocked Part-II
@@ -1952,8 +1952,8 @@ bindServiceLocked的第一阶段，主要是进行一些条件检查、根据参
         b.client.connections.add(c);
 ```
 
-bindServiceLocked的第二部分看起来比较繁琐，主要进行ConnectionRecord相关的一系列数据结构的更新。 
-这些数据结构的关系，大概如下图所示，这里的UML图并不严格，仅表示它们之间的关系： 
+bindServiceLocked的第二部分看起来比较繁琐，主要进行ConnectionRecord相关的一系列数据结构的更新。
+这些数据结构的关系，大概如下图所示，这里的UML图并不严格，仅表示它们之间的关系：
 
 ![图5](/images/android-n-ams/service-5.jpg)
 
@@ -2034,12 +2034,12 @@ private boolean updateServiceClientActivitiesLocked(ProcessRecord proc,
 }
 ```
 
-上面更新Service所在进程优先级的思路，从结果来看可以简化为： 
+上面更新Service所在进程优先级的思路，从结果来看可以简化为：
 
-如果当前Service所在进程，存在一个Service（一个进程内可以运行多个Service）， 
+如果当前Service所在进程，存在一个Service（一个进程内可以运行多个Service），
 是由另一个含有Activity的进程绑定时（不论是否从Activity绑定），就会更新当前Service所在进程的优先级。
 
-#### 2.4 bindServiceLocked Part-IV 
+#### 2.4 bindServiceLocked Part-IV
 bindServiceLocked的前三部分，都是一些琐碎的细节，实际上实际的工作还是由第4部分完成。
 ```java
         if ((flags&Context.BIND_AUTO_CREATE) != 0) {
@@ -2053,9 +2053,9 @@ bindServiceLocked的前三部分，都是一些琐碎的细节，实际上实际
         }
 ```
 
-从代码可以看出，启动Servic仍是依靠bringUpServiceLocked函数。 
+从代码可以看出，启动Servic仍是依靠bringUpServiceLocked函数。
 
-bringUpServiceLocked函数中大部分的流程与Unbouned Service启动相似，只是在realStartServiceLocked函数中， 
+bringUpServiceLocked函数中大部分的流程与Unbouned Service启动相似，只是在realStartServiceLocked函数中，
 在回调Service的onCreate接口之后，回调Service的onStartCommand函数之前，需要执行requestServiceBindingsLocked函数：
 ```java
 private final void requestServiceBindingsLocked(ServiceRecord r, boolean execInFg)
@@ -2119,7 +2119,7 @@ private final boolean requestServiceBindingLocked(ServiceRecord r, IntentBindRec
 }
 ```
 
-ApplicationThread的scheduleBindService函数被调用后，将发送BIND_SERVICE消息， 
+ApplicationThread的scheduleBindService函数被调用后，将发送BIND_SERVICE消息，
 触发ActivityThread的handleBindService进行处理：
 ```java
 private void handleBindService(BindServiceData data) {
@@ -2212,7 +2212,7 @@ void publishServiceLocked(ServiceRecord r, Intent intent, IBinder service) {
 ```
 至此，我们知道了第一次绑定Service时，ServiceConnection是如何被回调的。
 
-#### 2.5 bindServiceLocked Part-V 
+#### 2.5 bindServiceLocked Part-V
 现在我们看看bindServiceLocked的最后一部分：
 ```java
         .............
@@ -2234,7 +2234,7 @@ void publishServiceLocked(ServiceRecord r, Intent intent, IBinder service) {
             //处理重新绑定的情况
             if (b.intent.apps.size() == 1 && b.intent.doRebind) {
                 requestServiceBindingLocked(s, b.intent, callerFg, true);
-            } 
+            }
         } else if (!b.intent.requested) {
             //客户端不使用BIND_AUTO_CREATE flag绑定服务时，
             //若对应服务并没有启动，但服务端进程启动了，就会进入这个分支
@@ -2251,8 +2251,8 @@ void publishServiceLocked(ServiceRecord r, Intent intent, IBinder service) {
 ```
 至此，客户端与Service绑定相关的工作结束，可以看看对应的回调流程。
 
-### 3 InnerConnection中的bindService 
-前文中已经提到过，客户端注册到AMS的Binder通信服务端，实际上是LoadedApk的内部类ServiceDispatcher中的InnerConnection。 
+### 3 InnerConnection中的bindService
+前文中已经提到过，客户端注册到AMS的Binder通信服务端，实际上是LoadedApk的内部类ServiceDispatcher中的InnerConnection。
 因此客户端与Service绑定成功后，AMS回调的是InnerConnection中的connected函数：
 ```java
 public void connected(ComponentName name, IBinder service) throws RemoteException {
@@ -2264,7 +2264,7 @@ public void connected(ComponentName name, IBinder service) throws RemoteExceptio
 }
 ```
 
-可以看出InnerConnection仅作为一个通信接口，直接将工作递交给ServiceDispatcher处理。 
+可以看出InnerConnection仅作为一个通信接口，直接将工作递交给ServiceDispatcher处理。
 我们跟进ServiceDispatcher，看看它的connected函数：
 ```java
 public void connected(ComponentName name, IBinder service) {
@@ -2342,18 +2342,18 @@ public void doConnected(ComponentName name, IBinder service) {
 }
 ```
 
-从以上ServiceDispatcher的逻辑来看，客户端可以用同一个ServiceConnection绑定多个Service， 
-绑定成功后为每个Service创建对应的ConnectionInfo，并按Service组件名保存到mActiveConnections中。 
+从以上ServiceDispatcher的逻辑来看，客户端可以用同一个ServiceConnection绑定多个Service，
+绑定成功后为每个Service创建对应的ConnectionInfo，并按Service组件名保存到mActiveConnections中。
 因此，ServiceConnection回调接口的参数中，携带了ComponetName，用于指定连接或断开的具体Service。
 
-至此，Bounded Service的启动流程分析完毕，整个流程可简化为下图： 
+至此，Bounded Service的启动流程分析完毕，整个流程可简化为下图：
 
 ![图6](/images/android-n-ams/service-6.jpg)
 
-## 五、Bounded Service的结束流程 
+## 五、Bounded Service的结束流程
 最后，我们来看看Bounded Service结束的流程。
 
-### 1 ContextImpl的unbindService 
+### 1 ContextImpl的unbindService
 我们从ContextImpl的unbindService开始分析整个流程：
 ```java
 //与该ServiceConnection绑定的所有Service解绑
@@ -2423,7 +2423,7 @@ void doForget() {
 ```
 从上面的代码可以看出，在将解绑请求发往AMS之前，客户端所在进程的LoadApk会先清除ServiceConnection相关的记录信息。
 
-### 2 AMS的unbindService 
+### 2 AMS的unbindService
 
 接下来，我们看看AMS的unbindService函数：
 ```java
@@ -2460,7 +2460,7 @@ boolean unbindServiceLocked(IServiceConnection connection) {
 ```
 从代码来看，ActiveServices的unbindServiceLocked函数，将利用removeConnectionLocked函数处理ServiceConnection对应的每一个ConnectionRecord。
 
-### 3 ActiveServices的removeConnectionLocked 
+### 3 ActiveServices的removeConnectionLocked
 
 现在继续跟进removeConnectionLocked函数：
 ```java
@@ -2540,13 +2540,13 @@ void removeConnectionLocked(
 }
 ```
 
-从上面的代码可以看出，ActiveServices的removeConnectionLocked函数， 
-主要用于清除ConnectionRecord对应的记录信息； 
-然后调用ApplicationThread的scheduleUnbindService函数； 
-最后与Unbounded Service一样，调用bringDownServiceIfNeededLocked函数，在必要是清理服务。 
+从上面的代码可以看出，ActiveServices的removeConnectionLocked函数，
+主要用于清除ConnectionRecord对应的记录信息；
+然后调用ApplicationThread的scheduleUnbindService函数；
+最后与Unbounded Service一样，调用bringDownServiceIfNeededLocked函数，在必要是清理服务。
 从上文的分析来看，Service被清理时，才会统一回调ServiceConnection的onServiceDisconnected函数。
 
-### 4 ApplicationThread的scheduleUnbindService 
+### 4 ApplicationThread的scheduleUnbindService
 
 ApplicationThread的scheduleUnbindService函数被调用时，将发送UNBIND_SERVICE，触发ActivityThread调用handleUnbindService：
 ```java
@@ -2579,14 +2579,14 @@ private void handleUnbindService(BindServiceData data) {
 }
 ```
 
-至此，Bounded Service结束流程分析完毕，对应的流程图可简化为下图： 
+至此，Bounded Service结束流程分析完毕，对应的流程图可简化为下图：
 
 ![图7](/images/android-n-ams/service-7.jpg)
 
-## 六、总结 
+## 六、总结
 
-本篇博客从Service的基础知识入手，记录了Service的基本用法和注意事项。 
+本篇博客从Service的基础知识入手，记录了Service的基本用法和注意事项。
 
-对于APK开发而言，掌握这一部分足以解决一般的问题。 
-后面主要分析了Android N中，Service启动和结束相关的流程。 
+对于APK开发而言，掌握这一部分足以解决一般的问题。
+后面主要分析了Android N中，Service启动和结束相关的流程。
 通过分析源码流程，可以明白Service的一些技术细节，明白Service相关特性的原因。
