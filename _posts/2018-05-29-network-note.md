@@ -20,3 +20,5 @@ lang: zh-Hans
 ## [chendongqi android system blog git](http://chendongqi.me/)
 
 ## [应用上网控制](https://blog.csdn.net/xiaoxsen/article/details/78034353)
+
+##  [Android源码学习笔记](https://blog.csdn.net/column/details/13723.html)
