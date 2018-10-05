@@ -1,7 +1,7 @@
 ---
 layout: article
 title:  "Binder系列4—获取ServiceManager"
-date:   2015-11-08 13:10:54
+key: 20151108
 catalog:  true
 tags:
     - android

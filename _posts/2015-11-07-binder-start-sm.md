@@ -2,6 +2,7 @@
 layout: article
 title:  "Binder系列3—启动ServiceManager"
 date:   2015-11-07 21:11:50
+key: 20151107
 catalog:  true
 tags:
     - android
