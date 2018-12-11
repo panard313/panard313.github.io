@@ -24,3 +24,8 @@ lang: zh-Hans
 ##  [Android源码学习笔记](https://blog.csdn.net/column/details/13723.html)
 
 ## [python spyder](https://www.cnblogs.com/zhaof/p/6915127.html#4122053)
+
+## [nexus 6p 时间同步](settings put global ntp_server time.asia.apple.com)
+
+
+## [nexus 6p 去叹号](settings put global captive_portal_mode 0)
