@@ -3,7 +3,7 @@ layout: article
 title: shell skills
 key: 20181217
 tags:
-  - vim
+  - shell
 lang: zh-Hans
 ---
 
