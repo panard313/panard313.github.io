@@ -29,3 +29,7 @@ lang: zh-Hans
 
 ## [python spyder](https://www.cnblogs.com/zhaof/p/6915127.html#4122053)
 
+
+# performance
+
+## (Android app)
