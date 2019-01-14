@@ -31,5 +31,7 @@ lang: zh-Hans
 
 
 # performance
+## [Android app性能分析工具 systrace](https://blog.csdn.net/u012319317/article/details/52641980)
+## [Speed up your app](http://blog.udinic.com/2015/09/15/speed-up-your-app)
 
-## (Android app)
+## [android性能优化文章汇总](https://www.androidperformance.com/2018/05/07/Android-performance-optimization-skills-and-tools/)
