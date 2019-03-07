@@ -22,6 +22,8 @@ lang: zh-Hans
 ### [chendongqi android system blog git](http://chendongqi.me/)
 
 ### [PMS](https://blog.csdn.net/hehui1860/article/details/38434343)
+
+### [Android Studio调试技巧](http://weishu.me/2015/12/21/android-studio-debug-tips-you-may-not-know/)
 -   usefull author
 
 ### [应用上网控制](https://blog.csdn.net/xiaoxsen/article/details/78034353)
