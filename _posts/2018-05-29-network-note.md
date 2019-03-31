@@ -36,6 +36,22 @@ lang: zh-Hans
 
 ### [ams pms - ](https://blog.csdn.net/qq_23547831/article/details/51224992)
 
+### lowmemorykiller
+
+- https://blog.csdn.net/u011733869/article/details/78820240
+- http://gityuan.com/2016/09/17/android-lowmemorykiller/
+- http://gityuan.com/2016/08/07/android-adj/
+- https://www.cnblogs.com/tiger-wang-ms/p/6445213.html
+- https://www.jianshu.com/p/221f4a246b45
+- https://www.jianshu.com/p/980b6ce4e051
+- https://www.jianshu.com/p/7bd3d0ee8a56
+- http://www.voidcn.com/article/p-owulnrgj-rw.html
+
+### PKMS
+
+- https://blog.csdn.net/freekiteyu/article/details/82774947
+- https://blog.csdn.net/freekiteyu/article/details/87934375#comments
+- https://www.jianshu.com/p/b9b2b0f650e9
 
 # performance
 
