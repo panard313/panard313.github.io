@@ -27,6 +27,8 @@ lang: zh-Hans
 
 -   usefull author
 
+### [隔壁李老头](https://www.jianshu.com/users/8b9c629f69dd/subscriptions)
+
 ### [应用上网控制](https://blog.csdn.net/xiaoxsen/article/details/78034353)
 
 ###  [Android源码学习笔记](https://blog.csdn.net/column/details/13723.html)
@@ -53,8 +55,7 @@ lang: zh-Hans
 - https://blog.csdn.net/freekiteyu/article/details/82774947
 - https://blog.csdn.net/freekiteyu/article/details/87934375#comments
 - https://www.jianshu.com/p/b9b2b0f650e9
-=======
->>>>>>> Stashed changes
+- [隔壁李老头](https://www.jianshu.com/users/8b9c629f69dd/subscriptions)
 
 # performance
 
