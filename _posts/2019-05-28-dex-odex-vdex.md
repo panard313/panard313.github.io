@@ -73,7 +73,8 @@ odex 进行优化 生成的 可执行二进制码 文件，主要是apk 启动�
 ## oat
 
 ART虚拟机使用的是oat文件，oat文件是一种Android私有ELF文件格式，它不仅包含有从DEX文件翻译而来的本地机器指令，还包含有原来的DEX文件内容。APK在安装的过程中，会通过dex2oat工具生成一个OAT文件。对于apk来说，oat文件实际上就是对odex文件的包装，即oat=odex，而对于一些framework中的一些jar包，会生成相应的oat尾缀的文件，如system@framework@boot-telephony-common.oat。
-QA
+
+## QA
 
     Android 5.0开始，默认已经使用ART，弃用Dalvik了，app会在安装时被编译成OAT文件，（ART上运行的格式）ODEX还有什么用呢？ Google权威的回答：
 
