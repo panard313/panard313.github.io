@@ -38,7 +38,8 @@ android O 新增的格式包，dex代码 直接转化的 可执行二进制码 �
 - 1.第一次开机就会生成在/system/app/<packagename>/oat/ 下；
 
 - 2.在系统运行过程中，虚拟机将其 从 “/system/app” 下 copy 到 “/data/davilk-cache/” 下
-odex
+
+## odex
 
 在Android N 之前，Dalvik虚拟机执行程序dex文件前，系统会对dex文件做优化，生成可执行文件odex，保存到data/dalvik-cache目录，最后把apk文件中的dex文件删除。
 
@@ -48,7 +49,7 @@ odex
 
 - 2.防止第三方用户反编译系统的软件（odex文件是跟随系统环境变化的，改变环境会无法运行；而apk文件中又不包含dex文件，无法独立运行）。
 
-在Android O 之后，odex 是从vdex 这个文件中 提取了部分模块生成的一个新的 可执行二进制码 文件 ， odex 从vdex 中提取后，vdex 的大小就减少了。
+在Android O 之后，odex 是从vdex 这个文件中提取了部分模块生成的一个新的可执行二进制码文件 ， odex 从vdex 中提取后，vdex 的大小就减少了。
 
 - 1.第一次开机就会生成在/system/app/<packagename>/oat/ 下
 
@@ -214,3 +215,21 @@ OtaDexoptService也提供给shell命令一些方法来调用
 [https://blog.csdn.net/long375577908/article/details/78190422](https://blog.csdn.net/long375577908/article/details/78190422)
 
 [https://blog.csdn.net/lilian0118/article/details/25965171](https://blog.csdn.net/lilian0118/article/details/25965171)
+
+
+## question
+
+- oat art
+
+- odex 弃用
+
+- vdex
+
+- cdex
+
+- 开机一分钟执行
+
+- jit
+
+- speed-profile
+
