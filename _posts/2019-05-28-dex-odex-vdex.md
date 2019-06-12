@@ -108,7 +108,7 @@ dex2oat 生成，由 --multi-image选项控制 p451
 
 ### oat
 
-一种定制化的elf文件， 实际上是以elf格式封装了oat信息
+一种定制化的elf文件， 实际上是以elf格式封装了oat信息, 将oat的信息存储在.rodata和.text section中。 而oat信息又以oat格式来组织. p494
 
 p544 compile总结， dex2oat中dex字结码， 编译
 
@@ -121,3 +121,96 @@ p554 oatdump
 p566 提前创建的object
 
 p599 JIT
+
+
+
+## odex优化的地方
+
+### 1.首次开机或者升级
+
+在SystemServer.java 中有mPackageManagerService.updatePackagesIfNeeded() 
+这里先列举流程，具体步骤有空再贴上 
+updatePackagesIfNeeded->performDexOptUpgrade->performDexOptTraced->performDexOptInternal->performDexOptInternalWithDependenciesLI->PackageDexOptimizer.performDexOpt->performDexOptLI->dexOptPath->Installer.dexopt->InstalldNativeService.dexopt->dexopt.dexopt
+
+### 2.安装应用：
+
+在PKMS.installPackageLI函数中有： 
+```java
+mPackageDexOptimizer.performDexOpt(pkg, pkg.usesLibraryFiles, 
+    null /* instructionSets /, false / checkProfiles */, 
+    getCompilerFilterForReason(REASON_INSTALL), 
+    getOrCreateCompilerPackageStats(pkg), 
+    mDexManager.isUsedByOtherApps(pkg.packageName));
+```
+
+### 3.IPackageManager.aidl提供了performDexOpt方法
+
+在PKMS中有实现的地方，但是没找到调用的地方
+
+### 4.IPackageManager.aidl提供了performDexOptMode方法
+
+在PKMS中有实现的地方，在PackageManagerShellCommand中会被调用，应该是提供给shell命令调用
+
+### 5.OTA升级后：
+
+在SystemServer.java 中有OtaDexoptService.main(mSystemContext, mPackageManagerService);
+```java
+public static OtaDexoptService main(Context context,
+        PackageManagerService packageManagerService) {
+    OtaDexoptService ota = new OtaDexoptService(context, packageManagerService);
+    ServiceManager.addService("otadexopt", ota);
+
+    // Now it's time to check whether we need to move any A/B artifacts.
+    ota.moveAbArtifacts(packageManagerService.mInstaller);
+
+    return ota;
+}
+
+private void moveAbArtifacts(Installer installer) {
+    if (mDexoptCommands != null) {
+        throw new IllegalStateException("Should not be ota-dexopting when trying to move.");
+    }
+    //如果不是升级上来的，就return掉
+    if (!mPackageManagerService.isUpgrade()) {
+        Slog.d(TAG, "No upgrade, skipping A/B artifacts check.");
+        return;
+    }
+
+        installer.moveAb(path, dexCodeInstructionSet, oatDir);
+}
+```
+
+moveAbArtifacts函数的逻辑： 
+- 1.判断是否升级 
+- 2.判断扫描过的package是否有code，没有则跳过 
+- 3.判断package的code路径是否为空，为空则跳过 
+- 4.如果package的code在system或者vendor目录下，跳过 
+- 5.满足上述条件，调用Installer.java中的moveAb方法 
+
+最终是调用dexopt.cpp的move_ab方法
+
+OtaDexoptService也提供给shell命令一些方法来调用
+
+### 6.在系统空闲的时候：
+
+是通过BackgroundDexOptService来实现的，BackgroundDexOptService继承了JobService 
+
+这里启动了两个任务 
+
+- 1.开机的时候执行odex优化 JOB_POST_BOOT_UPDATE 
+
+执行条件：开机一分钟内 
+
+- 2.在系统休眠的时候执行优化 JOB_IDLE_OPTIMIZE 
+
+执行条件：设备处于空闲，插入充电器，且每隔一分钟或者一天就检查一次（根据debug开关控制）
+
+
+
+## links
+
+[https://blog.csdn.net/jsqfengbao/article/details/52103439](https://blog.csdn.net/jsqfengbao/article/details/52103439)
+
+[https://blog.csdn.net/long375577908/article/details/78190422](https://blog.csdn.net/long375577908/article/details/78190422)
+
+[https://blog.csdn.net/lilian0118/article/details/25965171](https://blog.csdn.net/lilian0118/article/details/25965171)
