@@ -96,3 +96,28 @@ ODEX优化事实上是由一个叫做WITH_DEXPREOPT的参数控制的，开启�
 
 https://www.zhihu.com/question/275955357/answer/383865933
 
+
+
+# self
+
+### odex
+
+dex2oat 生成，由 --multi-image选项控制 p451
+
+核心库一般生成art， app不一定生成art
+
+### oat
+
+一种定制化的elf文件， 实际上是以elf格式封装了oat信息
+
+p544 compile总结， dex2oat中dex字结码， 编译
+
+p544 oat和art文件格式介绍
+
+p553 art文件可以看成是直接保存的对象
+
+p554 oatdump
+
+p566 提前创建的object
+
+p599 JIT
