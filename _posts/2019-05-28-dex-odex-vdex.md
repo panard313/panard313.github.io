@@ -208,6 +208,38 @@ OtaDexoptService也提供给shell命令一些方法来调用
 
 
 
+## jvm dalvik art
+
+[https://blog.csdn.net/jason0539/article/details/50440669](https://blog.csdn.net/jason0539/article/details/50440669)
+
+#### JVM 
+JVM(Java Virtual Machine): 编译的是.class文件，基于栈的结构
+
+JAVA程序经过编译，生成JAVA字节码保存在class文件中，JVM通过解码class文件中的内容来运行程序
+
+#### Dalvik
+而Dalvik虚拟机运行的是Dalvik字节码，所有的Dalvik字节码由JAVA字节码转换而来，并被打包到一个DEX（Dalvik Executable）可执行文件中，DVM通过解释DEX文件来执行这些字节码。
+
+class文件中包含多个不同的方法签名，如果A类文件引用B类文件中的方法，方法签名也会被复制到A类文件中（在虚拟机加载类的连接阶段将会使用该签名链接到B类的对应方法），也就是说，多个不同的类会同时包含相同的方法签名，同样地，大量的字符串常量在多个类文件中也被重复使用，这些冗余信息会直接增加文件的体积，而JVM在把描述类的数据从class文件加载到内存时，需要对数据进行校验、转换解析和初始化，最终才形成可以被虚拟机直接使用的JAVA类型，因为大量的冗余信息，会严重影响虚拟机解析文件的效率。
+为了减小执行文件的体积，安卓使用Dalvik虚拟机，SDK中有个dx工具负责将JAVA字节码转换为Dalvik字节码，dx工具对JAVA类文件重新排列，将所有JAVA类文件中的常量池分解，消除其中的冗余信息，重新组合形成一个常量池，所有的类文件共享同一个常量池，使得相同的字符串、常量在DEX文件中只出现一次，从而减小了文件的体积。
+
+#### ART Android Runtime
+**Dalvik虚拟机执行的是dex字节码，ART虚拟机执行的是本地机器码**
+Dalvik执行的是dex字节码，依靠JIT编译器去解释执行，运行时动态地将执行频率很高的dex字节码翻译成本地机器码，然后在执行，但是将dex字节码翻译成本地机器码是发生在应用程序的运行过程中，并且应用程序每一次重新运行的时候，都要重新做这个翻译工作，因此，及时采用了JIT，Dalvik虚拟机的总体性能还是不能与直接执行本地机器码的ART虚拟机相比。
+
+应用程序仍然是一个包含dex字节码的apk文件。所以在安装应用的时候，dex中的字节码将被编译成本地机器码，之后每次打开应用，执行的都是本地机器码。
+
+ART优点：
+①系统性能显著提升
+②应用启动更快、运行更快、体验更流畅、触感反馈更及时
+③续航能力提升
+④支持更低的硬件
+
+ART缺点
+①更大的存储空间占用，可能增加10%-20%
+②更长的应用安装时间
+
+
 ## links
 
 [https://blog.csdn.net/jsqfengbao/article/details/52103439](https://blog.csdn.net/jsqfengbao/article/details/52103439)
@@ -215,6 +247,40 @@ OtaDexoptService也提供给shell命令一些方法来调用
 [https://blog.csdn.net/long375577908/article/details/78190422](https://blog.csdn.net/long375577908/article/details/78190422)
 
 [https://blog.csdn.net/lilian0118/article/details/25965171](https://blog.csdn.net/lilian0118/article/details/25965171)
+
+[APK安装流程详解15——PMS中的新安装流程下(装载)补充](https://www.jianshu.com/p/6f8fc521512e)
+
+[Android中dex文件的加载与优化流程](https://blog.csdn.net/jsqfengbao/article/details/52103439)
+
+[dexopt优化和验证Dalvik](https://blog.csdn.net/lilian0118/article/details/25965171)
+
+[dexopt 与 dex2oat 区别](https://www.jianshu.com/p/26a82119da49)
+
+[dex2oat的原理及慢的原因](https://blog.csdn.net/long375577908/article/details/78190422)
+
+[JVM、DVM(Dalvik VM)和ART虚拟机对比](https://blog.csdn.net/evan_man/article/details/52414390)
+
+[Android可执行文件之谜 - DEX与ODEX, OAT与ELF](http://www.imooc.com/article/91519)
+
+[Android运行时ART加载OAT文件的过程分析](https://blog.csdn.net/luoshengyang/article/details/39307813)
+
+[Android运行时ART简要介绍和学习计划](https://blog.csdn.net/luoshengyang/article/details/39256813)
+
+[Dalvik和ART运行时环境的区别](https://blog.csdn.net/watermusicyes/article/details/50526814)
+
+[Android ART运行时无缝替换Dalvik虚拟机的过程分析](https://blog.csdn.net/luoshengyang/article/details/18006645)
+
+[Android 系统（36）---Android O、N版本修改dex2oat编译选项](https://blog.csdn.net/zhangbijun1230/article/details/80026887)
+
+[Android 系统（90）---JIT 编译器 --图](https://blog.csdn.net/zhangbijun1230/article/details/80590208)
+
+[ART 的 interpret-only模式源码及调用流程 ＆ QuickCompiler后端调用流程](https://blog.csdn.net/Sumin_fushengruocha/article/details/51147776)
+
+[Android 系统（89）--- 配置ART](https://blog.csdn.net/zhangbijun1230/article/details/80589875)
+
+[Dalvik,ART与ODEX相爱相生](https://www.jianshu.com/p/389911e2cdfb)
+
+[Implementing ART Just-In-Time (JIT) Compiler](https://medium.com/@erpragatisingh/implementing-art-just-in-time-jit-compiler-2b562f769f59)
 
 
 ## question
@@ -225,11 +291,89 @@ OtaDexoptService也提供给shell命令一些方法来调用
 
 - vdex
 
+首次安装后已提取并校验（extracted， verified）过的dex文件，避免再次优化时进行重复的提取和校验
+
 - cdex
+
+Android 9（Pie）版本推出了一种新型的Dex文件，即Compact Dex（Cdex）。Cdex是一种ART内部文件格式，它压缩各种Dex数据结构（例如方法头）并对多索引文件中的常见数据blob（例如字符串）进行重复数据删除。来自输入应用程序的Dex文件的重复数据删除数据存储在Vdex容器的共享部分中。
 
 - 开机一分钟执行
 
 - jit
 
 - speed-profile
+
+
+
+
+
+## ppt
+
+### JVM Dalvik ART
+JVM(Java Virtual Machine): 编译的是.class文件，基于栈的结构
+
+JAVA程序经过编译，生成JAVA字节码保存在class文件中，JVM通过解码class文件中的内容来运行程序
+
+
+而Dalvik虚拟机运行的是Dalvik字节码，所有的Dalvik字节码由JAVA字节码转换而来，并被打包到一个DEX（Dalvik Executable）可执行文件中，DVM通过解释DEX文件来执行这些字节码。
+
+class文件中包含多个不同的方法签名，如果A类文件引用B类文件中的方法，方法签名也会被复制到A类文件中（在虚拟机加载类的连接阶段将会使用该签名链接到B类的对应方法），也就是说，多个不同的类会同时包含相同的方法签名，同样地，大量的字符串常量在多个类文件中也被重复使用，这些冗余信息会直接增加文件的体积，而JVM在把描述类的数据从class文件加载到内存时，需要对数据进行校验、转换解析和初始化，最终才形成可以被虚拟机直接使用的JAVA类型，因为大量的冗余信息，会严重影响虚拟机解析文件的效率。
+为了减小执行文件的体积，安卓使用Dalvik虚拟机，SDK中有个dx工具负责将JAVA字节码转换为Dalvik字节码，dx工具对JAVA类文件重新排列，将所有JAVA类文件中的常量池分解，消除其中的冗余信息，重新组合形成一个常量池，所有的类文件共享同一个常量池，使得相同的字符串、常量在DEX文件中只出现一次，从而减小了文件的体积。
+
+
+Dalvik执行的是dex字节码，依靠JIT编译器去解释执行，运行时动态地将执行频率很高的dex字节码翻译成本地机器码，然后在执行，但是将dex字节码翻译成本地机器码是发生在应用程序的运行过程中，并且应用程序每一次重新运行的时候，都要重新做这个翻译工作，因此，及时采用了JIT，Dalvik虚拟机的总体性能还是不能与直接执行本地机器码的ART虚拟机相比。
+**Dalvik虚拟机执行的是dex字节码，ART虚拟机执行的是本地机器码**
+
+应用程序仍然是一个包含dex字节码的apk文件。所以在安装应用的时候，dex中的字节码将被编译成本地机器码，之后每次打开应用，执行的都是本地机器码。
+
+### dex变迁
+
+dalvik
+android 2.2 +jit
+android 4.4 dalvik + art
+android 5.0 art
+android 7.0 art + jit
+
+### dex (Dalvik Executable)
+
+### odex
+
+### oat
+
+### dexopt & dex2oat
+
+### vdex cdex oat art
+**找个机器root查看**
+
+
+### 混合编译
+
+### speed speed-profile
+extract
+verify
+quicken
+space-profile
+space
+speed-profile
+speed
+everything-profile
+everything
+
+### bg-dexopt-service
+
+
+
+
+06-10 10:35:06.691  6369  6369 I dex2oat : /system/bin/dex2oat --input-vdex-fd=-1 --output-vdex-fd=19 --compiler-filter=speed-profile --classpath-dir=/data/app/com.xunmeng.pinduoduo-   _cGBEpbrRfhwNSkdGy6lhA== --class-loader-context=PCL[/system/framework/org.apache.http.legacy.boot.jar] --generate-mini-debug-info --compact-dex-level=none --compilation-reason=install  06-10 10:35:06.698  6369  6369 W dex2oat : Could not reserve sentinel fault page
+ 06-10 10:35:13.607  6369  6369 I dex2oat : Explicit concurrent copying GC freed 55062(9MB) AllocSpace objects, 0(0B) LOS objects, 99% free, 1232B/1537KB, paused 96us total 13.838ms
+ 06-10 10:35:15.221  6369  6369 I dex2oat : dex2oat took 8.535s (17.701s cpu) (threads: 4) arena alloc=27KB (27960B) java alloc=17KB (17616B) native alloc=15MB (16343304B) free=3MB      (3579640B)
+ 
+ 06-10 10:44:25.535  7930  7930 I dex2oat : /system/bin/dex2oat --input-vdex-fd=19 --output-vdex-fd=20 --compiler-filter=speed-profile --profile-file-fd=23 --classpath-dir=/data/app/    com.xunmeng.pinduoduo-_cGBEpbrRfhwNSkdGy6lhA== --class-loader-context=PCL[/system/framework/org.apache.http.legacy.boot.jar] --generate-mini-debug-info --compilation-reason=bg-dexopt
+
+
+ A3A_10_4G:/data/app/com.xunmeng.pinduoduo-CfWqhUJYrwCFYRW2sTFEPw==/oat/arm # ls -l
+total 15128
+-rw-r--r-- 1 system all_a121    57344 2019-06-11 07:51 base.art
+-rw-r--r-- 1 system all_a121   273504 2019-06-11 07:51 base.odex
+-rw-r--r-- 1 system all_a121 15158668 2019-06-11 07:51 base.vdex
 
