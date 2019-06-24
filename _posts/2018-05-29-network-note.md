@@ -65,6 +65,23 @@ lang: zh-Hans
 
 ### [android性能优化文章汇总](https://www.androidperformance.com/2018/05/07/Android-performance-optimization-skills-and-tools/)
 
+### [高通内存优化计算](https://blog.csdn.net/ldinvicible/article/details/79447208)
+
+### [Android 性能优化之内存优化](https://blog.csdn.net/zhangbijun1230/article/details/80482757)
+
+### [linux的vm相关参数介绍](https://blog.csdn.net/wyzxg/article/details/5661489)
+
+### [Android中基于CGroup的memory子系统HAL层分析-lmkd](https://blog.csdn.net/weixin_34419326/article/details/85843617)
+
+### [Linux内核工程导论——CGroup子系统](https://blog.csdn.net/ljy1988123/article/details/48032577)
+
+### []()
+
+### []()
+
+### []()
+
+
 
 # debug
 

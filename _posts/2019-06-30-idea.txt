@@ -1,0 +1,27 @@
+---
+layout: article
+title: idea
+key: 20190630
+tags:
+  - idea
+  - cx
+lang: zh-Hans
+---
+
+# Test
+
+### perf Test
+
+- 找特定无动态权限应用，固定测试应用列表
+- 在usbd中使用特定命令，让系统暂时跳过动态授权，设置特殊状态，检测到特殊状态时，全部自动通过。
+    ？？ 有的应用使用动态授权前，会弹窗，非系统窗口，如何处理？
+
+    欺骗应用， 让应用以为已授权，无需弹窗？
+
+
+
+# performance
+
+### 替换HashMap
+
+还有值得一提的就是JAVA里面的HashMap，这个使用的效率是不高的，我们要用ArrayMap、SparseArray替换。
