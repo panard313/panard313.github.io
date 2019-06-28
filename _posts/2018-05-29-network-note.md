@@ -64,3 +64,8 @@ lang: zh-Hans
 ### [Speed up your app](http://blog.udinic.com/2015/09/15/speed-up-your-app)
 
 ### [android性能优化文章汇总](https://www.androidperformance.com/2018/05/07/Android-performance-optimization-skills-and-tools/)
+
+
+# debug
+
+### [google doc](https://source.android.com/devices/tech/debug)
