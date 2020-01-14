@@ -57,3 +57,15 @@ lang: zh-Hans
 - 2、实际规划节点可能提前，请留意TL发布的信息(所有发布信息会同步到8751714 & 此题下方Comment)。 
 - 3、实际实现过程中可以证伪，或转变方向，或增加减少子Action等等（所有信息请同步此题下方Comment & TL汇总到8751714） 
 - 4、KO总表 & 其他约定 & 总体管理2020KO事项和文档等 参考在：总Doc 8751714 [SATD-2020][KO]Performance tech. improvement Doc （请留意） 
+
+## Moving:
+
+### blktrace
+
+开始收集trace
+
+    blktrace -d /dev/block/mtdblock1 -o /tmp/data1 -w 60
+
+分析trace
+
+    blkparse -i /tmp/data1.blktrace.0 
