@@ -220,3 +220,28 @@ workspace, 以便vscode能够进行kernel全域的代码跳转
 如下图：
 
 ![vscode](/images/qemu/vscode-debug.png)
+
+#### vscode settings:
+
+append:
+
+```json
+"files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/drivers/*/**": true,
+        "*.cmd": true,
+        "*.o": true,
+        "*.txt": true,
+    }
+```
+
+#### .gdbinit
+
+> add-auto-load-safe-path /home/panard/linux-4.19.100
+
+
+#### links
+
+[How to debug the Linux kernel with GDB and QEMU?](https://stackoverflow.com/questions/11408041/how-to-debug-the-linux-kernel-with-gdb-and-qemu)
