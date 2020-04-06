@@ -83,6 +83,7 @@ wget -c https://busybox.net/downloads/busybox-1.30.1.tar.bz2
 tar xf busybox-1.30.1.tar.bz2
 cd busybox-1.30.1
 make menuconfig
+# 选择静态链接，否则无法启动
 make -j4 && make install
 #检查编译成成的文件都在_install文件夹中
 ```
@@ -95,6 +96,7 @@ mkdir qemu_rootfs
 sudo mount -o loop qemu_rootfs.img  qemu_rootfs
 cd qemu_rootfs
 sudo mkdir proc sys dev etc etc/init.d var
+cp -rv ../busybox-1.30.1/_install/* .
 sudo vim etc/init.d/rcS
 ```
 
@@ -227,14 +229,42 @@ append:
 
 ```json
 "files.watcherExclude": {
-        "**/.git/objects/**": true,
-        "**/.git/subtree-cache/**": true,
-        "**/node_modules/*/**": true,
-        "**/drivers/*/**": true,
-        "*.cmd": true,
-        "*.o": true,
-        "*.txt": true,
-    }
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/*/**": true,
+    "**/drivers/*/**": true,
+    "**/*.o": true,
+    "**/*.cmd": true,
+    "**/*.map": true,
+    "**/*.txt": true,
+},
+"files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "jspm_packages": true,
+    "node_modules": true,
+    "**/**/node_modules": true,
+    "**/drivers": true,
+    "**/firmware": true,
+    "**/net": true,
+    "**/sound": true,
+    "**/vmlinux*": true,
+    "**/.zip": true,
+    "**/.sh": true,
+    "**/.idea": true,
+    "**/*.o": true,
+    "**/*.cmd": true,
+    "**/*.map": true,
+},
+"search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "**/.idea": true,
+    "**/*.o": true,
+    "**/*.cmd": true,
+    "**/*.map": true,
+},
+"debug.console.fontFamily": "ubuntu mono",
 ```
 
 #### .gdbinit
