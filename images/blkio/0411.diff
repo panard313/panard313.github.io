@@ -1,0 +1,748 @@
+diff --git a/Makefile b/Makefile
+index f1e428271..962d31505 100644
+--- a/Makefile
++++ b/Makefile
+@@ -662,7 +662,7 @@ else
+ ifdef CONFIG_PROFILE_ALL_BRANCHES
+ KBUILD_CFLAGS	+= -O2 $(call cc-disable-warning,maybe-uninitialized,)
+ else
+-KBUILD_CFLAGS   += -O2
++KBUILD_CFLAGS   += -O1
+ endif
+ endif
+ 
+diff --git a/block/blk-cgroup.c b/block/blk-cgroup.c
+index a06547fe6..e45edecb7 100644
+--- a/block/blk-cgroup.c
++++ b/block/blk-cgroup.c
+@@ -821,6 +821,7 @@ int blkg_conf_prep(struct blkcg *blkcg, const struct blkcg_policy *pol,
+ 	int key_len, part, ret;
+ 	char *body;
+ 
++	printk(KERN_ERR "blkg_conf_prep %s", input);
+ 	if (sscanf(input, "%u:%u%n", &major, &minor, &key_len) != 2)
+ 		return -EINVAL;
+ 
+@@ -830,8 +831,11 @@ int blkg_conf_prep(struct blkcg *blkcg, const struct blkcg_policy *pol,
+ 	body = skip_spaces(body);
+ 
+ 	disk = get_gendisk(MKDEV(major, minor), &part);
+-	if (!disk)
++	if (!disk) {
++		printk(KERN_ERR "blkg_conf_prep null diks");
+ 		return -ENODEV;
++	}
++	printk(KERN_ERR "blkg_conf_prep part=%d", part);
+ 	if (part) {
+ 		ret = -ENODEV;
+ 		goto fail;
+diff --git a/block/blk-iolatency.c b/block/blk-iolatency.c
+index 0529e94a2..67df9bf18 100644
+--- a/block/blk-iolatency.c
++++ b/block/blk-iolatency.c
+@@ -503,6 +503,9 @@ static void iolatency_check_latencies(struct iolatency_grp *iolat, u64 now)
+ 		return;
+ 
+ 	lat_info = &parent->child_lat;
++	// if (lat_info->scale_lat == 2000L) {
++		printk(KERN_ERR "CX____ %s[%d]: lat_info->scale_lat=%lld", __FUNCTION__, __LINE__, lat_info->scale_lat);
++	// }
+ 
+ 	/*
+ 	 * CALC_LOAD takes in a number stored in fixed point representation.
+@@ -567,6 +570,9 @@ static void blkcg_iolatency_done_bio(struct rq_qos *rqos, struct bio *bio)
+ 		return;
+ 
+ 	iolat = blkg_to_lat(bio->bi_blkg);
++	if (!issue_as_root) {
++		printk(KERN_ERR "CX____ %s[%d]: iolat=%d", __FUNCTION__, __LINE__, iolat);
++	}
+ 	if (!iolat)
+ 		return;
+ 
+@@ -967,6 +973,7 @@ static struct blkcg_policy blkcg_policy_iolatency = {
+ 
+ static int __init iolatency_init(void)
+ {
++	printk(KERN_ERR "CX____ registered iolatency blkcg_policy\n");
+ 	return blkcg_policy_register(&blkcg_policy_iolatency);
+ }
+ 
+diff --git a/block/blk-throttle.c b/block/blk-throttle.c
+index caee65860..7376a65a5 100644
+--- a/block/blk-throttle.c
++++ b/block/blk-throttle.c
+@@ -2505,6 +2505,7 @@ static int __init throtl_init(void)
+ 	if (!kthrotld_workqueue)
+ 		panic("Failed to create kthrotld\n");
+ 
++	printk(KERN_ERR "CX____ registered throtl blkcg_policy\n");
+ 	return blkcg_policy_register(&blkcg_policy_throtl);
+ }
+ 
+diff --git a/block/cfq-iosched.c b/block/cfq-iosched.c
+index 2eb87444b..09b2c6977 100644
+--- a/block/cfq-iosched.c
++++ b/block/cfq-iosched.c
+@@ -114,9 +114,9 @@ struct cfq_queue {
+ 	/* parent cfq_data */
+ 	struct cfq_data *cfqd;
+ 	/* service_tree member */
+-	struct rb_node rb_node;
++	struct rb_node rb_node; // node
+ 	/* service_tree key */
+-	u64 rb_key;
++	u64 rb_key; //slice ...
+ 	/* prio tree member */
+ 	struct rb_node p_node;
+ 	/* prio tree root we belong to, if any */
+@@ -657,17 +657,23 @@ static inline void cfqg_put(struct cfq_group *cfqg)
+ }
+ 
+ #define cfq_log_cfqq(cfqd, cfqq, fmt, args...)	do {			\
++	char __pbuf[128]; \
++	    \
++	blkg_path(cfqg_to_blkg((cfqq)->cfqg), __pbuf, sizeof(__pbuf));  \
+ 	blk_add_cgroup_trace_msg((cfqd)->queue,				\
+ 			cfqg_to_blkg((cfqq)->cfqg)->blkcg,		\
+-			"cfq%d%c%c " fmt, (cfqq)->pid,			\
++			"cfqq-%s  %d%c%c " fmt, __pbuf, (cfqq)->pid,			\
+ 			cfq_cfqq_sync((cfqq)) ? 'S' : 'A',		\
+ 			cfqq_type((cfqq)) == SYNC_NOIDLE_WORKLOAD ? 'N' : ' ',\
+ 			  ##args);					\
+ } while (0)
+ 
+ #define cfq_log_cfqg(cfqd, cfqg, fmt, args...)	do {			\
++	char __pbuf[128]; \
++	    \
++	blkg_path(cfqg_to_blkg(cfqg), __pbuf, sizeof(__pbuf));  \
+ 	blk_add_cgroup_trace_msg((cfqd)->queue,				\
+-			cfqg_to_blkg(cfqg)->blkcg, fmt, ##args);	\
++			cfqg_to_blkg(cfqg)->blkcg, "cfqg-%s " fmt, __pbuf, ##args);	\
+ } while (0)
+ 
+ static inline void cfqg_stats_update_io_add(struct cfq_group *cfqg,
+@@ -938,12 +944,12 @@ static inline void cfq_schedule_dispatch(struct cfq_data *cfqd)
+ static inline u64 cfq_prio_slice(struct cfq_data *cfqd, bool sync,
+ 				 unsigned short prio)
+ {
+-	u64 base_slice = cfqd->cfq_slice[sync];
+-	u64 slice = div_u64(base_slice, CFQ_SLICE_SCALE);
++	u64 base_slice = cfqd->cfq_slice[sync]; //300ms
++	u64 slice = div_u64(base_slice, CFQ_SLICE_SCALE); //60
+ 
+ 	WARN_ON(prio >= IOPRIO_BE_NR);
+ 
+-	return base_slice + (slice * (4 - prio));
++	return base_slice + (slice * (4 - prio)); //540
+ }
+ 
+ static inline u64
+@@ -990,6 +996,7 @@ static void update_min_vdisktime(struct cfq_rb_root *st)
+ 
+ 		st->min_vdisktime = max_vdisktime(st->min_vdisktime,
+ 						  cfqg->vdisktime);
++		printk(KERN_ERR "CX____ st->min_vdisktime=%lld, cfqg->vdisktime=%lld", st->min_vdisktime, cfqg->vdisktime);
+ 	}
+ }
+ 
+@@ -1023,7 +1030,9 @@ cfq_group_slice(struct cfq_data *cfqd, struct cfq_group *cfqg)
+ static inline u64
+ cfq_scaled_cfqq_slice(struct cfq_data *cfqd, struct cfq_queue *cfqq)
+ {
+-	u64 slice = cfq_prio_to_slice(cfqd, cfqq);
++	u64 slice = cfq_prio_to_slice(cfqd, cfqq);  //300 ??
++	cfq_log_cfqg(cfqd, cfqq->cfqg, "%s[%d]: slice=%llu", __FUNCTION__, __LINE__, slice);
++	printk(KERN_ERR "CX____ entry, slice=%lld", slice);
+ 	if (cfqd->cfq_latency) {
+ 		/*
+ 		 * interested queues (we consider only the ones with the same
+@@ -1031,11 +1040,21 @@ cfq_scaled_cfqq_slice(struct cfq_data *cfqd, struct cfq_queue *cfqq)
+ 		 */
+ 		unsigned iq = cfq_group_get_avg_queues(cfqd, cfqq->cfqg,
+ 						cfq_class_rt(cfqq));
++		printk(KERN_ERR "CX____ iq=%d", iq);
++		printk(KERN_ERR "CX____ cfq_slice[0]=%lld, cfq_slice[1]=%lld", cfqd->cfq_slice[0], cfqd->cfq_slice[1]);
++		//cfq_log_cfqg(cfqd, cfqq->cfqg, "%s[%d]: iq=%d", __FUNCTION__, __LINE__, iq);
+ 		u64 sync_slice = cfqd->cfq_slice[1];
+ 		u64 expect_latency = sync_slice * iq;
+ 		u64 group_slice = cfq_group_slice(cfqd, cfqq->cfqg);
++		cfq_log_cfqg(cfqd, cfqq->cfqg, "%s[%d]: sync_slice=%llu, expect_latency=%llu, group_slice=%llu", \
++			__FUNCTION__, __LINE__, sync_slice, expect_latency, group_slice);
++		cfq_log_cfqg(cfqd, cfqq->cfqg, "%s[%d]: cfqd->cfq_target_latency=%llu, cfqg->vfraction=%llu", \
++			__FUNCTION__, __LINE__, cfqd->cfq_target_latency, cfqq->cfqg->vfraction);
++		printk(KERN_ERR "CX____ %s[%d]: sync_slice=%llu, expect_latency=%llu, group_slice=%llu", \
++			__FUNCTION__, __LINE__, sync_slice, expect_latency, group_slice);
+ 
+ 		if (expect_latency > group_slice) {
++			printk(KERN_ERR "CX____ less than latency ?");
+ 			u64 base_low_slice = 2 * cfqd->cfq_slice_idle;
+ 			u64 low_slice;
+ 
+@@ -1046,9 +1065,12 @@ cfq_scaled_cfqq_slice(struct cfq_data *cfqd, struct cfq_queue *cfqq)
+ 			/* the adapted slice value is scaled to fit all iqs
+ 			 * into the target latency */
+ 			slice = div64_u64(slice*group_slice, expect_latency);
++			printk(KERN_ERR "CX____ slice=%lld, low_slice=%lld, use bigger one", slice, low_slice);
+ 			slice = max(slice, low_slice);
+ 		}
+ 	}
++	cfq_log_cfqg(cfqd, cfqq->cfqg, "%s[%d]: final slice=%llu", \
++			__FUNCTION__, __LINE__, slice);
+ 	return slice;
+ }
+ 
+@@ -1062,8 +1084,8 @@ cfq_set_prio_slice(struct cfq_data *cfqd, struct cfq_queue *cfqq)
+ 	cfqq->slice_end = now + slice;
+ 	cfqq->allocated_slice = slice;
+ 	cfq_log_cfqq(cfqd, cfqq, "set_slice=%llu", cfqq->slice_end - now);
++	printk(KERN_ERR "CX____ set_slice=%llu", cfqq->allocated);
+ }
+-
+ /*
+  * We need to wrap this check in cfq_cfqq_slice_new(), since ->slice_end
+  * isn't valid until the first request from the dispatch is activated
+@@ -1244,6 +1266,7 @@ __cfq_group_service_tree_add(struct cfq_rb_root *st, struct cfq_group *cfqg)
+ 	struct rb_node *parent = NULL;
+ 	struct cfq_group *__cfqg;
+ 	s64 key = cfqg_key(st, cfqg);
++	printk(KERN_ERR "CX____ %s[%d]: key=%lld", __FUNCTION__, __LINE__, key);
+ 	bool leftmost = true, rightmost = true;
+ 
+ 	while (*node != NULL) {
+@@ -1259,6 +1282,8 @@ __cfq_group_service_tree_add(struct cfq_rb_root *st, struct cfq_group *cfqg)
+ 		}
+ 	}
+ 
++	printk(KERN_ERR "CX____ %s[%d]: leftmost=%d, rightmost=%d", __FUNCTION__, __LINE__, leftmost, rightmost);
++
+ 	if (rightmost)
+ 		st->rb_rightmost = &cfqg->rb_node;
+ 
+@@ -1273,6 +1298,7 @@ static void
+ cfq_update_group_weight(struct cfq_group *cfqg)
+ {
+ 	if (cfqg->new_weight) {
++        printk(KERN_ERR "CX____ cfq_update_group_weight, weight=%d\n", cfqg->new_weight);
+ 		cfqg->weight = cfqg->new_weight;
+ 		cfqg->new_weight = 0;
+ 	}
+@@ -1290,13 +1316,14 @@ cfq_update_group_leaf_weight(struct cfq_group *cfqg)
+ }
+ 
+ static void
+-cfq_group_service_tree_add(struct cfq_rb_root *st, struct cfq_group *cfqg)
++cfq_group_service_tree_add(struct cfq_rb_root *st, struct cfq_group *cfqg, struct cfq_data *cfqd)
+ {
+ 	unsigned int vfr = 1 << CFQ_SERVICE_SHIFT;	/* start with 1 */
+ 	struct cfq_group *pos = cfqg;
+ 	struct cfq_group *parent;
+ 	bool propagate;
+ 
++	cfq_log_cfqg(cfqd, cfqg, "%s[%d]: entry", __FUNCTION__, __LINE__);
+ 	/* add to the service tree */
+ 	BUG_ON(!RB_EMPTY_NODE(&cfqg->rb_node));
+ 
+@@ -1305,6 +1332,9 @@ cfq_group_service_tree_add(struct cfq_rb_root *st, struct cfq_group *cfqg)
+ 	 * because cfqg might already have been activated and is
+ 	 * contributing its current weight to the parent's child_weight.
+ 	 */
++	if (cfqg->new_leaf_weight  && (cfqg->leaf_weight != cfqg->new_leaf_weight)) {
++		cfq_log_cfqg(cfqd, cfqg, "%s[%d]: leaf_weight changed to %d", __FUNCTION__, __LINE__, cfqg->new_leaf_weight);
++	}
+ 	cfq_update_group_leaf_weight(cfqg);
+ 	__cfq_group_service_tree_add(st, cfqg);
+ 
+@@ -1317,9 +1347,12 @@ cfq_group_service_tree_add(struct cfq_rb_root *st, struct cfq_group *cfqg)
+ 	 * Start with the proportion tasks in this cfqg has against active
+ 	 * children cfqgs - its leaf_weight against children_weight.
+ 	 */
++	cfq_log_cfqg(cfqd, cfqg, "%s[%d]: orig vfr=%d", __FUNCTION__, __LINE__, vfr);
++	cfq_log_cfqg(cfqd, cfqg, "%s[%d]: children_weight=%d, leaf_weight=%d", __FUNCTION__, __LINE__, pos->children_weight, pos->leaf_weight);
+ 	propagate = !pos->nr_active++;
+ 	pos->children_weight += pos->leaf_weight;
+ 	vfr = vfr * pos->leaf_weight / pos->children_weight;
++	cfq_log_cfqg(cfqd, cfqg, "%s[%d]: caluate vfr=%d", __FUNCTION__, __LINE__, vfr);
+ 
+ 	/*
+ 	 * Compound ->weight walking up the tree.  Both activation and
+@@ -1334,10 +1367,13 @@ cfq_group_service_tree_add(struct cfq_rb_root *st, struct cfq_group *cfqg)
+ 			parent->children_weight += pos->weight;
+ 		}
+ 		vfr = vfr * pos->weight / parent->children_weight;
++		cfq_log_cfqg(cfqd, cfqg, "%s[%d]: caluate vfr=%d", __FUNCTION__, __LINE__, vfr);
+ 		pos = parent;
+ 	}
+ 
++    //printk(KERN_ERR "CX____ cfq_group_service_tree_add, vfr=%d\n", vfr);
+ 	cfqg->vfraction = max_t(unsigned, vfr, 1);
++	cfq_log_cfqg(cfqd, cfqg, "%s[%d]: caluate cfqg->vfraction=%d", __FUNCTION__, __LINE__, cfqg->vfraction);
+ }
+ 
+ static inline u64 cfq_get_cfqg_vdisktime_delay(struct cfq_data *cfqd)
+@@ -1371,11 +1407,11 @@ cfq_group_notify_queue_add(struct cfq_data *cfqd, struct cfq_group *cfqg)
+ 			cfq_get_cfqg_vdisktime_delay(cfqd);
+ 	} else
+ 		cfqg->vdisktime = st->min_vdisktime;
+-	cfq_group_service_tree_add(st, cfqg);
++	cfq_group_service_tree_add(st, cfqg, cfqd);
+ }
+ 
+ static void
+-cfq_group_service_tree_del(struct cfq_rb_root *st, struct cfq_group *cfqg)
++cfq_group_service_tree_del(struct cfq_rb_root *st, struct cfq_group *cfqg, struct cfq_data *cfqd)
+ {
+ 	struct cfq_group *pos = cfqg;
+ 	bool propagate;
+@@ -1386,6 +1422,7 @@ cfq_group_service_tree_del(struct cfq_rb_root *st, struct cfq_group *cfqg)
+ 	 */
+ 	propagate = !--pos->nr_active;
+ 	pos->children_weight -= pos->leaf_weight;
++	cfq_log_cfqg(cfqd, cfqg, "%s[%d]: pos->children_weight=%d", __FUNCTION__, __LINE__, pos->children_weight);
+ 
+ 	while (propagate) {
+ 		struct cfq_group *parent = cfqg_parent(pos);
+@@ -1399,12 +1436,15 @@ cfq_group_service_tree_del(struct cfq_rb_root *st, struct cfq_group *cfqg)
+ 
+ 		propagate = !--parent->nr_active;
+ 		parent->children_weight -= pos->weight;
++		cfq_log_cfqg(cfqd, cfqg, "%s[%d]: parent->children_weight=%d", __FUNCTION__, __LINE__, parent->children_weight);
+ 		pos = parent;
+ 	}
+ 
+ 	/* remove from the service tree */
+-	if (!RB_EMPTY_NODE(&cfqg->rb_node))
++	if (!RB_EMPTY_NODE(&cfqg->rb_node)) {
+ 		cfq_rb_erase(&cfqg->rb_node, st);
++		cfq_log_cfqg(cfqd, cfqg, "%s[%d]: cfq_rb_erase, remove from the service tree", __FUNCTION__, __LINE__);
++	}
+ }
+ 
+ static void
+@@ -1420,7 +1460,7 @@ cfq_group_notify_queue_del(struct cfq_data *cfqd, struct cfq_group *cfqg)
+ 		return;
+ 
+ 	cfq_log_cfqg(cfqd, cfqg, "del_from_rr group");
+-	cfq_group_service_tree_del(st, cfqg);
++	cfq_group_service_tree_del(st, cfqg, cfqd);
+ 	cfqg->saved_wl_slice = 0;
+ 	cfqg_stats_update_dequeue(cfqg);
+ }
+@@ -1455,6 +1495,8 @@ static inline u64 cfq_cfqq_slice_usage(struct cfq_queue *cfqq,
+ 					cfqq->dispatch_start;
+ 	}
+ 
++	//cfq_log_cfqq(cfqd, cfqq, "%s[%d]: slice_used=%lld", __FUNCTION__, __LINE__, slice_used);
++	printk(KERN_ERR "%s[%d]: slice_used=%lld, now=%lld, unaccounted=%lld", __FUNCTION__, __LINE__, slice_used, now, *unaccounted_time);
+ 	return slice_used;
+ }
+ 
+@@ -1467,14 +1509,29 @@ static void cfq_group_served(struct cfq_data *cfqd, struct cfq_group *cfqg,
+ 			- cfqg->service_tree_idle.count;
+ 	unsigned int vfr;
+ 	u64 now = ktime_get_ns();
++	cfq_log_cfqq(cfqd, cfqq, "l-%d: now=%lld, st->coutn=%d, st->min_vdisktime=%lld", __LINE__, now, st->count, st->min_vdisktime);
++	printk(KERN_ERR "l-%d: now=%lld, st->coutn=%d, st->min_vdisktime=%lld", __LINE__, now, st->count, st->min_vdisktime);
+ 
+ 	BUG_ON(nr_sync < 0);
+ 	used_sl = charge = cfq_cfqq_slice_usage(cfqq, &unaccounted_sl);
++	cfq_log_cfqg(cfqd, cfqg, "served: used_sl=charge=%llu", used_sl);
++	printk(KERN_ERR "served: used_sl=charge=%llu", used_sl);
+ 
+ 	if (iops_mode(cfqd))
+ 		charge = cfqq->slice_dispatch;
+-	else if (!cfq_cfqq_sync(cfqq) && !nr_sync)
++	else if (!cfq_cfqq_sync(cfqq) && !nr_sync) {
++		cfq_log_cfqg(cfqd, cfqg, "served[%d]: nr_sync=%d, allocated_slice=%llu", \
++		__LINE__, nr_sync, cfqq->allocated_slice);
++		printk(KERN_ERR "served[%d]: nr_sync=%d, allocated_slice=%llu", \
++		__LINE__, nr_sync, cfqq->allocated_slice);
+ 		charge = cfqq->allocated_slice;
++	}
++	cfq_log_cfqg(cfqd, cfqg, "served[%d]: slice_dispatch=%llu", \
++		__LINE__, cfqq->slice_dispatch);
++	cfq_log_cfqg(cfqd, cfqg, "served[%d]: charge=%llu", __LINE__, used_sl);
++	printk(KERN_ERR "served[%d]: slice_dispatch=%llu", \
++		__LINE__, cfqq->slice_dispatch);
++	printk(KERN_ERR "served[%d]: charge=%llu", __LINE__, used_sl);
+ 
+ 	/*
+ 	 * Can't update vdisktime while on service tree and cfqg->vfraction
+@@ -1483,17 +1540,24 @@ static void cfq_group_served(struct cfq_data *cfqd, struct cfq_group *cfqg,
+ 	 * will also update the weights as necessary.
+ 	 */
+ 	vfr = cfqg->vfraction;
+-	cfq_group_service_tree_del(st, cfqg);
++	cfq_group_service_tree_del(st, cfqg, cfqd);
++	printk(KERN_ERR "%s[%d]: after cfqg_scale_charge  vfr=%lld, cfqg->vdisktime=%llu, will add %llu", __FUNCTION__, \
++		__LINE__, vfr, cfqg->vdisktime, cfqg_scale_charge(charge, vfr));
+ 	cfqg->vdisktime += cfqg_scale_charge(charge, vfr);
+-	cfq_group_service_tree_add(st, cfqg);
++	cfq_log_cfqg(cfqd, cfqg, "%s[%d]: after cfqg_scale_charge  cfqg->vdisktime=%llu, added %llu", __FUNCTION__, \
++		__LINE__, cfqg->vdisktime, cfqg_scale_charge(charge, vfr));
++	cfq_group_service_tree_add(st, cfqg, cfqd);
+ 
+ 	/* This group is being expired. Save the context */
+ 	if (cfqd->workload_expires > now) {
+ 		cfqg->saved_wl_slice = cfqd->workload_expires - now;
+ 		cfqg->saved_wl_type = cfqd->serving_wl_type;
+ 		cfqg->saved_wl_class = cfqd->serving_wl_class;
+-	} else
++		cfq_log_cfqg(cfqd, cfqg, "%s[%d]: expired !!  cfqg->saved_wl_slice=%llu", __FUNCTION__, __LINE__, cfqg->saved_wl_slice);
++	} else {
+ 		cfqg->saved_wl_slice = 0;
++		cfq_log_cfqg(cfqd, cfqg, "%s[%d]: cfqg->saved_wl_slice=0", __FUNCTION__, __LINE__);
++	}
+ 
+ 	cfq_log_cfqg(cfqd, cfqg, "served: vt=%llu min_vt=%llu", cfqg->vdisktime,
+ 					st->min_vdisktime);
+@@ -1501,8 +1565,19 @@ static void cfq_group_served(struct cfq_data *cfqd, struct cfq_group *cfqg,
+ 		     "sl_used=%llu disp=%llu charge=%llu iops=%u sect=%lu",
+ 		     used_sl, cfqq->slice_dispatch, charge,
+ 		     iops_mode(cfqd), cfqq->nr_sectors);
++	printk(KERN_ERR "served: vt=%llu min_vt=%llu", cfqg->vdisktime,
++					st->min_vdisktime);
++	printk(KERN_ERR "sl_used=%llu disp=%llu charge=%llu iops=%u sect=%lu",
++		     used_sl, cfqq->slice_dispatch, charge,
++		     iops_mode(cfqd), cfqq->nr_sectors);
+ 	cfqg_stats_update_timeslice_used(cfqg, used_sl, unaccounted_sl);
+ 	cfqg_stats_set_start_empty_time(cfqg);
++
++	// cx debug
++	// if ((cfqg->vdisktime & 4095) == 4095) {
++		// dump_stack();
++	// }
++// 
+ }
+ 
+ /**
+@@ -1698,11 +1773,15 @@ static void cfq_link_cfqq_cfqg(struct cfq_queue *cfqq, struct cfq_group *cfqg)
+ static u64 cfqg_prfill_weight_device(struct seq_file *sf,
+ 				     struct blkg_policy_data *pd, int off)
+ {
++    u64 ret = 0;
+ 	struct cfq_group *cfqg = pd_to_cfqg(pd);
+ 
+ 	if (!cfqg->dev_weight)
+ 		return 0;
+-	return __blkg_prfill_u64(sf, pd, cfqg->dev_weight);
++	//return __blkg_prfill_u64(sf, pd, cfqg->dev_weight);
++	ret =  __blkg_prfill_u64(sf, pd, cfqg->dev_weight);
++    printk(KERN_ERR "CX____ cfqg_prfill_weight_device, ret=%lld\n", ret);
++    return ret;
+ }
+ 
+ static int cfqg_print_weight_device(struct seq_file *sf, void *v)
+@@ -1716,11 +1795,15 @@ static int cfqg_print_weight_device(struct seq_file *sf, void *v)
+ static u64 cfqg_prfill_leaf_weight_device(struct seq_file *sf,
+ 					  struct blkg_policy_data *pd, int off)
+ {
++    u64 ret = 0;
+ 	struct cfq_group *cfqg = pd_to_cfqg(pd);
+ 
+ 	if (!cfqg->dev_leaf_weight)
+ 		return 0;
+-	return __blkg_prfill_u64(sf, pd, cfqg->dev_leaf_weight);
++	//return __blkg_prfill_u64(sf, pd, cfqg->dev_leaf_weight);
++	ret = __blkg_prfill_u64(sf, pd, cfqg->dev_leaf_weight);
++    printk(KERN_ERR "CX____ cfqg_prfill_weight_device, ret=%lld\n", ret);
++    return ret;
+ }
+ 
+ static int cfqg_print_leaf_weight_device(struct seq_file *sf, void *v)
+@@ -1826,7 +1909,8 @@ static int __cfq_set_weight(struct cgroup_subsys_state *css, u64 val,
+ 	struct blkcg_gq *blkg;
+ 	struct cfq_group_data *cfqgd;
+ 	int ret = 0;
+-
++	
++	printk(KERN_ERR "cfq_set_weight:  %lld\n", val);
+ 	if (val < min || val > max)
+ 		return -ERANGE;
+ 
+@@ -1971,6 +2055,7 @@ static u64 cfqg_prfill_avg_queue_size(struct seq_file *sf,
+ 		v = div64_u64(v, samples);
+ 	}
+ 	__blkg_prfill_u64(sf, pd, v);
++	printk(KERN_ERR "cfqg_prfill_avg_queue_size, v=%llu", v);
+ 	return 0;
+ }
+ 
+@@ -2661,13 +2746,17 @@ __cfq_slice_expired(struct cfq_data *cfqd, struct cfq_queue *cfqq,
+ 	 * the mean seek distance.  If not, it may be time to break the
+ 	 * queues apart again.
+ 	 */
+-	if (cfq_cfqq_coop(cfqq) && CFQQ_SEEKY(cfqq))
++	if (cfq_cfqq_coop(cfqq) && CFQQ_SEEKY(cfqq)) {
++		cfq_log_cfqq(cfqd, cfqq, "l-%d: coop and seeky ??", __LINE__);
+ 		cfq_mark_cfqq_split_coop(cfqq);
++	}
++	cfq_log_cfqq(cfqd, cfqq, "l-%d: ", __LINE__);
+ 
+ 	/*
+ 	 * store what was left of this slice, if the queue idled/timed out
+ 	 */
+ 	if (timed_out) {
++		cfq_log_cfqq(cfqd, cfqq, "l-%d: in timeout section", __LINE__);
+ 		if (cfq_cfqq_slice_new(cfqq))
+ 			cfqq->slice_resid = cfq_scaled_cfqq_slice(cfqd, cfqq);
+ 		else
+@@ -3109,6 +3198,7 @@ static enum wl_type_t cfq_choose_wl_type(struct cfq_data *cfqd,
+ 		}
+ 	}
+ 
++	printk(KERN_ERR "CX____ cfq_choose_wl_type: return cur_best=%d", cur_best);
+ 	return cur_best;
+ }
+ 
+@@ -3151,6 +3241,7 @@ choose_wl_class_and_type(struct cfq_data *cfqd, struct cfq_group *cfqg)
+ 		return;
+ 
+ new_workload:
++	printk(KERN_ERR "CX____ new_workload");
+ 	/* otherwise select new workload type */
+ 	cfqd->serving_wl_type = cfq_choose_wl_type(cfqd, cfqg,
+ 					cfqd->serving_wl_class);
+@@ -3163,6 +3254,7 @@ choose_wl_class_and_type(struct cfq_data *cfqd, struct cfq_group *cfqg)
+ 	 * all the queues in the same priority class
+ 	 */
+ 	group_slice = cfq_group_slice(cfqd, cfqg);
++	printk(KERN_ERR "CX____ new_workload, group_clice=%lld", group_slice);
+ 
+ 	slice = div_u64(group_slice * count,
+ 		max_t(unsigned, cfqg->busy_queues_avg[cfqd->serving_wl_class],
+@@ -3187,12 +3279,14 @@ choose_wl_class_and_type(struct cfq_data *cfqd, struct cfq_group *cfqg)
+ 		/* async workload slice is scaled down according to
+ 		 * the sync/async slice ratio. */
+ 		slice = div64_u64(slice*cfqd->cfq_slice[0], cfqd->cfq_slice[1]);
++		printk(KERN_ERR "CX____ new_workload async_workload");
+ 	} else
+ 		/* sync workload slice is at least 2 * cfq_slice_idle */
+ 		slice = max(slice, 2 * cfqd->cfq_slice_idle);
+ 
+ 	slice = max_t(u64, slice, CFQ_MIN_TT);
+ 	cfq_log(cfqd, "workload slice:%llu", slice);
++	printk(KERN_ERR "CX____ new_workload slice=%lld", slice);
+ 	cfqd->workload_expires = now + slice;
+ }
+ 
+@@ -3210,11 +3304,14 @@ static struct cfq_group *cfq_get_next_cfqg(struct cfq_data *cfqd)
+ 
+ static void cfq_choose_cfqg(struct cfq_data *cfqd)
+ {
+-	struct cfq_group *cfqg = cfq_get_next_cfqg(cfqd);
++	struct cfq_group *cfqg = cfq_get_next_cfqg(cfqd); //get leftmost
+ 	u64 now = ktime_get_ns();
+ 
+ 	cfqd->serving_group = cfqg;
+ 
++	printk(KERN_ERR "CX____ %s[%d]: choose group, vfraction=%d, vdisktime=%lld,   weight=%d", __FUNCTION__, __LINE__, 
++		cfqg->vfraction, cfqg->vdisktime, cfqg->weight);
++
+ 	/* Restore the workload type data */
+ 	if (cfqg->saved_wl_slice) {
+ 		cfqd->workload_expires = now + cfqg->saved_wl_slice;
+@@ -3236,8 +3333,10 @@ static struct cfq_queue *cfq_select_queue(struct cfq_data *cfqd)
+ 	u64 now = ktime_get_ns();
+ 
+ 	cfqq = cfqd->active_queue;
+-	if (!cfqq)
++	if (!cfqq) {
++		printk(KERN_ERR " select q, no active_queue, goto new queue");
+ 		goto new_queue;
++	}
+ 
+ 	if (!cfqd->rq_queued)
+ 		return NULL;
+@@ -3245,8 +3344,10 @@ static struct cfq_queue *cfq_select_queue(struct cfq_data *cfqd)
+ 	/*
+ 	 * We were waiting for group to get backlogged. Expire the queue
+ 	 */
+-	if (cfq_cfqq_wait_busy(cfqq) && !RB_EMPTY_ROOT(&cfqq->sort_list))
++	if (cfq_cfqq_wait_busy(cfqq) && !RB_EMPTY_ROOT(&cfqq->sort_list)){
++		printk(KERN_ERR " select q, wait busy queue, goto expire 1");
+ 		goto expire;
++	}
+ 
+ 	/*
+ 	 * The active queue has run out of time, expire it and select new.
+@@ -3264,17 +3365,22 @@ static struct cfq_queue *cfq_select_queue(struct cfq_data *cfqd)
+ 		if (cfqq->cfqg->nr_cfqq == 1 && RB_EMPTY_ROOT(&cfqq->sort_list)
+ 		    && cfqq->dispatched && cfq_should_idle(cfqd, cfqq)) {
+ 			cfqq = NULL;
++			printk(KERN_ERR " select q, goto keep queue 1");
+ 			goto keep_queue;
+-		} else
++		} else {
++			printk(KERN_ERR " select q, goto check_group_idle");
+ 			goto check_group_idle;
++		}
+ 	}
+ 
+ 	/*
+ 	 * The active queue has requests and isn't expired, allow it to
+ 	 * dispatch.
+ 	 */
+-	if (!RB_EMPTY_ROOT(&cfqq->sort_list))
++	if (!RB_EMPTY_ROOT(&cfqq->sort_list)) {
++		//printk(KERN_ERR " select q, goto keep queue 2");
+ 		goto keep_queue;
++	}
+ 
+ 	/*
+ 	 * If another queue has a request waiting within our mean seek
+@@ -3286,6 +3392,7 @@ static struct cfq_queue *cfq_select_queue(struct cfq_data *cfqd)
+ 	if (new_cfqq) {
+ 		if (!cfqq->new_cfqq)
+ 			cfq_setup_merge(cfqq, new_cfqq);
++		printk(KERN_ERR " select q, wait busy queue, goto expire 2");
+ 		goto expire;
+ 	}
+ 
+@@ -3296,6 +3403,7 @@ static struct cfq_queue *cfq_select_queue(struct cfq_data *cfqd)
+ 	 */
+ 	if (hrtimer_active(&cfqd->idle_slice_timer)) {
+ 		cfqq = NULL;
++		printk(KERN_ERR " select q, goto keep queue 3");
+ 		goto keep_queue;
+ 	}
+ 
+@@ -3312,6 +3420,7 @@ static struct cfq_queue *cfq_select_queue(struct cfq_data *cfqd)
+ 
+ 	if (cfqq->dispatched && cfq_should_idle(cfqd, cfqq)) {
+ 		cfqq = NULL;
++		printk(KERN_ERR " select q, goto keep queue 4");
+ 		goto keep_queue;
+ 	}
+ 
+@@ -3324,6 +3433,7 @@ static struct cfq_queue *cfq_select_queue(struct cfq_data *cfqd)
+ 	    cfqq->cfqg->dispatched &&
+ 	    !cfq_io_thinktime_big(cfqd, &cfqq->cfqg->ttime, true)) {
+ 		cfqq = NULL;
++		printk(KERN_ERR " select q, goto keep queue 5");
+ 		goto keep_queue;
+ 	}
+ 
+@@ -3334,8 +3444,10 @@ static struct cfq_queue *cfq_select_queue(struct cfq_data *cfqd)
+ 	 * Current queue expired. Check if we have to switch to a new
+ 	 * service tree
+ 	 */
+-	if (!new_cfqq)
++	if (!new_cfqq) {
++		printk(KERN_ERR " select q, to choose new queue");
+ 		cfq_choose_cfqg(cfqd);
++	}
+ 
+ 	cfqq = cfq_set_active_queue(cfqd, new_cfqq);
+ keep_queue:
+@@ -4869,6 +4981,7 @@ static int __init cfq_init(void)
+ 	ret = blkcg_policy_register(&blkcg_policy_cfq);
+ 	if (ret)
+ 		return ret;
++	printk(KERN_ERR "CX____ registered cfq blkcg_policy\n");
+ #else
+ 	cfq_group_idle = 0;
+ #endif
+diff --git a/block/genhd.c b/block/genhd.c
+index 2b2a936cf..990dae7a9 100644
+--- a/block/genhd.c
++++ b/block/genhd.c
+@@ -838,12 +838,17 @@ struct gendisk *get_gendisk(dev_t devt, int *partno)
+ {
+ 	struct gendisk *disk = NULL;
+ 
++	printk(KERN_ERR "get_gendisk: major=%d", MAJOR(devt));
+ 	if (MAJOR(devt) != BLOCK_EXT_MAJOR) {
+ 		struct kobject *kobj;
+ 
+ 		kobj = kobj_lookup(bdev_map, devt, partno);
+ 		if (kobj)
+ 			disk = dev_to_disk(kobj_to_dev(kobj));
++		if (!kobj)
++			printk(KERN_ERR "get_gendisk: null kobj");
++		if (!disk)
++			printk(KERN_ERR "get_gendisk: null disk");
+ 	} else {
+ 		struct hd_struct *part;
+ 
+@@ -856,6 +861,8 @@ struct gendisk *get_gendisk(dev_t devt, int *partno)
+ 		spin_unlock_bh(&ext_devt_lock);
+ 	}
+ 
++	if (disk)
++		printk(KERN_ERR "get_gendisk: disk name=%s", disk->disk_name);
+ 	if (!disk)
+ 		return NULL;
+ 
+diff --git a/include/linux/blk-cgroup.h b/include/linux/blk-cgroup.h
+index 6d766a19f..194b4edaf 100644
+--- a/include/linux/blk-cgroup.h
++++ b/include/linux/blk-cgroup.h
+@@ -253,6 +253,8 @@ static inline bool blk_cgroup_congested(void)
+ 	struct cgroup_subsys_state *css;
+ 	bool ret = false;
+ 
++	//CX____
++	//dump_stack();
+ 	rcu_read_lock();
+ 	css = kthread_blkcg();
+ 	if (!css)
+diff --git a/kernel/cgroup/cgroup.c b/kernel/cgroup/cgroup.c
+index 78ef274b0..16e6a5af4 100644
+--- a/kernel/cgroup/cgroup.c
++++ b/kernel/cgroup/cgroup.c
+@@ -2663,6 +2663,7 @@ struct task_struct *cgroup_procs_write_start(char *buf, bool threadgroup)
+ 	if (kstrtoint(strstrip(buf), 0, &pid) || pid < 0)
+ 		return ERR_PTR(-EINVAL);
+ 
++    trace_printk("CX____ %s[%d]: pid=%d", __FUNCTION__, __LINE__, pid);
+ 	percpu_down_write(&cgroup_threadgroup_rwsem);
+ 
+ 	rcu_read_lock();
+diff --git a/mm/memcontrol.c b/mm/memcontrol.c
+index 3a3d109dc..3008559fb 100644
+--- a/mm/memcontrol.c
++++ b/mm/memcontrol.c
+@@ -6393,6 +6393,7 @@ void mem_cgroup_uncharge_skmem(struct mem_cgroup *memcg, unsigned int nr_pages)
+ 
+ static int __init cgroup_memory(char *s)
+ {
++#if 0
+ 	char *token;
+ 
+ 	while ((token = strsep(&s, ",")) != NULL) {
+@@ -6403,6 +6404,7 @@ static int __init cgroup_memory(char *s)
+ 		if (!strcmp(token, "nokmem"))
+ 			cgroup_memory_nokmem = true;
+ 	}
++#endif
+ 	return 0;
+ }
+ __setup("cgroup.memory=", cgroup_memory);
+diff --git a/mm/readahead.c b/mm/readahead.c
+index 4e630143a..df74adaf6 100644
+--- a/mm/readahead.c
++++ b/mm/readahead.c
+@@ -153,6 +153,10 @@ unsigned int __do_page_cache_readahead(struct address_space *mapping,
+ 		struct file *filp, pgoff_t offset, unsigned long nr_to_read,
+ 		unsigned long lookahead_size)
+ {
++	// if ((int)mapping & 0xff == 0xff) {
++	// 	printk(KERN_ERR "CX____ %s[%d]", __FUNCTION__, __LINE__);
++	// 	dump_stack();
++	// }
+ 	struct inode *inode = mapping->host;
+ 	struct page *page;
+ 	unsigned long end_index;	/* The last page we want to read */
+@@ -515,8 +519,10 @@ void page_cache_sync_readahead(struct address_space *mapping,
+ 	if (!ra->ra_pages)
+ 		return;
+ 
+-	if (blk_cgroup_congested())
++	if (blk_cgroup_congested()) {
++		printk(KERN_ERR "CX____ %s[%d]: congested, skip readahead", __FUNCTION__, __LINE__);
+ 		return;
++	}
+ 
+ 	/* be dumb */
+ 	if (filp && (filp->f_mode & FMODE_RANDOM)) {
