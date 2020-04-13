@@ -265,6 +265,7 @@ append:
     "**/*.map": true,
 },
 "debug.console.fontFamily": "ubuntu mono",
+"C_Cpp.dimInactiveRegions": false,
 ```
 
 #### .gdbinit
