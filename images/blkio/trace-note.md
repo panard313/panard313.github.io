@@ -1,15 +1,4 @@
----
-layout: article
-title: io note
-key: 20200411
-tags:
-  - io note
-  - cx
-lang: zh-Hans
----
-
-
-# // ------ self io note:
+# // ------ trace note:
 
 ## 名词
 
