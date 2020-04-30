@@ -25,7 +25,7 @@ index 3d7570553..38f42892f 100644
  	bio->bi_css = blkcg_css;
  	return 0;
 diff --git a/block/blk-cgroup.c b/block/blk-cgroup.c
-index a06547fe6..b98541213 100644
+index a06547fe6..00ea3f770 100644
 --- a/block/blk-cgroup.c
 +++ b/block/blk-cgroup.c
 @@ -821,6 +821,7 @@ int blkg_conf_prep(struct blkcg *blkcg, const struct blkcg_policy *pol,
@@ -49,7 +49,16 @@ index a06547fe6..b98541213 100644
  	if (part) {
  		ret = -ENODEV;
  		goto fail;
-@@ -1626,6 +1630,7 @@ static void blkcg_scale_delay(struct blkcg_gq *blkg, u64 now)
+@@ -1224,6 +1228,8 @@ int blkcg_init_queue(struct request_queue *q)
+ 	bool preloaded;
+ 	int ret;
+ 
++    printk(KERN_ERR "%s[%d] ---blkfg init queue---\n", __FUNCTION__, __LINE__);
++    trace_printk("%s[%d] ---blkfg init queue---\n", __FUNCTION__, __LINE__);
+ 	new_blkg = blkg_alloc(&blkcg_root, q, GFP_KERNEL);
+ 	if (!new_blkg)
+ 		return -ENOMEM;
+@@ -1626,6 +1632,7 @@ static void blkcg_scale_delay(struct blkcg_gq *blkg, u64 now)
  {
  	u64 old = atomic64_read(&blkg->delay_start);
  
@@ -57,7 +66,7 @@ index a06547fe6..b98541213 100644
  	/*
  	 * We only want to scale down every second.  The idea here is that we
  	 * want to delay people for min(delay_nsec, NSEC_PER_SEC) in a certain
-@@ -1682,6 +1687,7 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
+@@ -1682,6 +1689,7 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
  	u64 delay_nsec = 0;
  	int tok;
  
@@ -65,7 +74,7 @@ index a06547fe6..b98541213 100644
  	while (blkg->parent) {
  		if (atomic_read(&blkg->use_delay)) {
  			blkcg_scale_delay(blkg, now);
-@@ -1700,6 +1706,8 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
+@@ -1700,6 +1708,8 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
  	 * delay, and we want userspace to be able to do _something_ so cap the
  	 * delays at 1 second.  If there's 10's of seconds worth of delay then
  	 * the tasks will be delayed for 1 second for every syscall.
@@ -74,7 +83,7 @@ index a06547fe6..b98541213 100644
  	 */
  	delay_nsec = min_t(u64, delay_nsec, 250 * NSEC_PER_MSEC);
  
-@@ -1709,6 +1717,9 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
+@@ -1709,6 +1719,9 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
  	 * to do a psi_memstall_enter/leave if memdelay is set.
  	 */
  
@@ -84,7 +93,7 @@ index a06547fe6..b98541213 100644
  	exp = ktime_add_ns(now, delay_nsec);
  	tok = io_schedule_prepare();
  	do {
-@@ -1728,6 +1739,7 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
+@@ -1728,6 +1741,7 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
   * anything.  This should only ever be called by the resume code, it's not meant
   * to be called by people willy-nilly as it will actually do the work to
   * throttle the task if it is setup for throttling.
@@ -92,7 +101,7 @@ index a06547fe6..b98541213 100644
   */
  void blkcg_maybe_throttle_current(void)
  {
-@@ -1740,6 +1752,7 @@ void blkcg_maybe_throttle_current(void)
+@@ -1740,6 +1754,7 @@ void blkcg_maybe_throttle_current(void)
  	if (!q)
  		return;
  
@@ -100,7 +109,7 @@ index a06547fe6..b98541213 100644
  	current->throttle_queue = NULL;
  	current->use_memdelay = false;
  
-@@ -1795,8 +1808,10 @@ void blkcg_schedule_throttle(struct request_queue *q, bool use_memdelay)
+@@ -1795,8 +1810,10 @@ void blkcg_schedule_throttle(struct request_queue *q, bool use_memdelay)
  	if (!blk_get_queue(q))
  		return;
  
@@ -113,7 +122,7 @@ index a06547fe6..b98541213 100644
  	current->throttle_queue = q;
  	if (use_memdelay)
  		current->use_memdelay = use_memdelay;
-@@ -1816,6 +1831,7 @@ void blkcg_add_delay(struct blkcg_gq *blkg, u64 now, u64 delta)
+@@ -1816,6 +1833,7 @@ void blkcg_add_delay(struct blkcg_gq *blkg, u64 now, u64 delta)
  {
  	blkcg_scale_delay(blkg, now);
  	atomic64_add(delta, &blkg->delay_nsec);
@@ -122,7 +131,7 @@ index a06547fe6..b98541213 100644
  EXPORT_SYMBOL_GPL(blkcg_add_delay);
  
 diff --git a/block/blk-core.c b/block/blk-core.c
-index ea33d6abd..29147bc71 100644
+index ea33d6abd..05e590a1e 100644
 --- a/block/blk-core.c
 +++ b/block/blk-core.c
 @@ -145,7 +145,9 @@ EXPORT_SYMBOL_GPL(blk_queue_flag_test_and_clear);
@@ -145,7 +154,7 @@ index ea33d6abd..29147bc71 100644
  	set_wb_congested(rl->blkg->wb_congested, sync);
  #else
  	/* see blk_clear_congested() */
-@@ -172,15 +176,18 @@ void blk_queue_congestion_threshold(struct request_queue *q)
+@@ -172,19 +176,23 @@ void blk_queue_congestion_threshold(struct request_queue *q)
  {
  	int nr;
  
@@ -164,7 +173,21 @@ index ea33d6abd..29147bc71 100644
  }
  
  void blk_rq_init(struct request_queue *q, struct request *rq)
-@@ -1362,6 +1369,7 @@ static struct request *__get_request(struct request_list *rl, unsigned int op,
+ {
++    printk(KERN_ERR "%s[%d]: ---init---", __FUNCTION__, __LINE__);
+ 	memset(rq, 0, sizeof(*rq));
+ 
+ 	INIT_LIST_HEAD(&rq->queuelist);
+@@ -1008,6 +1016,8 @@ struct request_queue *blk_alloc_queue_node(gfp_t gfp_mask, int node_id,
+ 	struct request_queue *q;
+ 	int ret;
+ 
++    printk(KERN_ERR "%s[%d] ---alloc request queue---\n", __FUNCTION__, __LINE__);
++    trace_printk("%s[%d] ---alloc request queue---\n", __FUNCTION__, __LINE__);
+ 	q = kmem_cache_alloc_node(blk_requestq_cachep,
+ 				gfp_mask | __GFP_ZERO, node_id);
+ 	if (!q)
+@@ -1362,6 +1372,7 @@ static struct request *__get_request(struct request_list *rl, unsigned int op,
  	const bool is_sync = op_is_sync(op);
  	int may_queue;
  	req_flags_t rq_flags = RQF_ALLOCED;
@@ -172,7 +195,7 @@ index ea33d6abd..29147bc71 100644
  
  	lockdep_assert_held(q->queue_lock);
  
-@@ -1473,6 +1481,8 @@ static struct request *__get_request(struct request_list *rl, unsigned int op,
+@@ -1473,6 +1484,8 @@ static struct request *__get_request(struct request_list *rl, unsigned int op,
  	if (ioc_batching(q, ioc))
  		ioc->nr_batch_requests--;
  
@@ -181,7 +204,7 @@ index ea33d6abd..29147bc71 100644
  	trace_block_getrq(q, bio, op);
  	return rq;
  
-@@ -1540,6 +1550,7 @@ static struct request *get_request(struct request_queue *q, unsigned int op,
+@@ -1540,6 +1553,7 @@ static struct request *get_request(struct request_queue *q, unsigned int op,
  	DEFINE_WAIT(wait);
  	struct request_list *rl;
  	struct request *rq;
@@ -189,7 +212,7 @@ index ea33d6abd..29147bc71 100644
  
  	lockdep_assert_held(q->queue_lock);
  	WARN_ON_ONCE(q->mq_ops);
-@@ -1564,6 +1575,8 @@ static struct request *get_request(struct request_queue *q, unsigned int op,
+@@ -1564,6 +1578,8 @@ static struct request *get_request(struct request_queue *q, unsigned int op,
  	prepare_to_wait_exclusive(&rl->wait[is_sync], &wait,
  				  TASK_UNINTERRUPTIBLE);
  
@@ -198,7 +221,7 @@ index ea33d6abd..29147bc71 100644
  	trace_block_sleeprq(q, bio, op);
  
  	spin_unlock_irq(q->queue_lock);
-@@ -1653,11 +1666,15 @@ EXPORT_SYMBOL(blk_get_request);
+@@ -1653,11 +1669,15 @@ EXPORT_SYMBOL(blk_get_request);
   */
  void blk_requeue_request(struct request_queue *q, struct request *rq)
  {
@@ -214,7 +237,7 @@ index ea33d6abd..29147bc71 100644
  	trace_block_rq_requeue(q, rq);
  	rq_qos_requeue(q, rq);
  
-@@ -1806,11 +1823,14 @@ EXPORT_SYMBOL(blk_put_request);
+@@ -1806,11 +1826,14 @@ EXPORT_SYMBOL(blk_put_request);
  bool bio_attempt_back_merge(struct request_queue *q, struct request *req,
  			    struct bio *bio)
  {
@@ -229,7 +252,7 @@ index ea33d6abd..29147bc71 100644
  	trace_block_bio_backmerge(q, req, bio);
  
  	if ((req->cmd_flags & REQ_FAILFAST_MASK) != ff)
-@@ -1828,11 +1848,14 @@ bool bio_attempt_back_merge(struct request_queue *q, struct request *req,
+@@ -1828,11 +1851,14 @@ bool bio_attempt_back_merge(struct request_queue *q, struct request *req,
  bool bio_attempt_front_merge(struct request_queue *q, struct request *req,
  			     struct bio *bio)
  {
@@ -244,7 +267,7 @@ index ea33d6abd..29147bc71 100644
  	trace_block_bio_frontmerge(q, req, bio);
  
  	if ((req->cmd_flags & REQ_FAILFAST_MASK) != ff)
-@@ -2000,6 +2023,7 @@ static blk_qc_t blk_queue_bio(struct request_queue *q, struct bio *bio)
+@@ -2000,6 +2026,7 @@ static blk_qc_t blk_queue_bio(struct request_queue *q, struct bio *bio)
  	int where = ELEVATOR_INSERT_SORT;
  	struct request *req, *free;
  	unsigned int request_count = 0;
@@ -252,7 +275,7 @@ index ea33d6abd..29147bc71 100644
  
  	/*
  	 * low level driver can indicate that it wants pages above a
-@@ -2098,6 +2122,8 @@ static blk_qc_t blk_queue_bio(struct request_queue *q, struct bio *bio)
+@@ -2098,6 +2125,8 @@ static blk_qc_t blk_queue_bio(struct request_queue *q, struct bio *bio)
  		 * @request_count may become stale because of schedule
  		 * out, so check plug list again.
  		 */
@@ -261,7 +284,7 @@ index ea33d6abd..29147bc71 100644
  		if (!request_count || list_empty(&plug->list))
  			trace_block_plug(q);
  		else {
-@@ -2221,6 +2247,7 @@ static inline int blk_partition_remap(struct bio *bio)
+@@ -2221,6 +2250,7 @@ static inline int blk_partition_remap(struct bio *bio)
  {
  	struct hd_struct *p;
  	int ret = -EIO;
@@ -269,7 +292,7 @@ index ea33d6abd..29147bc71 100644
  
  	rcu_read_lock();
  	p = __disk_get_part(bio->bi_disk, bio->bi_partno);
-@@ -2239,6 +2266,8 @@ static inline int blk_partition_remap(struct bio *bio)
+@@ -2239,6 +2269,8 @@ static inline int blk_partition_remap(struct bio *bio)
  		if (bio_check_eod(bio, part_nr_sects_read(p)))
  			goto out;
  		bio->bi_iter.bi_sector += p->start_sect;
@@ -278,7 +301,7 @@ index ea33d6abd..29147bc71 100644
  		trace_block_bio_remap(bio->bi_disk->queue, bio, part_devt(p),
  				      bio->bi_iter.bi_sector - p->start_sect);
  	}
-@@ -2256,6 +2285,7 @@ generic_make_request_checks(struct bio *bio)
+@@ -2256,6 +2288,7 @@ generic_make_request_checks(struct bio *bio)
  	int nr_sectors = bio_sectors(bio);
  	blk_status_t status = BLK_STS_IOERR;
  	char b[BDEVNAME_SIZE];
@@ -286,7 +309,7 @@ index ea33d6abd..29147bc71 100644
  
  	might_sleep();
  
-@@ -2340,6 +2370,8 @@ generic_make_request_checks(struct bio *bio)
+@@ -2340,6 +2373,8 @@ generic_make_request_checks(struct bio *bio)
  		return false;
  
  	if (!bio_flagged(bio, BIO_TRACE_COMPLETION)) {
@@ -295,7 +318,7 @@ index ea33d6abd..29147bc71 100644
  		trace_block_bio_queue(q, bio);
  		/* Now that enqueuing has been traced, we need to trace
  		 * completion as well.
-@@ -2876,6 +2908,7 @@ struct request *blk_peek_request(struct request_queue *q)
+@@ -2876,6 +2911,7 @@ struct request *blk_peek_request(struct request_queue *q)
  {
  	struct request *rq;
  	int ret;
@@ -303,7 +326,7 @@ index ea33d6abd..29147bc71 100644
  
  	lockdep_assert_held(q->queue_lock);
  	WARN_ON_ONCE(q->mq_ops);
-@@ -2896,6 +2929,8 @@ struct request *blk_peek_request(struct request_queue *q)
+@@ -2896,6 +2932,8 @@ struct request *blk_peek_request(struct request_queue *q)
  			 * not be passed by new incoming requests
  			 */
  			rq->rq_flags |= RQF_STARTED;
@@ -312,7 +335,7 @@ index ea33d6abd..29147bc71 100644
  			trace_block_rq_issue(q, rq);
  		}
  
-@@ -3084,7 +3119,10 @@ bool blk_update_request(struct request *req, blk_status_t error,
+@@ -3084,7 +3122,10 @@ bool blk_update_request(struct request *req, blk_status_t error,
  		unsigned int nr_bytes)
  {
  	int total_bytes;
@@ -323,7 +346,7 @@ index ea33d6abd..29147bc71 100644
  	trace_block_rq_complete(req, blk_status_to_errno(error), nr_bytes);
  
  	if (!req->bio)
-@@ -3636,8 +3674,11 @@ static void queue_unplugged(struct request_queue *q, unsigned int depth,
+@@ -3636,8 +3677,11 @@ static void queue_unplugged(struct request_queue *q, unsigned int depth,
  			    bool from_schedule)
  	__releases(q->queue_lock)
  {
@@ -1309,7 +1332,7 @@ index c81a1f3f0..d45592af2 100644
  
  	/*
 diff --git a/fs/fs-writeback.c b/fs/fs-writeback.c
-index a89e27367..2e60f1cde 100644
+index a89e27367..502c365bc 100644
 --- a/fs/fs-writeback.c
 +++ b/fs/fs-writeback.c
 @@ -245,6 +245,7 @@ void __inode_attach_wb(struct inode *inode, struct page *page)
@@ -1459,22 +1482,50 @@ index a89e27367..2e60f1cde 100644
  	while (!list_empty(&wb->b_io)) {
  		struct inode *inode = wb_inode(wb->b_io.prev);
  		struct bdi_writeback *tmp_wb;
+@@ -1701,7 +1724,7 @@ static long __writeback_inodes_wb(struct bdi_writeback *wb,
+ 			continue;
+ 		}
+ 		wrote += writeback_sb_inodes(sb, wb, work);
+-		up_read(&sb->s_umount);
++		up_read(&sb->s_umount); //release a read lock
+ 
+ 		/* refer to the same tests at the end of writeback_sb_inodes */
+ 		if (wrote) {
+@@ -1806,7 +1829,7 @@ static long wb_writeback(struct bdi_writeback *wb,
+ 		trace_writeback_start(wb, work);
+ 		if (list_empty(&wb->b_io))
+ 			queue_io(wb, work);
+-		if (work->sb)
++		if (work->sb) //superblock
+ 			progress = writeback_sb_inodes(work->sb, wb, work);
+ 		else
+ 			progress = __writeback_inodes_wb(wb, work);
 @@ -1925,6 +1948,7 @@ static long wb_check_start_all(struct bdi_writeback *wb)
  		return 0;
  
  	nr_pages = get_nr_dirty_pages();
-+	trace_printk("CX____ wb nr_pages=%ld\n", nr_pages);
++	trace_printk("CX____ wb dirty nr_pages=%ld\n", nr_pages);
  	if (nr_pages) {
  		struct wb_writeback_work work = {
  			.nr_pages	= wb_split_bdi_pages(wb, nr_pages),
-@@ -1951,6 +1975,7 @@ static long wb_do_writeback(struct bdi_writeback *wb)
+@@ -1950,7 +1974,9 @@ static long wb_do_writeback(struct bdi_writeback *wb)
+ 	long wrote = 0;
  
  	set_bit(WB_writeback_running, &wb->state);
++    //writeback队列？
  	while ((work = get_next_work_item(wb)) != NULL) {
 +		trace_printk("CX____ wb do next work, for_forground=%d, kupdate=%d\n", work->for_background, work->for_kupdate);
  		trace_writeback_exec(wb, work);
  		wrote += wb_writeback(wb, work);
  		finish_writeback_work(wb, work);
+@@ -1958,6 +1984,7 @@ static long wb_do_writeback(struct bdi_writeback *wb)
+ 
+ 	/*
+ 	 * Check for a flush-everything request
++     * 设置了WB_start_all
+ 	 */
+ 	wrote += wb_check_start_all(wb);
+ 
 diff --git a/include/linux/backing-dev-defs.h b/include/linux/backing-dev-defs.h
 index 07e02d6df..3942ea8d3 100644
 --- a/include/linux/backing-dev-defs.h
@@ -1687,3 +1738,79 @@ index 78ef274b0..e99dcd6f3 100644
  	percpu_down_write(&cgroup_threadgroup_rwsem);
  
  	rcu_read_lock();
+diff --git a/mm/filemap.c b/mm/filemap.c
+index 45f1c6d73..1081b5716 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -2112,6 +2112,8 @@ static ssize_t generic_file_buffered_read(struct kiocb *iocb,
+ 		if (!page) {
+ 			if (iocb->ki_flags & IOCB_NOWAIT)
+ 				goto would_block;
++            /*should be called when a cache miss happened: it will submit the read. The readahead logic may decide to piggyback more pages onto the read request if access patterns suggest it will improve performance.*/
++            /*发生缓存未命中时应调用：它将提交读取。如果访问模式表明readahead逻辑可以提高性能，那么readahead逻辑可能会决定将更多的页面装载到read请求上。*/
+ 			page_cache_sync_readahead(mapping,
+ 					ra, filp,
+ 					index, last_index - index);
+@@ -2120,6 +2122,8 @@ static ssize_t generic_file_buffered_read(struct kiocb *iocb,
+ 				goto no_cached_page;
+ 		}
+ 		if (PageReadahead(page)) {
++            /*a page is used which has the PG_readahead flag; this is a marker to suggest that the application has used up enough of the readahead window that we should start pulling in more pages.*/
++            /*当使用带有PG_readahead标志的页面时应该调用；这是一个标记，表示应用程序已经用完了足够的readahead窗口，我们应该开始拉入更多页面*/
+ 			page_cache_async_readahead(mapping,
+ 					ra, filp, page,
+ 					index, last_index - index);
+diff --git a/mm/readahead.c b/mm/readahead.c
+index 4e630143a..7b3103fd0 100644
+--- a/mm/readahead.c
++++ b/mm/readahead.c
+@@ -393,6 +393,7 @@ ondemand_readahead(struct address_space *mapping,
+ 	/*
+ 	 * If the request exceeds the readahead window, allow the read to
+ 	 * be up to the optimal hardware IO size
++     * 如果请求超过readahead窗口，则允许读取达到最佳硬件IO大小
+ 	 */
+ 	if (req_size > max_pages && bdi->io_pages > max_pages)
+ 		max_pages = min(req_size, bdi->io_pages);
+@@ -406,6 +407,7 @@ ondemand_readahead(struct address_space *mapping,
+ 	/*
+ 	 * It's the expected callback offset, assume sequential access.
+ 	 * Ramp up sizes, and push forward the readahead window.
++     * 这是预期的回调偏移量，假设是顺序访问。加大尺寸，并向前推readahead窗口。
+ 	 */
+ 	if ((offset == (ra->start + ra->size - ra->async_size) ||
+ 	     offset == (ra->start + ra->size))) {
+@@ -515,11 +517,14 @@ void page_cache_sync_readahead(struct address_space *mapping,
+ 	if (!ra->ra_pages)
+ 		return;
+ 
+-	if (blk_cgroup_congested())
++	if (blk_cgroup_congested()) {
++        trace_printk("%s[%d]: skip sync readahead, congested\n", __FUNCTION__, __LINE__);
+ 		return;
++    }
+ 
+ 	/* be dumb */
+ 	if (filp && (filp->f_mode & FMODE_RANDOM)) {
++        trace_printk("%s[%d]: FMODE_RAMDOM \n", __FUNCTION__, __LINE__);
+ 		force_page_cache_readahead(mapping, filp, offset, req_size);
+ 		return;
+ 	}
+@@ -565,11 +570,15 @@ page_cache_async_readahead(struct address_space *mapping,
+ 	/*
+ 	 * Defer asynchronous read-ahead on IO congestion.
+ 	 */
+-	if (inode_read_congested(mapping->host))
++	if (inode_read_congested(mapping->host)) {
++        trace_printk("%s[%d]: skip readahead, inode read congested\n", __FUNCTION__, __LINE__);
+ 		return;
++    }
+ 
+-	if (blk_cgroup_congested())
++	if (blk_cgroup_congested()) {
++        trace_printk("%s[%d]: skip async readahead, congested\n", __FUNCTION__, __LINE__);
+ 		return;
++    }
+ 
+ 	/* do read-ahead */
+ 	ondemand_readahead(mapping, ra, filp, true, offset, req_size);
