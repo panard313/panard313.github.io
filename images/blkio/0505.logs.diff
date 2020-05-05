@@ -1,8 +1,8 @@
 diff --git a/Makefile b/Makefile
-index f1e428271..962d31505 100644
+index 69fa5c0310d8..3c1257682830 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -662,7 +662,7 @@ else
+@@ -664,7 +664,7 @@ else
  ifdef CONFIG_PROFILE_ALL_BRANCHES
  KBUILD_CFLAGS	+= -O2 $(call cc-disable-warning,maybe-uninitialized,)
  else
@@ -12,10 +12,10 @@ index f1e428271..962d31505 100644
  endif
  
 diff --git a/block/bio.c b/block/bio.c
-index 3d7570553..38f42892f 100644
+index 0093bed81c0e..a5066cf723c3 100644
 --- a/block/bio.c
 +++ b/block/bio.c
-@@ -2001,7 +2001,7 @@ int bio_associate_blkcg_from_page(struct bio *bio, struct page *page)
+@@ -1995,7 +1995,7 @@ int bio_associate_blkcg_from_page(struct bio *bio, struct page *page)
  int bio_associate_blkcg(struct bio *bio, struct cgroup_subsys_state *blkcg_css)
  {
  	if (unlikely(bio->bi_css))
@@ -25,7 +25,7 @@ index 3d7570553..38f42892f 100644
  	bio->bi_css = blkcg_css;
  	return 0;
 diff --git a/block/blk-cgroup.c b/block/blk-cgroup.c
-index a06547fe6..00ea3f770 100644
+index c630e02836a8..cb8a3c0f54b9 100644
 --- a/block/blk-cgroup.c
 +++ b/block/blk-cgroup.c
 @@ -821,6 +821,7 @@ int blkg_conf_prep(struct blkcg *blkcg, const struct blkcg_policy *pol,
@@ -49,7 +49,7 @@ index a06547fe6..00ea3f770 100644
  	if (part) {
  		ret = -ENODEV;
  		goto fail;
-@@ -1224,6 +1228,8 @@ int blkcg_init_queue(struct request_queue *q)
+@@ -1217,6 +1221,8 @@ int blkcg_init_queue(struct request_queue *q)
  	bool preloaded;
  	int ret;
  
@@ -58,7 +58,7 @@ index a06547fe6..00ea3f770 100644
  	new_blkg = blkg_alloc(&blkcg_root, q, GFP_KERNEL);
  	if (!new_blkg)
  		return -ENOMEM;
-@@ -1626,6 +1632,7 @@ static void blkcg_scale_delay(struct blkcg_gq *blkg, u64 now)
+@@ -1619,6 +1625,7 @@ static void blkcg_scale_delay(struct blkcg_gq *blkg, u64 now)
  {
  	u64 old = atomic64_read(&blkg->delay_start);
  
@@ -66,7 +66,7 @@ index a06547fe6..00ea3f770 100644
  	/*
  	 * We only want to scale down every second.  The idea here is that we
  	 * want to delay people for min(delay_nsec, NSEC_PER_SEC) in a certain
-@@ -1682,6 +1689,7 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
+@@ -1675,6 +1682,7 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
  	u64 delay_nsec = 0;
  	int tok;
  
@@ -74,7 +74,7 @@ index a06547fe6..00ea3f770 100644
  	while (blkg->parent) {
  		if (atomic_read(&blkg->use_delay)) {
  			blkcg_scale_delay(blkg, now);
-@@ -1700,6 +1708,8 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
+@@ -1693,6 +1701,8 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
  	 * delay, and we want userspace to be able to do _something_ so cap the
  	 * delays at 1 second.  If there's 10's of seconds worth of delay then
  	 * the tasks will be delayed for 1 second for every syscall.
@@ -83,7 +83,7 @@ index a06547fe6..00ea3f770 100644
  	 */
  	delay_nsec = min_t(u64, delay_nsec, 250 * NSEC_PER_MSEC);
  
-@@ -1709,6 +1719,9 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
+@@ -1702,6 +1712,9 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
  	 * to do a psi_memstall_enter/leave if memdelay is set.
  	 */
  
@@ -93,7 +93,7 @@ index a06547fe6..00ea3f770 100644
  	exp = ktime_add_ns(now, delay_nsec);
  	tok = io_schedule_prepare();
  	do {
-@@ -1728,6 +1741,7 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
+@@ -1721,6 +1734,7 @@ static void blkcg_maybe_throttle_blkg(struct blkcg_gq *blkg, bool use_memdelay)
   * anything.  This should only ever be called by the resume code, it's not meant
   * to be called by people willy-nilly as it will actually do the work to
   * throttle the task if it is setup for throttling.
@@ -101,7 +101,7 @@ index a06547fe6..00ea3f770 100644
   */
  void blkcg_maybe_throttle_current(void)
  {
-@@ -1740,6 +1754,7 @@ void blkcg_maybe_throttle_current(void)
+@@ -1733,6 +1747,7 @@ void blkcg_maybe_throttle_current(void)
  	if (!q)
  		return;
  
@@ -109,7 +109,7 @@ index a06547fe6..00ea3f770 100644
  	current->throttle_queue = NULL;
  	current->use_memdelay = false;
  
-@@ -1795,8 +1810,10 @@ void blkcg_schedule_throttle(struct request_queue *q, bool use_memdelay)
+@@ -1788,8 +1803,10 @@ void blkcg_schedule_throttle(struct request_queue *q, bool use_memdelay)
  	if (!blk_get_queue(q))
  		return;
  
@@ -122,7 +122,7 @@ index a06547fe6..00ea3f770 100644
  	current->throttle_queue = q;
  	if (use_memdelay)
  		current->use_memdelay = use_memdelay;
-@@ -1816,6 +1833,7 @@ void blkcg_add_delay(struct blkcg_gq *blkg, u64 now, u64 delta)
+@@ -1809,6 +1826,7 @@ void blkcg_add_delay(struct blkcg_gq *blkg, u64 now, u64 delta)
  {
  	blkcg_scale_delay(blkg, now);
  	atomic64_add(delta, &blkg->delay_nsec);
@@ -131,7 +131,7 @@ index a06547fe6..00ea3f770 100644
  EXPORT_SYMBOL_GPL(blkcg_add_delay);
  
 diff --git a/block/blk-core.c b/block/blk-core.c
-index ea33d6abd..05e590a1e 100644
+index cff0a60ee200..0f4294f6e9b4 100644
 --- a/block/blk-core.c
 +++ b/block/blk-core.c
 @@ -145,7 +145,9 @@ EXPORT_SYMBOL_GPL(blk_queue_flag_test_and_clear);
@@ -174,11 +174,11 @@ index ea33d6abd..05e590a1e 100644
  
  void blk_rq_init(struct request_queue *q, struct request *rq)
  {
-+    printk(KERN_ERR "%s[%d]: ---init---", __FUNCTION__, __LINE__);
++    //printk(KERN_ERR "%s[%d]: ---init---", __FUNCTION__, __LINE__);
  	memset(rq, 0, sizeof(*rq));
  
  	INIT_LIST_HEAD(&rq->queuelist);
-@@ -1008,6 +1016,8 @@ struct request_queue *blk_alloc_queue_node(gfp_t gfp_mask, int node_id,
+@@ -1000,6 +1008,8 @@ struct request_queue *blk_alloc_queue_node(gfp_t gfp_mask, int node_id,
  	struct request_queue *q;
  	int ret;
  
@@ -187,7 +187,7 @@ index ea33d6abd..05e590a1e 100644
  	q = kmem_cache_alloc_node(blk_requestq_cachep,
  				gfp_mask | __GFP_ZERO, node_id);
  	if (!q)
-@@ -1362,6 +1372,7 @@ static struct request *__get_request(struct request_list *rl, unsigned int op,
+@@ -1354,6 +1364,7 @@ static struct request *__get_request(struct request_list *rl, unsigned int op,
  	const bool is_sync = op_is_sync(op);
  	int may_queue;
  	req_flags_t rq_flags = RQF_ALLOCED;
@@ -195,7 +195,7 @@ index ea33d6abd..05e590a1e 100644
  
  	lockdep_assert_held(q->queue_lock);
  
-@@ -1473,6 +1484,8 @@ static struct request *__get_request(struct request_list *rl, unsigned int op,
+@@ -1465,6 +1476,8 @@ static struct request *__get_request(struct request_list *rl, unsigned int op,
  	if (ioc_batching(q, ioc))
  		ioc->nr_batch_requests--;
  
@@ -204,7 +204,7 @@ index ea33d6abd..05e590a1e 100644
  	trace_block_getrq(q, bio, op);
  	return rq;
  
-@@ -1540,6 +1553,7 @@ static struct request *get_request(struct request_queue *q, unsigned int op,
+@@ -1532,6 +1545,7 @@ static struct request *get_request(struct request_queue *q, unsigned int op,
  	DEFINE_WAIT(wait);
  	struct request_list *rl;
  	struct request *rq;
@@ -212,7 +212,7 @@ index ea33d6abd..05e590a1e 100644
  
  	lockdep_assert_held(q->queue_lock);
  	WARN_ON_ONCE(q->mq_ops);
-@@ -1564,6 +1578,8 @@ static struct request *get_request(struct request_queue *q, unsigned int op,
+@@ -1556,6 +1570,8 @@ static struct request *get_request(struct request_queue *q, unsigned int op,
  	prepare_to_wait_exclusive(&rl->wait[is_sync], &wait,
  				  TASK_UNINTERRUPTIBLE);
  
@@ -221,7 +221,7 @@ index ea33d6abd..05e590a1e 100644
  	trace_block_sleeprq(q, bio, op);
  
  	spin_unlock_irq(q->queue_lock);
-@@ -1653,11 +1669,15 @@ EXPORT_SYMBOL(blk_get_request);
+@@ -1645,11 +1661,15 @@ EXPORT_SYMBOL(blk_get_request);
   */
  void blk_requeue_request(struct request_queue *q, struct request *rq)
  {
@@ -237,7 +237,7 @@ index ea33d6abd..05e590a1e 100644
  	trace_block_rq_requeue(q, rq);
  	rq_qos_requeue(q, rq);
  
-@@ -1806,11 +1826,14 @@ EXPORT_SYMBOL(blk_put_request);
+@@ -1798,11 +1818,14 @@ EXPORT_SYMBOL(blk_put_request);
  bool bio_attempt_back_merge(struct request_queue *q, struct request *req,
  			    struct bio *bio)
  {
@@ -252,7 +252,7 @@ index ea33d6abd..05e590a1e 100644
  	trace_block_bio_backmerge(q, req, bio);
  
  	if ((req->cmd_flags & REQ_FAILFAST_MASK) != ff)
-@@ -1828,11 +1851,14 @@ bool bio_attempt_back_merge(struct request_queue *q, struct request *req,
+@@ -1820,11 +1843,14 @@ bool bio_attempt_back_merge(struct request_queue *q, struct request *req,
  bool bio_attempt_front_merge(struct request_queue *q, struct request *req,
  			     struct bio *bio)
  {
@@ -267,7 +267,7 @@ index ea33d6abd..05e590a1e 100644
  	trace_block_bio_frontmerge(q, req, bio);
  
  	if ((req->cmd_flags & REQ_FAILFAST_MASK) != ff)
-@@ -2000,6 +2026,7 @@ static blk_qc_t blk_queue_bio(struct request_queue *q, struct bio *bio)
+@@ -1992,6 +2018,7 @@ static blk_qc_t blk_queue_bio(struct request_queue *q, struct bio *bio)
  	int where = ELEVATOR_INSERT_SORT;
  	struct request *req, *free;
  	unsigned int request_count = 0;
@@ -275,7 +275,7 @@ index ea33d6abd..05e590a1e 100644
  
  	/*
  	 * low level driver can indicate that it wants pages above a
-@@ -2098,6 +2125,8 @@ static blk_qc_t blk_queue_bio(struct request_queue *q, struct bio *bio)
+@@ -2090,6 +2117,8 @@ static blk_qc_t blk_queue_bio(struct request_queue *q, struct bio *bio)
  		 * @request_count may become stale because of schedule
  		 * out, so check plug list again.
  		 */
@@ -284,7 +284,7 @@ index ea33d6abd..05e590a1e 100644
  		if (!request_count || list_empty(&plug->list))
  			trace_block_plug(q);
  		else {
-@@ -2221,6 +2250,7 @@ static inline int blk_partition_remap(struct bio *bio)
+@@ -2213,6 +2242,7 @@ static inline int blk_partition_remap(struct bio *bio)
  {
  	struct hd_struct *p;
  	int ret = -EIO;
@@ -292,7 +292,7 @@ index ea33d6abd..05e590a1e 100644
  
  	rcu_read_lock();
  	p = __disk_get_part(bio->bi_disk, bio->bi_partno);
-@@ -2239,6 +2269,8 @@ static inline int blk_partition_remap(struct bio *bio)
+@@ -2231,6 +2261,8 @@ static inline int blk_partition_remap(struct bio *bio)
  		if (bio_check_eod(bio, part_nr_sects_read(p)))
  			goto out;
  		bio->bi_iter.bi_sector += p->start_sect;
@@ -301,7 +301,7 @@ index ea33d6abd..05e590a1e 100644
  		trace_block_bio_remap(bio->bi_disk->queue, bio, part_devt(p),
  				      bio->bi_iter.bi_sector - p->start_sect);
  	}
-@@ -2256,6 +2288,7 @@ generic_make_request_checks(struct bio *bio)
+@@ -2248,6 +2280,7 @@ generic_make_request_checks(struct bio *bio)
  	int nr_sectors = bio_sectors(bio);
  	blk_status_t status = BLK_STS_IOERR;
  	char b[BDEVNAME_SIZE];
@@ -309,7 +309,7 @@ index ea33d6abd..05e590a1e 100644
  
  	might_sleep();
  
-@@ -2340,6 +2373,8 @@ generic_make_request_checks(struct bio *bio)
+@@ -2332,6 +2365,8 @@ generic_make_request_checks(struct bio *bio)
  		return false;
  
  	if (!bio_flagged(bio, BIO_TRACE_COMPLETION)) {
@@ -318,7 +318,7 @@ index ea33d6abd..05e590a1e 100644
  		trace_block_bio_queue(q, bio);
  		/* Now that enqueuing has been traced, we need to trace
  		 * completion as well.
-@@ -2876,6 +2911,7 @@ struct request *blk_peek_request(struct request_queue *q)
+@@ -2869,6 +2904,7 @@ struct request *blk_peek_request(struct request_queue *q)
  {
  	struct request *rq;
  	int ret;
@@ -326,7 +326,7 @@ index ea33d6abd..05e590a1e 100644
  
  	lockdep_assert_held(q->queue_lock);
  	WARN_ON_ONCE(q->mq_ops);
-@@ -2896,6 +2932,8 @@ struct request *blk_peek_request(struct request_queue *q)
+@@ -2889,6 +2925,8 @@ struct request *blk_peek_request(struct request_queue *q)
  			 * not be passed by new incoming requests
  			 */
  			rq->rq_flags |= RQF_STARTED;
@@ -335,7 +335,7 @@ index ea33d6abd..05e590a1e 100644
  			trace_block_rq_issue(q, rq);
  		}
  
-@@ -3084,7 +3122,10 @@ bool blk_update_request(struct request *req, blk_status_t error,
+@@ -3077,7 +3115,10 @@ bool blk_update_request(struct request *req, blk_status_t error,
  		unsigned int nr_bytes)
  {
  	int total_bytes;
@@ -346,7 +346,7 @@ index ea33d6abd..05e590a1e 100644
  	trace_block_rq_complete(req, blk_status_to_errno(error), nr_bytes);
  
  	if (!req->bio)
-@@ -3636,8 +3677,11 @@ static void queue_unplugged(struct request_queue *q, unsigned int depth,
+@@ -3629,8 +3670,11 @@ static void queue_unplugged(struct request_queue *q, unsigned int depth,
  			    bool from_schedule)
  	__releases(q->queue_lock)
  {
@@ -359,10 +359,10 @@ index ea33d6abd..05e590a1e 100644
  
  	if (from_schedule)
 diff --git a/block/blk-iolatency.c b/block/blk-iolatency.c
-index 0529e94a2..bd220aeda 100644
+index 19923f8a029d..de77428702b4 100644
 --- a/block/blk-iolatency.c
 +++ b/block/blk-iolatency.c
-@@ -79,6 +79,8 @@
+@@ -77,6 +77,8 @@
  
  #define DEFAULT_SCALE_COOKIE 1000000U
  
@@ -371,7 +371,7 @@ index 0529e94a2..bd220aeda 100644
  static struct blkcg_policy blkcg_policy_iolatency;
  struct iolatency_grp;
  
-@@ -90,11 +92,13 @@ struct blk_iolatency {
+@@ -88,11 +90,13 @@ struct blk_iolatency {
  
  static inline struct blk_iolatency *BLKIOLATENCY(struct rq_qos *rqos)
  {
@@ -385,7 +385,7 @@ index 0529e94a2..bd220aeda 100644
  	return atomic_read(&blkiolat->enabled) > 0;
  }
  
-@@ -179,11 +183,19 @@ static inline bool iolatency_may_queue(struct iolatency_grp *iolat,
+@@ -177,11 +181,19 @@ static inline bool iolatency_may_queue(struct iolatency_grp *iolat,
  				       bool first_block)
  {
  	struct rq_wait *rqw = &iolat->rq_wait;
@@ -407,7 +407,7 @@ index 0529e94a2..bd220aeda 100644
  }
  
  static void __blkcg_iolatency_throttle(struct rq_qos *rqos,
-@@ -195,24 +207,34 @@ static void __blkcg_iolatency_throttle(struct rq_qos *rqos,
+@@ -193,24 +205,34 @@ static void __blkcg_iolatency_throttle(struct rq_qos *rqos,
  {
  	struct rq_wait *rqw = &iolat->rq_wait;
  	unsigned use_delay = atomic_read(&lat_to_blkg(iolat)->use_delay);
@@ -445,7 +445,7 @@ index 0529e94a2..bd220aeda 100644
  	if (iolatency_may_queue(iolat, &wait, first_block))
  		return;
  
-@@ -220,12 +242,14 @@ static void __blkcg_iolatency_throttle(struct rq_qos *rqos,
+@@ -218,12 +240,14 @@ static void __blkcg_iolatency_throttle(struct rq_qos *rqos,
  		prepare_to_wait_exclusive(&rqw->wait, &wait,
  					  TASK_UNINTERRUPTIBLE);
  
@@ -460,7 +460,7 @@ index 0529e94a2..bd220aeda 100644
  			io_schedule();
  			spin_lock_irq(lock);
  		} else {
-@@ -234,6 +258,8 @@ static void __blkcg_iolatency_throttle(struct rq_qos *rqos,
+@@ -232,6 +256,8 @@ static void __blkcg_iolatency_throttle(struct rq_qos *rqos,
  	} while (1);
  
  	finish_wait(&rqw->wait, &wait);
@@ -469,23 +469,46 @@ index 0529e94a2..bd220aeda 100644
  }
  
  #define SCALE_DOWN_FACTOR 2
-@@ -263,6 +289,7 @@ static void scale_cookie_change(struct blk_iolatency *blkiolat,
+@@ -250,6 +276,7 @@ static inline unsigned long scale_amount(unsigned long qd, bool up)
+  * Each group has their own local copy of the last scale cookie they saw, so if
+  * the global scale cookie goes up or down they know which way they need to go
+  * based on their last knowledge of it.
++ * 我们缩小qd的速度比放大快，所以我们需要使用这个助手相应地调整缩放cookie，这样我们就不会过早地获得默认scale_cookie下的scale_cookie，并且不会太多。每个小组都有他们自己的本地副本，他们看到的最后一个scale cookie，因此如果全局scale cookie上升或下降，他们知道他们需要走哪条路基于他们最后的知识。
+  */
+ static void scale_cookie_change(struct blk_iolatency *blkiolat,
+ 				struct child_latency_info *lat_info,
+@@ -261,9 +288,13 @@ static void scale_cookie_change(struct blk_iolatency *blkiolat,
  	unsigned long max_scale = qd << 1;
  	unsigned long diff = 0;
  
-+	trace_printk("%s[%d] --- entry, cookie=%d, up=%d\n", __FUNCTION__, __LINE__, lat_info->scale_cookie.counter, up);
++	trace_printk("%s[%d] --- entry, old cookie=%d, up=%d\n", __FUNCTION__, __LINE__, old, up);
++	printk(KERN_ERR "%s[%d] --- entry, old cookie=%d, up=%d\n", __FUNCTION__, __LINE__, old, up);
  	if (old < DEFAULT_SCALE_COOKIE)
  		diff = DEFAULT_SCALE_COOKIE - old;
  
-@@ -288,6 +315,7 @@ static void scale_cookie_change(struct blk_iolatency *blkiolat,
++	trace_printk("%s[%d] --- entry, queue_deepth=%d, diff=%d\n", __FUNCTION__, __LINE__, qd, diff);
++	printk(KERN_ERR "%s[%d] --- entry, queue_deepth=%d, diff=%d\n", __FUNCTION__, __LINE__, qd, diff);
+ 	if (up) {
+ 		if (scale + old > DEFAULT_SCALE_COOKIE)
+ 			atomic_set(&lat_info->scale_cookie,
+@@ -278,6 +309,7 @@ static void scale_cookie_change(struct blk_iolatency *blkiolat,
+ 		 * dig out of it.  Just enough that we don't throttle/unthrottle
+ 		 * with jagged workloads but can still unthrottle once pressure
+ 		 * has sufficiently dissipated.
++         * 我们不想挖这么深的洞，要花几个小时才能挖出来。就足够了，我们不会在工作负荷参差不齐的情况下节流/松开节流阀，但一旦压力充分消散，我们仍然可以松开节流阀。
+ 		 */
+ 		if (diff > qd) {
+ 			if (diff < max_scale)
+@@ -286,6 +318,8 @@ static void scale_cookie_change(struct blk_iolatency *blkiolat,
  			atomic_sub(scale, &lat_info->scale_cookie);
  		}
  	}
 +	trace_printk("%s[%d] --- finish, cookie=%d\n", __FUNCTION__, __LINE__, lat_info->scale_cookie.counter);
++	printk(KERN_ERR "%s[%d] --- finish, cookie=%d\n", __FUNCTION__, __LINE__, lat_info->scale_cookie.counter);
  }
  
  /*
-@@ -305,6 +333,7 @@ static void scale_change(struct iolatency_grp *iolat, bool up)
+@@ -303,6 +337,7 @@ static void scale_change(struct iolatency_grp *iolat, bool up)
  	if (old > qd)
  		old = qd;
  
@@ -493,7 +516,7 @@ index 0529e94a2..bd220aeda 100644
  	if (up) {
  		if (old == 1 && blkcg_unuse_delay(lat_to_blkg(iolat)))
  			return;
-@@ -314,13 +343,16 @@ static void scale_change(struct iolatency_grp *iolat, bool up)
+@@ -312,13 +347,16 @@ static void scale_change(struct iolatency_grp *iolat, bool up)
  			old += scale;
  			old = min(old, qd);
  			iolat->rq_depth.max_depth = old;
@@ -510,7 +533,7 @@ index 0529e94a2..bd220aeda 100644
  }
  
  /* Check our parent and see if the scale cookie has changed. */
-@@ -333,6 +365,7 @@ static void check_scale_change(struct iolatency_grp *iolat)
+@@ -331,6 +369,7 @@ static void check_scale_change(struct iolatency_grp *iolat)
  	u64 scale_lat;
  	unsigned int old;
  	int direction = 0;
@@ -518,7 +541,7 @@ index 0529e94a2..bd220aeda 100644
  
  	if (lat_to_blkg(iolat)->parent == NULL)
  		return;
-@@ -341,10 +374,18 @@ static void check_scale_change(struct iolatency_grp *iolat)
+@@ -339,10 +378,18 @@ static void check_scale_change(struct iolatency_grp *iolat)
  	if (!parent)
  		return;
  
@@ -537,7 +560,15 @@ index 0529e94a2..bd220aeda 100644
  	if (cur_cookie < our_cookie)
  		direction = -1;
  	else if (cur_cookie > our_cookie)
-@@ -379,6 +420,7 @@ static void check_scale_change(struct iolatency_grp *iolat)
+@@ -370,6 +417,7 @@ static void check_scale_change(struct iolatency_grp *iolat)
+ 		 */
+ 		samples_thresh = lat_info->nr_samples * 5;
+ 		samples_thresh = div64_u64(samples_thresh, 100);
++		trace_printk("%s[%d] --- samples_thresh=%llu, lat_info->nr_samples=%llu\n", __FUNCTION__, __LINE__, samples_thresh, lat_info->nr_samples);
+ 		if (iolat->nr_samples <= samples_thresh)
+ 			return;
+ 	}
+@@ -377,6 +425,7 @@ static void check_scale_change(struct iolatency_grp *iolat)
  	/* We're as low as we can go. */
  	if (iolat->rq_depth.max_depth == 1 && direction < 0) {
  		blkcg_use_delay(lat_to_blkg(iolat));
@@ -545,7 +576,7 @@ index 0529e94a2..bd220aeda 100644
  		return;
  	}
  
-@@ -387,9 +429,11 @@ static void check_scale_change(struct iolatency_grp *iolat)
+@@ -385,9 +434,11 @@ static void check_scale_change(struct iolatency_grp *iolat)
  		blkcg_clear_delay(lat_to_blkg(iolat));
  		iolat->rq_depth.max_depth = UINT_MAX;
  		wake_up_all(&iolat->rq_wait.wait);
@@ -557,7 +588,7 @@ index 0529e94a2..bd220aeda 100644
  	scale_change(iolat, direction > 0);
  }
  
-@@ -402,12 +446,21 @@ static void blkcg_iolatency_throttle(struct rq_qos *rqos, struct bio *bio,
+@@ -400,12 +451,21 @@ static void blkcg_iolatency_throttle(struct rq_qos *rqos, struct bio *bio,
  	struct request_queue *q = rqos->q;
  	bool issue_as_root = bio_issue_as_root_blkg(bio);
  
@@ -580,7 +611,7 @@ index 0529e94a2..bd220aeda 100644
  	blkg = blkg_lookup(blkcg, q);
  	if (unlikely(!blkg)) {
  		if (!lock)
-@@ -422,10 +475,16 @@ static void blkcg_iolatency_throttle(struct rq_qos *rqos, struct bio *bio,
+@@ -420,10 +480,16 @@ static void blkcg_iolatency_throttle(struct rq_qos *rqos, struct bio *bio,
  		goto out;
  
  	bio_issue_init(&bio->bi_issue, bio_sectors(bio));
@@ -599,7 +630,7 @@ index 0529e94a2..bd220aeda 100644
  		struct iolatency_grp *iolat = blkg_to_lat(blkg);
  		if (!iolat) {
  			blkg = blkg->parent;
-@@ -449,6 +508,7 @@ static void iolatency_record_time(struct iolatency_grp *iolat,
+@@ -447,6 +513,7 @@ static void iolatency_record_time(struct iolatency_grp *iolat,
  	u64 start = bio_issue_time(issue);
  	u64 req_time;
  
@@ -607,7 +638,7 @@ index 0529e94a2..bd220aeda 100644
  	/*
  	 * Have to do this so we are truncated to the correct time that our
  	 * issue is truncated to.
-@@ -468,11 +528,13 @@ static void iolatency_record_time(struct iolatency_grp *iolat,
+@@ -466,11 +533,13 @@ static void iolatency_record_time(struct iolatency_grp *iolat,
  		u64 sub = iolat->min_lat_nsec;
  		if (req_time < sub)
  			blkcg_add_delay(lat_to_blkg(iolat), now, sub - req_time);
@@ -621,7 +652,7 @@ index 0529e94a2..bd220aeda 100644
  	put_cpu_ptr(rq_stat);
  }
  
-@@ -488,6 +550,7 @@ static void iolatency_check_latencies(struct iolatency_grp *iolat, u64 now)
+@@ -486,6 +555,7 @@ static void iolatency_check_latencies(struct iolatency_grp *iolat, u64 now)
  	unsigned long flags;
  	int cpu, exp_idx;
  
@@ -629,7 +660,7 @@ index 0529e94a2..bd220aeda 100644
  	blk_rq_stat_init(&stat);
  	preempt_disable();
  	for_each_online_cpu(cpu) {
-@@ -499,10 +562,14 @@ static void iolatency_check_latencies(struct iolatency_grp *iolat, u64 now)
+@@ -497,10 +567,14 @@ static void iolatency_check_latencies(struct iolatency_grp *iolat, u64 now)
  	preempt_enable();
  
  	parent = blkg_to_lat(blkg->parent);
@@ -645,7 +676,27 @@ index 0529e94a2..bd220aeda 100644
  
  	/*
  	 * CALC_LOAD takes in a number stored in fixed point representation.
-@@ -527,10 +594,13 @@ static void iolatency_check_latencies(struct iolatency_grp *iolat, u64 now)
+@@ -508,6 +582,7 @@ static void iolatency_check_latencies(struct iolatency_grp *iolat, u64 now)
+ 	 * are significantly larger than the FIXED_1 denominator (2048).
+ 	 * Therefore, rounding errors in the calculation are negligible and
+ 	 * can be ignored.
++     * CALC_LOAD接受以定点表示形式存储的数字。因为我们在ns中使用这个作为IO时间，所以存储的值明显大于FIXED_1分母（2048）。因此，计算中的舍入误差可以忽略不计。
+ 	 */
+ 	exp_idx = min_t(int, BLKIOLATENCY_NR_EXP_FACTORS - 1,
+ 			div64_u64(iolat->cur_win_nsec,
+@@ -516,8 +591,10 @@ static void iolatency_check_latencies(struct iolatency_grp *iolat, u64 now)
+ 
+ 	/* Everything is ok and we don't need to adjust the scale. */
+ 	if (stat.mean <= iolat->min_lat_nsec &&
+-	    atomic_read(&lat_info->scale_cookie) == DEFAULT_SCALE_COOKIE)
++	    atomic_read(&lat_info->scale_cookie) == DEFAULT_SCALE_COOKIE) {
++		trace_printk("%s[%d] --- everything is ok\n", __FUNCTION__, __LINE__);
+ 		return;
++    }
+ 
+ 	/* Somebody beat us to the punch, just bail. */
+ 	spin_lock_irqsave(&lat_info->lock, flags);
+@@ -525,15 +602,21 @@ static void iolatency_check_latencies(struct iolatency_grp *iolat, u64 now)
  	lat_info->nr_samples += stat.nr_samples;
  	iolat->nr_samples = stat.nr_samples;
  
@@ -658,19 +709,19 @@ index 0529e94a2..bd220aeda 100644
  		goto out;
 +	}
  
++	trace_printk("%s[%d] --- stat.mean=%llu  iolat->min_lat_nsec=%llu\n", __FUNCTION__, __LINE__, stat.mean, iolat->min_lat_nsec);
++	printk(KERN_ERR "%s[%d] --- stat.mean=%llu  iolat->min_lat_nsec=%llu\n", __FUNCTION__, __LINE__, stat.mean, iolat->min_lat_nsec);
  	if (stat.mean <= iolat->min_lat_nsec &&
  	    stat.nr_samples >= BLKIOLATENCY_MIN_GOOD_SAMPLES) {
-@@ -545,6 +615,7 @@ static void iolatency_check_latencies(struct iolatency_grp *iolat, u64 now)
- 			WRITE_ONCE(lat_info->scale_lat, iolat->min_lat_nsec);
- 			lat_info->scale_grp = iolat;
+ 		if (lat_info->scale_grp == iolat) {
+ 			lat_info->last_scale_event = now;
++            trace_printk("%s[%d]: to call scale_cookie_change, up\n", __FUNCTION__, __LINE__);
+ 			scale_cookie_change(iolat->blkiolat, lat_info, true);
  		}
-+		trace_printk("%s[%d] --- stat.mean=%llu > iolat->min_lat_nsec=%llu\n", __FUNCTION__, __LINE__, stat.mean, iolat->min_lat_nsec);
- 		scale_cookie_change(iolat->blkiolat, lat_info, false);
- 	}
- out:
-@@ -562,11 +633,15 @@ static void blkcg_iolatency_done_bio(struct rq_qos *rqos, struct bio *bio)
+ 	} else if (stat.mean > iolat->min_lat_nsec) {
+@@ -559,11 +642,15 @@ static void blkcg_iolatency_done_bio(struct rq_qos *rqos, struct bio *bio)
+ 	bool issue_as_root = bio_issue_as_root_blkg(bio);
  	bool enabled = false;
- 	int inflight = 0;
  
 +	trace_printk("%s[%d] ---\n", __FUNCTION__, __LINE__);
  	blkg = bio->bi_blkg;
@@ -684,35 +735,30 @@ index 0529e94a2..bd220aeda 100644
  	if (!iolat)
  		return;
  
-@@ -582,7 +657,9 @@ static void blkcg_iolatency_done_bio(struct rq_qos *rqos, struct bio *bio)
- 		}
+@@ -577,18 +664,22 @@ static void blkcg_iolatency_done_bio(struct rq_qos *rqos, struct bio *bio)
  		rqw = &iolat->rq_wait;
  
-+		// inflight - 1
- 		inflight = atomic_dec_return(&rqw->inflight);
+ 		atomic_dec(&rqw->inflight);
 +	    trace_printk("%s[%d] --- trace inflight: %d\n", __FUNCTION__, __LINE__, rqw->inflight);
- 		WARN_ON_ONCE(inflight < 0);
- 		/*
- 		 * If bi_status is BLK_STS_AGAIN, the bio wasn't actually
-@@ -591,14 +668,17 @@ static void blkcg_iolatency_done_bio(struct rq_qos *rqos, struct bio *bio)
- 		if (iolat->min_lat_nsec && bio->bi_status != BLK_STS_AGAIN) {
- 			iolatency_record_time(iolat, &bio->bi_issue, now,
- 					      issue_as_root);
-+			trace_printk("CX____ %s[%d] ---\n", __FUNCTION__, __LINE__);
- 			window_start = atomic64_read(&iolat->window_start);
- 			if (now > window_start &&
- 			    (now - window_start) >= iolat->cur_win_nsec) {
- 				if (atomic64_cmpxchg(&iolat->window_start,
- 					     window_start, now) == window_start)
-+					trace_printk("CX____ %s[%d] --- over window? will check latency  now-window_start=%llu\n", __FUNCTION__, __LINE__, now-window_start);
- 					iolatency_check_latencies(iolat, now);
- 			}
+ 		if (!enabled || iolat->min_lat_nsec == 0)
+ 			goto next;
+ 		iolatency_record_time(iolat, &bio->bi_issue, now,
+ 				      issue_as_root);
++		trace_printk("CX____ %s[%d] ---\n", __FUNCTION__, __LINE__);
+ 		window_start = atomic64_read(&iolat->window_start);
+ 		if (now > window_start &&
+ 		    (now - window_start) >= iolat->cur_win_nsec) {
+ 			if (atomic64_cmpxchg(&iolat->window_start,
+ 					window_start, now) == window_start)
++				trace_printk("CX____ %s[%d] --- over window? will check latency  now-window_start=%llu\n", __FUNCTION__, __LINE__, now-window_start);
+ 				iolatency_check_latencies(iolat, now);
  		}
+ next:
 +		trace_printk("CX____ %s[%d] --- wake_up rqw->wait  !!!!!\n", __FUNCTION__, __LINE__);
  		wake_up(&rqw->wait);
  		blkg = blkg->parent;
  	}
-@@ -608,6 +688,7 @@ static void blkcg_iolatency_exit(struct rq_qos *rqos)
+@@ -619,6 +710,7 @@ static void blkcg_iolatency_exit(struct rq_qos *rqos)
  {
  	struct blk_iolatency *blkiolat = BLKIOLATENCY(rqos);
  
@@ -720,7 +766,7 @@ index 0529e94a2..bd220aeda 100644
  	del_timer_sync(&blkiolat->timer);
  	blkcg_deactivate_policy(rqos->q, &blkcg_policy_iolatency);
  	kfree(blkiolat);
-@@ -626,6 +707,7 @@ static void blkiolatency_timer_fn(struct timer_list *t)
+@@ -638,6 +730,7 @@ static void blkiolatency_timer_fn(struct timer_list *t)
  	struct cgroup_subsys_state *pos_css;
  	u64 now = ktime_to_ns(ktime_get());
  
@@ -728,7 +774,7 @@ index 0529e94a2..bd220aeda 100644
  	rcu_read_lock();
  	blkg_for_each_descendant_pre(blkg, pos_css,
  				     blkiolat->rqos.q->root_blkg) {
-@@ -660,6 +742,7 @@ static void blkiolatency_timer_fn(struct timer_list *t)
+@@ -672,6 +765,7 @@ static void blkiolatency_timer_fn(struct timer_list *t)
  		 * on.
  		 */
  		if (lat_info->scale_grp == NULL) {
@@ -736,7 +782,7 @@ index 0529e94a2..bd220aeda 100644
  			scale_cookie_change(iolat->blkiolat, lat_info, true);
  			goto next_lock;
  		}
-@@ -670,11 +753,15 @@ static void blkiolatency_timer_fn(struct timer_list *t)
+@@ -682,11 +776,15 @@ static void blkiolatency_timer_fn(struct timer_list *t)
  		 * doing any IO currently.
  		 */
  		if (now - lat_info->last_scale_event >=
@@ -753,7 +799,7 @@ index 0529e94a2..bd220aeda 100644
  		blkg_put(blkg);
  	}
  	rcu_read_unlock();
-@@ -686,6 +773,7 @@ int blk_iolatency_init(struct request_queue *q)
+@@ -698,6 +796,7 @@ int blk_iolatency_init(struct request_queue *q)
  	struct rq_qos *rqos;
  	int ret;
  
@@ -761,8 +807,8 @@ index 0529e94a2..bd220aeda 100644
  	blkiolat = kzalloc(sizeof(*blkiolat), GFP_KERNEL);
  	if (!blkiolat)
  		return -ENOMEM;
-@@ -718,10 +806,13 @@ static int iolatency_set_min_lat_nsec(struct blkcg_gq *blkg, u64 val)
- 	struct iolatency_grp *iolat = blkg_to_lat(blkg);
+@@ -727,10 +826,13 @@ static void iolatency_set_min_lat_nsec(struct blkcg_gq *blkg, u64 val)
+ 	struct blk_iolatency *blkiolat = iolat->blkiolat;
  	u64 oldval = iolat->min_lat_nsec;
  
 +	trace_printk("%s[%d] --- val=%llu\n", __FUNCTION__, __LINE__, val);
@@ -774,8 +820,8 @@ index 0529e94a2..bd220aeda 100644
 +	printk(KERN_ERR "%s[%d] --- cur_win_nsec=%llu", __FUNCTION__, __LINE__, iolat->cur_win_nsec);
  
  	if (!oldval && val)
- 		return 1;
-@@ -734,6 +825,7 @@ static int iolatency_set_min_lat_nsec(struct blkcg_gq *blkg, u64 val)
+ 		atomic_inc(&blkiolat->enabled);
+@@ -740,6 +842,7 @@ static void iolatency_set_min_lat_nsec(struct blkcg_gq *blkg, u64 val)
  
  static void iolatency_clear_scaling(struct blkcg_gq *blkg)
  {
@@ -783,15 +829,15 @@ index 0529e94a2..bd220aeda 100644
  	if (blkg->parent) {
  		struct iolatency_grp *iolat = blkg_to_lat(blkg->parent);
  		struct child_latency_info *lat_info;
-@@ -764,6 +856,7 @@ static ssize_t iolatency_set_limit(struct kernfs_open_file *of, char *buf,
+@@ -769,6 +872,7 @@ static ssize_t iolatency_set_limit(struct kernfs_open_file *of, char *buf,
+ 	u64 oldval;
  	int ret;
- 	int enable = 0;
  
 +	trace_printk("%s[%d] ---\n", __FUNCTION__, __LINE__);
  	ret = blkg_conf_prep(blkcg, &blkcg_policy_iolatency, buf, &ctx);
  	if (ret)
  		return ret;
-@@ -838,6 +931,7 @@ static u64 iolatency_prfill_limit(struct seq_file *sf,
+@@ -820,6 +924,7 @@ static u64 iolatency_prfill_limit(struct seq_file *sf,
  	struct iolatency_grp *iolat = pd_to_lat(pd);
  	const char *dname = blkg_dev_name(pd->blkg);
  
@@ -799,7 +845,7 @@ index 0529e94a2..bd220aeda 100644
  	if (!dname || !iolat->min_lat_nsec)
  		return 0;
  	seq_printf(sf, "%s target=%llu\n",
-@@ -847,6 +941,7 @@ static u64 iolatency_prfill_limit(struct seq_file *sf,
+@@ -829,6 +934,7 @@ static u64 iolatency_prfill_limit(struct seq_file *sf,
  
  static int iolatency_print_limit(struct seq_file *sf, void *v)
  {
@@ -807,7 +853,7 @@ index 0529e94a2..bd220aeda 100644
  	blkcg_print_blkgs(sf, css_to_blkcg(seq_css(sf)),
  			  iolatency_prfill_limit,
  			  &blkcg_policy_iolatency, seq_cft(sf)->private, false);
-@@ -860,6 +955,7 @@ static size_t iolatency_pd_stat(struct blkg_policy_data *pd, char *buf,
+@@ -842,6 +948,7 @@ static size_t iolatency_pd_stat(struct blkg_policy_data *pd, char *buf,
  	unsigned long long avg_lat = div64_u64(iolat->lat_avg, NSEC_PER_USEC);
  	unsigned long long cur_win = div64_u64(iolat->cur_win_nsec, NSEC_PER_MSEC);
  
@@ -815,7 +861,7 @@ index 0529e94a2..bd220aeda 100644
  	if (iolat->rq_depth.max_depth == UINT_MAX)
  		return scnprintf(buf, size, " depth=max avg_lat=%llu win=%llu",
  				 avg_lat, cur_win);
-@@ -873,6 +969,7 @@ static struct blkg_policy_data *iolatency_pd_alloc(gfp_t gfp, int node)
+@@ -855,6 +962,7 @@ static struct blkg_policy_data *iolatency_pd_alloc(gfp_t gfp, int node)
  {
  	struct iolatency_grp *iolat;
  
@@ -823,7 +869,7 @@ index 0529e94a2..bd220aeda 100644
  	iolat = kzalloc_node(sizeof(*iolat), gfp, node);
  	if (!iolat)
  		return NULL;
-@@ -894,6 +991,7 @@ static void iolatency_pd_init(struct blkg_policy_data *pd)
+@@ -876,6 +984,7 @@ static void iolatency_pd_init(struct blkg_policy_data *pd)
  	u64 now = ktime_to_ns(ktime_get());
  	int cpu;
  
@@ -831,15 +877,14 @@ index 0529e94a2..bd220aeda 100644
  	for_each_possible_cpu(cpu) {
  		struct blk_rq_stat *stat;
  		stat = per_cpu_ptr(iolat->stats, cpu);
-@@ -931,6 +1029,7 @@ static void iolatency_pd_offline(struct blkg_policy_data *pd)
- 	struct blk_iolatency *blkiolat = iolat->blkiolat;
- 	int ret;
+@@ -911,12 +1020,14 @@ static void iolatency_pd_offline(struct blkg_policy_data *pd)
+ 	struct iolatency_grp *iolat = pd_to_lat(pd);
+ 	struct blkcg_gq *blkg = lat_to_blkg(iolat);
  
 +	trace_printk("%s[%d] ---\n", __FUNCTION__, __LINE__);
- 	ret = iolatency_set_min_lat_nsec(blkg, 0);
- 	if (ret == 1)
- 		atomic_inc(&blkiolat->enabled);
-@@ -941,6 +1040,7 @@ static void iolatency_pd_offline(struct blkg_policy_data *pd)
+ 	iolatency_set_min_lat_nsec(blkg, 0);
+ 	iolatency_clear_scaling(blkg);
+ }
  
  static void iolatency_pd_free(struct blkg_policy_data *pd)
  {
@@ -847,7 +892,7 @@ index 0529e94a2..bd220aeda 100644
  	struct iolatency_grp *iolat = pd_to_lat(pd);
  	free_percpu(iolat->stats);
  	kfree(iolat);
-@@ -967,11 +1067,13 @@ static struct blkcg_policy blkcg_policy_iolatency = {
+@@ -943,11 +1054,13 @@ static struct blkcg_policy blkcg_policy_iolatency = {
  
  static int __init iolatency_init(void)
  {
@@ -862,7 +907,7 @@ index 0529e94a2..bd220aeda 100644
  }
  
 diff --git a/block/blk-rq-qos.c b/block/blk-rq-qos.c
-index 43bcd4e7a..b121c2420 100644
+index 0005dfd568dd..823d0c85bc72 100644
 --- a/block/blk-rq-qos.c
 +++ b/block/blk-rq-qos.c
 @@ -1,5 +1,7 @@
@@ -988,31 +1033,49 @@ index 43bcd4e7a..b121c2420 100644
  	/*
  	 * For QD=1 devices, this is a special case. It's important for those
  	 * to have one request ready when one completes, so force a depth of
-@@ -143,6 +188,7 @@ bool rq_depth_calc_max_depth(struct rq_depth *rqd)
+@@ -143,13 +188,19 @@ bool rq_depth_calc_max_depth(struct rq_depth *rqd)
  		}
  
  		rqd->max_depth = depth;
 +		trace_printk("%s[%d] ---max_depth=%d\n", __FUNCTION__, __LINE__, rqd->max_depth);
++		printk(KERN_ERR "%s[%d] ---max_depth=%d\n", __FUNCTION__, __LINE__, rqd->max_depth);
  	}
  
++    if (ret) {
++        printk(KERN_ERR "%s[%d] --- couldn't increase depth futher, rqd->max_depth=%d\n", __FUNCTION__, __LINE__, rqd->max_depth);
++    }
  	return ret;
-@@ -151,6 +197,7 @@ bool rq_depth_calc_max_depth(struct rq_depth *rqd)
- /* Returns true on success and false if scaling up wasn't possible */
- bool rq_depth_scale_up(struct rq_depth *rqd)
+ }
+ 
+ void rq_depth_scale_up(struct rq_depth *rqd)
  {
 +	trace_printk("%s[%d] ---\n", __FUNCTION__, __LINE__);
  	/*
  	 * Hit max in previous round, stop here
  	 */
-@@ -170,6 +217,7 @@ bool rq_depth_scale_up(struct rq_depth *rqd)
+@@ -159,6 +210,8 @@ void rq_depth_scale_up(struct rq_depth *rqd)
+ 	rqd->scale_step--;
+ 
+ 	rqd->scaled_max = rq_depth_calc_max_depth(rqd);
++    printk(KERN_ERR "%s[%d] --- couldn't increase depth futher, rqd->scaled_max=%d\n", __FUNCTION__, __LINE__, rqd->scaled_max);
++    printk(KERN_ERR "%s[%d] --- rqd->scale_step=%d\n", __FUNCTION__, __LINE__, rqd->scale_step);
+ }
+ 
+ /*
+@@ -167,6 +220,7 @@ void rq_depth_scale_up(struct rq_depth *rqd)
   */
- bool rq_depth_scale_down(struct rq_depth *rqd, bool hard_throttle)
+ void rq_depth_scale_down(struct rq_depth *rqd, bool hard_throttle)
  {
 +	trace_printk("%s[%d] ---\n", __FUNCTION__, __LINE__);
  	/*
  	 * Stop scaling down when we've hit the limit. This also prevents
  	 * ->scale_step from going to crazy values, if the device can't
-@@ -190,6 +238,7 @@ bool rq_depth_scale_down(struct rq_depth *rqd, bool hard_throttle)
+@@ -182,10 +236,12 @@ void rq_depth_scale_down(struct rq_depth *rqd, bool hard_throttle)
+ 
+ 	rqd->scaled_max = false;
+ 	rq_depth_calc_max_depth(rqd);
++    printk(KERN_ERR "%s[%d] --- rqd->scale_step=%d\n", __FUNCTION__, __LINE__, rqd->scale_step);
+ }
  
  void rq_qos_exit(struct request_queue *q)
  {
@@ -1021,7 +1084,7 @@ index 43bcd4e7a..b121c2420 100644
  		struct rq_qos *rqos = q->rq_qos;
  		q->rq_qos = rqos->next;
 diff --git a/block/blk-rq-qos.h b/block/blk-rq-qos.h
-index 98caba3e9..614eac174 100644
+index 32b02efbfa66..09d346662f9c 100644
 --- a/block/blk-rq-qos.h
 +++ b/block/blk-rq-qos.h
 @@ -74,6 +74,7 @@ static inline void rq_wait_init(struct rq_wait *rq_wait)
@@ -1033,10 +1096,10 @@ index 98caba3e9..614eac174 100644
  	q->rq_qos = rqos;
  }
 diff --git a/block/blk-throttle.c b/block/blk-throttle.c
-index caee65860..211b487ec 100644
+index 01d0620a4e4a..5f8bd4dca0fb 100644
 --- a/block/blk-throttle.c
 +++ b/block/blk-throttle.c
-@@ -2145,9 +2145,12 @@ bool blk_throtl_bio(struct request_queue *q, struct blkcg_gq *blkg,
+@@ -2148,9 +2148,12 @@ bool blk_throtl_bio(struct request_queue *q, struct blkcg_gq *blkg,
  
  	WARN_ON_ONCE(!rcu_read_lock_held());
  
@@ -1050,7 +1113,7 @@ index caee65860..211b487ec 100644
  
  	spin_lock_irq(q->queue_lock);
  
-@@ -2210,7 +2213,8 @@ bool blk_throtl_bio(struct request_queue *q, struct blkcg_gq *blkg,
+@@ -2213,7 +2216,8 @@ bool blk_throtl_bio(struct request_queue *q, struct blkcg_gq *blkg,
  	}
  
  	/* out-of-limit, queue to @tg */
@@ -1060,7 +1123,7 @@ index caee65860..211b487ec 100644
  		   rw == READ ? 'R' : 'W',
  		   tg->bytes_disp[rw], bio->bi_iter.bi_size,
  		   tg_bps_limit(tg, rw),
-@@ -2505,6 +2509,7 @@ static int __init throtl_init(void)
+@@ -2508,6 +2512,7 @@ static int __init throtl_init(void)
  	if (!kthrotld_workqueue)
  		panic("Failed to create kthrotld\n");
  
@@ -1069,7 +1132,7 @@ index caee65860..211b487ec 100644
  }
  
 diff --git a/block/blk-wbt.c b/block/blk-wbt.c
-index f1de8ba48..f32bc896e 100644
+index 8ac93fcbaa2e..c47ddc79ba71 100644
 --- a/block/blk-wbt.c
 +++ b/block/blk-wbt.c
 @@ -123,6 +123,7 @@ static void rwb_wake_all(struct rq_wb *rwb)
@@ -1097,17 +1160,32 @@ index f1de8ba48..f32bc896e 100644
  	return now - issue;
  }
  
-@@ -236,6 +238,9 @@ static int latency_exceeded(struct rq_wb *rwb, struct blk_rq_stat *stat)
+@@ -235,6 +237,16 @@ static int latency_exceeded(struct rq_wb *rwb, struct blk_rq_stat *stat)
+ 	struct backing_dev_info *bdi = rwb->rqos.q->backing_dev_info;
  	struct rq_depth *rqd = &rwb->rq_depth;
  	u64 thislat;
- 
-+	dump_stack();
-+	trace_printk("%s[%d] ---\n", __FUNCTION__, __LINE__);
++    static int dump_cnt = 0;
 +
++    if (dump_cnt > 30) {
++        printk(KERN_ERR "%s[%d] ---\n", __FUNCTION__, __LINE__);
++	    //dump_stack();
++        dump_cnt = 0;
++    } else {
++        dump_cnt++;
++    }
++	trace_printk("%s[%d] ---\n", __FUNCTION__, __LINE__);
+ 
  	/*
  	 * If our stored sync issue exceeds the window size, or it
- 	 * exceeds our min target AND we haven't logged any entries,
-@@ -303,12 +308,14 @@ static void calc_wb_limits(struct rq_wb *rwb)
+@@ -270,6 +282,7 @@ static int latency_exceeded(struct rq_wb *rwb, struct blk_rq_stat *stat)
+ 
+ 	/*
+ 	 * If the 'min' latency exceeds our target, step down.
++     * 如果“最小”延迟超过了我们的目标，请step down
+ 	 */
+ 	if (stat[READ].min > rwb->min_lat_nsec) {
+ 		trace_wbt_lat(bdi, stat[READ].min);
+@@ -303,10 +316,12 @@ static void calc_wb_limits(struct rq_wb *rwb)
  		rwb->wb_normal = (rwb->rq_depth.max_depth + 1) / 2;
  		rwb->wb_background = (rwb->rq_depth.max_depth + 3) / 4;
  	}
@@ -1116,21 +1194,19 @@ index f1de8ba48..f32bc896e 100644
  
  static void scale_up(struct rq_wb *rwb)
  {
- 	if (!rq_depth_scale_up(&rwb->rq_depth))
- 		return;
 +	trace_printk("%s[%d] --- ", __FUNCTION__, __LINE__);
+ 	rq_depth_scale_up(&rwb->rq_depth);
  	calc_wb_limits(rwb);
  	rwb->unknown_cnt = 0;
- 	rwb_wake_all(rwb);
-@@ -319,6 +326,7 @@ static void scale_down(struct rq_wb *rwb, bool hard_throttle)
+@@ -316,6 +331,7 @@ static void scale_up(struct rq_wb *rwb)
+ 
+ static void scale_down(struct rq_wb *rwb, bool hard_throttle)
  {
- 	if (!rq_depth_scale_down(&rwb->rq_depth, hard_throttle))
- 		return;
 +	trace_printk("%s[%d] --- \n", __FUNCTION__, __LINE__);
+ 	rq_depth_scale_down(&rwb->rq_depth, hard_throttle);
  	calc_wb_limits(rwb);
  	rwb->unknown_cnt = 0;
- 	rwb_trace_step(rwb, "scale down");
-@@ -328,6 +336,7 @@ static void rwb_arm_timer(struct rq_wb *rwb)
+@@ -326,6 +342,7 @@ static void rwb_arm_timer(struct rq_wb *rwb)
  {
  	struct rq_depth *rqd = &rwb->rq_depth;
  
@@ -1138,17 +1214,42 @@ index f1de8ba48..f32bc896e 100644
  	if (rqd->scale_step > 0) {
  		/*
  		 * We should speed this up, using some variant of a fast
-@@ -355,6 +364,9 @@ static void wb_timer_fn(struct blk_stat_callback *cb)
+@@ -353,6 +370,10 @@ static void wb_timer_fn(struct blk_stat_callback *cb)
  	unsigned int inflight = wbt_inflight(rwb);
  	int status;
  
-+	dump_stack();
++	//dump_stack();
 +	trace_printk("%s[%d] ---\n", __FUNCTION__, __LINE__);
++	printk(KERN_ERR "%s[%d] --- scale_step=%d, inflight=%d\n", __FUNCTION__, __LINE__, rqd->scale_step, inflight);
 +
  	status = latency_exceeded(rwb, cb->stat);
  
  	trace_wbt_timer(rwb->rqos.q->backing_dev_info, status, rqd->scale_step,
-@@ -438,6 +450,7 @@ void wbt_set_min_lat(struct request_queue *q, u64 val)
+@@ -365,9 +386,11 @@ static void wb_timer_fn(struct blk_stat_callback *cb)
+ 	 */
+ 	switch (status) {
+ 	case LAT_EXCEEDED:
++        printk(KERN_ERR "%s[%d] --- exceeded, scale_down\n", __FUNCTION__, __LINE__);
+ 		scale_down(rwb, true);
+ 		break;
+ 	case LAT_OK:
++        printk(KERN_ERR "%s[%d] --- lat ok, scale_up\n", __FUNCTION__, __LINE__);
+ 		scale_up(rwb);
+ 		break;
+ 	case LAT_UNKNOWN_WRITES:
+@@ -376,9 +399,11 @@ static void wb_timer_fn(struct blk_stat_callback *cb)
+ 		 * read/write sample, but we do have writes going on.
+ 		 * Allow step to go negative, to increase write perf.
+ 		 */
++        printk(KERN_ERR "%s[%d] --- LAT_UNKNOWN_WRITES, scale_up\n", __FUNCTION__, __LINE__);
+ 		scale_up(rwb);
+ 		break;
+ 	case LAT_UNKNOWN:
++        printk(KERN_ERR "%s[%d] --- LAT_UNKNOWN, scale_up\n", __FUNCTION__, __LINE__);
+ 		if (++rwb->unknown_cnt < RWB_UNKNOWN_BUMP)
+ 			break;
+ 		/*
+@@ -436,6 +461,7 @@ void wbt_set_min_lat(struct request_queue *q, u64 val)
  	struct rq_qos *rqos = wbt_rq_qos(q);
  	if (!rqos)
  		return;
@@ -1156,7 +1257,7 @@ index f1de8ba48..f32bc896e 100644
  	RQWB(rqos)->min_lat_nsec = val;
  	RQWB(rqos)->enable_state = WBT_STATE_ON_MANUAL;
  	__wbt_update_limits(RQWB(rqos));
-@@ -448,6 +461,7 @@ static bool close_io(struct rq_wb *rwb)
+@@ -446,6 +472,7 @@ static bool close_io(struct rq_wb *rwb)
  {
  	const unsigned long now = jiffies;
  
@@ -1164,7 +1265,7 @@ index f1de8ba48..f32bc896e 100644
  	return time_before(now, rwb->last_issue + HZ / 10) ||
  		time_before(now, rwb->last_comp + HZ / 10);
  }
-@@ -502,6 +516,7 @@ struct wbt_wait_data {
+@@ -500,6 +527,7 @@ struct wbt_wait_data {
  static int wbt_wake_function(struct wait_queue_entry *curr, unsigned int mode,
  			     int wake_flags, void *key)
  {
@@ -1172,7 +1273,7 @@ index f1de8ba48..f32bc896e 100644
  	struct wbt_wait_data *data = container_of(curr, struct wbt_wait_data,
  							wq);
  
-@@ -527,6 +542,7 @@ static void __wbt_wait(struct rq_wb *rwb, enum wbt_flags wb_acct,
+@@ -525,6 +553,7 @@ static void __wbt_wait(struct rq_wb *rwb, enum wbt_flags wb_acct,
  	__releases(lock)
  	__acquires(lock)
  {
@@ -1180,7 +1281,7 @@ index f1de8ba48..f32bc896e 100644
  	struct rq_wait *rqw = get_rq_wait(rwb, wb_acct);
  	struct wbt_wait_data data = {
  		.wq = {
-@@ -578,6 +594,7 @@ static void __wbt_wait(struct rq_wb *rwb, enum wbt_flags wb_acct,
+@@ -576,6 +605,7 @@ static void __wbt_wait(struct rq_wb *rwb, enum wbt_flags wb_acct,
  
  static inline bool wbt_should_throttle(struct rq_wb *rwb, struct bio *bio)
  {
@@ -1188,7 +1289,7 @@ index f1de8ba48..f32bc896e 100644
  	switch (bio_op(bio)) {
  	case REQ_OP_WRITE:
  		/*
-@@ -631,6 +648,7 @@ static void wbt_wait(struct rq_qos *rqos, struct bio *bio, spinlock_t *lock)
+@@ -629,6 +659,7 @@ static void wbt_wait(struct rq_qos *rqos, struct bio *bio, spinlock_t *lock)
  	struct rq_wb *rwb = RQWB(rqos);
  	enum wbt_flags flags;
  
@@ -1196,7 +1297,7 @@ index f1de8ba48..f32bc896e 100644
  	flags = bio_to_wbt_flags(rwb, bio);
  	if (!(flags & WBT_TRACKED)) {
  		if (flags & WBT_READ)
-@@ -646,6 +664,7 @@ static void wbt_wait(struct rq_qos *rqos, struct bio *bio, spinlock_t *lock)
+@@ -644,6 +675,7 @@ static void wbt_wait(struct rq_qos *rqos, struct bio *bio, spinlock_t *lock)
  
  static void wbt_track(struct rq_qos *rqos, struct request *rq, struct bio *bio)
  {
@@ -1204,7 +1305,7 @@ index f1de8ba48..f32bc896e 100644
  	struct rq_wb *rwb = RQWB(rqos);
  	rq->wbt_flags |= bio_to_wbt_flags(rwb, bio);
  }
-@@ -654,6 +673,7 @@ void wbt_issue(struct rq_qos *rqos, struct request *rq)
+@@ -652,6 +684,7 @@ void wbt_issue(struct rq_qos *rqos, struct request *rq)
  {
  	struct rq_wb *rwb = RQWB(rqos);
  
@@ -1212,7 +1313,7 @@ index f1de8ba48..f32bc896e 100644
  	if (!rwb_enabled(rwb))
  		return;
  
-@@ -683,6 +703,7 @@ void wbt_requeue(struct rq_qos *rqos, struct request *rq)
+@@ -681,6 +714,7 @@ void wbt_requeue(struct rq_qos *rqos, struct request *rq)
  
  void wbt_set_queue_depth(struct request_queue *q, unsigned int depth)
  {
@@ -1220,7 +1321,7 @@ index f1de8ba48..f32bc896e 100644
  	struct rq_qos *rqos = wbt_rq_qos(q);
  	if (rqos) {
  		RQWB(rqos)->rq_depth.queue_depth = depth;
-@@ -692,6 +713,7 @@ void wbt_set_queue_depth(struct request_queue *q, unsigned int depth)
+@@ -690,6 +724,7 @@ void wbt_set_queue_depth(struct request_queue *q, unsigned int depth)
  
  void wbt_set_write_cache(struct request_queue *q, bool write_cache_on)
  {
@@ -1228,7 +1329,7 @@ index f1de8ba48..f32bc896e 100644
  	struct rq_qos *rqos = wbt_rq_qos(q);
  	if (rqos)
  		RQWB(rqos)->wc = write_cache_on;
-@@ -719,6 +741,7 @@ EXPORT_SYMBOL_GPL(wbt_enable_default);
+@@ -717,6 +752,7 @@ EXPORT_SYMBOL_GPL(wbt_enable_default);
  
  u64 wbt_default_latency_nsec(struct request_queue *q)
  {
@@ -1236,7 +1337,7 @@ index f1de8ba48..f32bc896e 100644
  	/*
  	 * We default to 2msec for non-rotational storage, and 75msec
  	 * for rotational storage.
-@@ -733,6 +756,7 @@ static int wbt_data_dir(const struct request *rq)
+@@ -731,6 +767,7 @@ static int wbt_data_dir(const struct request *rq)
  {
  	const int op = req_op(rq);
  
@@ -1244,7 +1345,7 @@ index f1de8ba48..f32bc896e 100644
  	if (op == REQ_OP_READ)
  		return READ;
  	else if (op_is_write(op))
-@@ -759,6 +783,7 @@ void wbt_disable_default(struct request_queue *q)
+@@ -757,6 +794,7 @@ void wbt_disable_default(struct request_queue *q)
  {
  	struct rq_qos *rqos = wbt_rq_qos(q);
  	struct rq_wb *rwb;
@@ -1252,7 +1353,7 @@ index f1de8ba48..f32bc896e 100644
  	if (!rqos)
  		return;
  	rwb = RQWB(rqos);
-@@ -785,6 +810,7 @@ int wbt_init(struct request_queue *q)
+@@ -781,6 +819,7 @@ int wbt_init(struct request_queue *q)
  	struct rq_wb *rwb;
  	int i;
  
@@ -1261,10 +1362,10 @@ index f1de8ba48..f32bc896e 100644
  	if (!rwb)
  		return -ENOMEM;
 diff --git a/block/genhd.c b/block/genhd.c
-index 2b2a936cf..990dae7a9 100644
+index be5bab20b2ab..0f2f12003ccd 100644
 --- a/block/genhd.c
 +++ b/block/genhd.c
-@@ -838,12 +838,17 @@ struct gendisk *get_gendisk(dev_t devt, int *partno)
+@@ -819,12 +819,17 @@ struct gendisk *get_gendisk(dev_t devt, int *partno)
  {
  	struct gendisk *disk = NULL;
  
@@ -1282,7 +1383,7 @@ index 2b2a936cf..990dae7a9 100644
  	} else {
  		struct hd_struct *part;
  
-@@ -856,6 +861,8 @@ struct gendisk *get_gendisk(dev_t devt, int *partno)
+@@ -837,6 +842,8 @@ struct gendisk *get_gendisk(dev_t devt, int *partno)
  		spin_unlock_bh(&ext_devt_lock);
  	}
  
@@ -1292,10 +1393,10 @@ index 2b2a936cf..990dae7a9 100644
  		return NULL;
  
 diff --git a/fs/buffer.c b/fs/buffer.c
-index a550e0d8e..556b2087c 100644
+index 6f1ae3ac9789..9b1cb32d27aa 100644
 --- a/fs/buffer.c
 +++ b/fs/buffer.c
-@@ -2986,6 +2986,7 @@ static void end_bio_bh_io_sync(struct bio *bio)
+@@ -2985,6 +2985,7 @@ static void end_bio_bh_io_sync(struct bio *bio)
   * This allows us to do IO even on the odd last sectors
   * of a device, even if the block size is some multiple
   * of the physical sector size.
@@ -1303,11 +1404,30 @@ index a550e0d8e..556b2087c 100644
   *
   * We'll just truncate the bio to the size of the device,
   * and clear the end of the buffer head manually.
+diff --git a/fs/ext4/page-io.c b/fs/ext4/page-io.c
+index db7590178dfc..7bcccc0c1307 100644
+--- a/fs/ext4/page-io.c
++++ b/fs/ext4/page-io.c
+@@ -299,6 +299,14 @@ static void ext4_end_bio(struct bio *bio)
+ 	ext4_io_end_t *io_end = bio->bi_private;
+ 	sector_t bi_sector = bio->bi_iter.bi_sector;
+ 	char b[BDEVNAME_SIZE];
++    static int dump_cnt = 0;
++
++    if (dump_cnt > 300) {
++        printk(KERN_ERR "%s[%d]: ---\n", __FUNCTION__, __LINE__);
++        dump_stack();
++        dump_cnt = 0;
++    } else
++        dump_cnt = 0;
+ 
+ 	if (WARN_ONCE(!io_end, "io_end is NULL: %s: sector %Lu len %u err %d\n",
+ 		      bio_devname(bio, b),
 diff --git a/fs/f2fs/data.c b/fs/f2fs/data.c
-index c81a1f3f0..d45592af2 100644
+index 382c1ef9a9e4..cfebd290e399 100644
 --- a/fs/f2fs/data.c
 +++ b/fs/f2fs/data.c
-@@ -2365,6 +2365,7 @@ static int f2fs_write_begin(struct file *file, struct address_space *mapping,
+@@ -2335,6 +2335,7 @@ static int f2fs_write_begin(struct file *file, struct address_space *mapping,
  	if ((f2fs_is_atomic_file(inode) &&
  			!f2fs_available_free_memory(sbi, INMEM_PAGES)) ||
  			is_inode_flag_set(inode, FI_ATOMIC_REVOKE_REQUEST)) {
@@ -1315,7 +1435,7 @@ index c81a1f3f0..d45592af2 100644
  		err = -ENOMEM;
  		drop_atomic = true;
  		goto fail;
-@@ -2388,6 +2389,7 @@ static int f2fs_write_begin(struct file *file, struct address_space *mapping,
+@@ -2358,6 +2359,7 @@ static int f2fs_write_begin(struct file *file, struct address_space *mapping,
  	page = f2fs_pagecache_get_page(mapping, index,
  				FGP_LOCK | FGP_WRITE | FGP_CREAT, GFP_NOFS);
  	if (!page) {
@@ -1323,7 +1443,7 @@ index c81a1f3f0..d45592af2 100644
  		err = -ENOMEM;
  		goto fail;
  	}
-@@ -2455,6 +2457,7 @@ static int f2fs_write_end(struct file *file,
+@@ -2429,6 +2431,7 @@ static int f2fs_write_end(struct file *file,
  {
  	struct inode *inode = page->mapping->host;
  
@@ -1332,7 +1452,7 @@ index c81a1f3f0..d45592af2 100644
  
  	/*
 diff --git a/fs/fs-writeback.c b/fs/fs-writeback.c
-index a89e27367..502c365bc 100644
+index 471d863958bc..ca5516906a3e 100644
 --- a/fs/fs-writeback.c
 +++ b/fs/fs-writeback.c
 @@ -245,6 +245,7 @@ void __inode_attach_wb(struct inode *inode, struct page *page)
@@ -1359,29 +1479,15 @@ index a89e27367..502c365bc 100644
  	spin_lock(&inode->i_lock);
  	return locked_inode_to_wb_and_lock_list(inode);
  }
-@@ -333,11 +336,13 @@ struct inode_switch_wbs_context {
- 
- static void bdi_down_write_wb_switch_rwsem(struct backing_dev_info *bdi)
- {
-+	trace_printk("%s[%d] CG-WB ---\n", __FUNCTION__, __LINE__);
- 	down_write(&bdi->wb_switch_rwsem);
- }
- 
- static void bdi_up_write_wb_switch_rwsem(struct backing_dev_info *bdi)
- {
-+	trace_printk("%s[%d] CG-WB ---\n", __FUNCTION__, __LINE__);
- 	up_write(&bdi->wb_switch_rwsem);
- }
- 
-@@ -354,6 +359,7 @@ static void inode_switch_wbs_work_fn(struct work_struct *work)
- 	bool switched = false;
- 	void **slot;
+@@ -363,6 +366,7 @@ static void inode_switch_wbs_work_fn(struct work_struct *work)
+ 	spin_lock(&inode->i_lock);
+ 	xa_lock_irq(&mapping->i_pages);
  
 +	trace_printk("%s[%d] CG-WB --- will down_read\n", __FUNCTION__, __LINE__);
  	/*
- 	 * If @inode switches cgwb membership while sync_inodes_sb() is
- 	 * being issued, sync_inodes_sb() might miss it.  Synchronize.
-@@ -471,6 +477,7 @@ static void inode_switch_wbs_rcu_fn(struct rcu_head *rcu_head)
+ 	 * Once I_FREEING is visible under i_lock, the eviction path owns
+ 	 * the inode and we shouldn't modify ->i_io_list.
+@@ -452,6 +456,7 @@ static void inode_switch_wbs_rcu_fn(struct rcu_head *rcu_head)
  	struct inode_switch_wbs_context *isw = container_of(rcu_head,
  				struct inode_switch_wbs_context, rcu_head);
  
@@ -1389,7 +1495,7 @@ index a89e27367..502c365bc 100644
  	/* needs to grab bh-unsafe locks, bounce to work item */
  	INIT_WORK(&isw->work, inode_switch_wbs_work_fn);
  	queue_work(isw_wq, &isw->work);
-@@ -490,6 +497,7 @@ static void inode_switch_wbs(struct inode *inode, int new_wb_id)
+@@ -471,6 +476,7 @@ static void inode_switch_wbs(struct inode *inode, int new_wb_id)
  	struct cgroup_subsys_state *memcg_css;
  	struct inode_switch_wbs_context *isw;
  
@@ -1397,7 +1503,7 @@ index a89e27367..502c365bc 100644
  	/* noop if seems to be already in progress */
  	if (inode->i_state & I_WB_SWITCH)
  		return;
-@@ -568,6 +576,7 @@ void wbc_attach_and_unlock_inode(struct writeback_control *wbc,
+@@ -537,6 +543,7 @@ void wbc_attach_and_unlock_inode(struct writeback_control *wbc,
  		return;
  	}
  
@@ -1405,7 +1511,7 @@ index a89e27367..502c365bc 100644
  	wbc->wb = inode_to_wb(inode);
  	wbc->inode = inode;
  
-@@ -637,6 +646,7 @@ void wbc_detach_inode(struct writeback_control *wbc)
+@@ -603,6 +610,7 @@ void wbc_detach_inode(struct writeback_control *wbc)
  	u16 history;
  	int max_id;
  
@@ -1413,15 +1519,15 @@ index a89e27367..502c365bc 100644
  	if (!wb)
  		return;
  
-@@ -727,6 +737,7 @@ void wbc_account_io(struct writeback_control *wbc, struct page *page,
- 	struct cgroup_subsys_state *css;
+@@ -692,6 +700,7 @@ void wbc_account_io(struct writeback_control *wbc, struct page *page,
+ {
  	int id;
  
 +	trace_printk("%s[%d] CG-WB ---\n", __FUNCTION__, __LINE__);
  	/*
  	 * pageout() path doesn't attach @wbc to the inode being written
  	 * out.  This is intentional as we don't want the function to block
-@@ -779,6 +790,8 @@ EXPORT_SYMBOL_GPL(wbc_account_io);
+@@ -739,6 +748,8 @@ EXPORT_SYMBOL_GPL(wbc_account_io);
   */
  int inode_congested(struct inode *inode, int cong_bits)
  {
@@ -1430,7 +1536,7 @@ index a89e27367..502c365bc 100644
  	/*
  	 * Once set, ->i_wb never becomes NULL while the inode is alive.
  	 * Start transaction iff ->i_wb is visible.
-@@ -790,6 +803,11 @@ int inode_congested(struct inode *inode, int cong_bits)
+@@ -750,6 +761,11 @@ int inode_congested(struct inode *inode, int cong_bits)
  
  		wb = unlocked_inode_to_wb_begin(inode, &lock_cookie);
  		congested = wb_congested(wb, cong_bits);
@@ -1442,7 +1548,7 @@ index a89e27367..502c365bc 100644
  		unlocked_inode_to_wb_end(inode, &lock_cookie);
  		return congested;
  	}
-@@ -812,6 +830,7 @@ static long wb_split_bdi_pages(struct bdi_writeback *wb, long nr_pages)
+@@ -772,6 +788,7 @@ static long wb_split_bdi_pages(struct bdi_writeback *wb, long nr_pages)
  	unsigned long this_bw = wb->avg_write_bandwidth;
  	unsigned long tot_bw = atomic_long_read(&wb->bdi->tot_write_bandwidth);
  
@@ -1450,7 +1556,7 @@ index a89e27367..502c365bc 100644
  	if (nr_pages == LONG_MAX)
  		return LONG_MAX;
  
-@@ -845,6 +864,7 @@ static void bdi_split_work_to_wbs(struct backing_dev_info *bdi,
+@@ -805,6 +822,7 @@ static void bdi_split_work_to_wbs(struct backing_dev_info *bdi,
  	struct bdi_writeback *wb = list_entry(&bdi->wb_list,
  					      struct bdi_writeback, bdi_node);
  
@@ -1458,15 +1564,15 @@ index a89e27367..502c365bc 100644
  	might_sleep();
  restart:
  	rcu_read_lock();
-@@ -917,6 +937,7 @@ static void bdi_split_work_to_wbs(struct backing_dev_info *bdi,
+@@ -877,6 +895,7 @@ static void bdi_split_work_to_wbs(struct backing_dev_info *bdi,
   */
  void cgroup_writeback_umount(void)
  {
 +	trace_printk("%s[%d] CG-WB ---\n", __FUNCTION__, __LINE__);
  	if (atomic_read(&isw_nr_in_flight)) {
- 		/*
- 		 * Use rcu_barrier() to wait for all pending callbacks to
-@@ -929,6 +950,7 @@ void cgroup_writeback_umount(void)
+ 		synchronize_rcu();
+ 		flush_workqueue(isw_wq);
+@@ -885,6 +904,7 @@ void cgroup_writeback_umount(void)
  
  static int __init cgroup_writeback_init(void)
  {
@@ -1474,7 +1580,7 @@ index a89e27367..502c365bc 100644
  	isw_wq = alloc_workqueue("inode_switch_wbs", 0, 0);
  	if (!isw_wq)
  		return -ENOMEM;
-@@ -1557,6 +1579,7 @@ static long writeback_sb_inodes(struct super_block *sb,
+@@ -1510,6 +1530,7 @@ static long writeback_sb_inodes(struct super_block *sb,
  	long write_chunk;
  	long wrote = 0;  /* count both pages and inodes */
  
@@ -1482,7 +1588,7 @@ index a89e27367..502c365bc 100644
  	while (!list_empty(&wb->b_io)) {
  		struct inode *inode = wb_inode(wb->b_io.prev);
  		struct bdi_writeback *tmp_wb;
-@@ -1701,7 +1724,7 @@ static long __writeback_inodes_wb(struct bdi_writeback *wb,
+@@ -1654,7 +1675,7 @@ static long __writeback_inodes_wb(struct bdi_writeback *wb,
  			continue;
  		}
  		wrote += writeback_sb_inodes(sb, wb, work);
@@ -1491,7 +1597,7 @@ index a89e27367..502c365bc 100644
  
  		/* refer to the same tests at the end of writeback_sb_inodes */
  		if (wrote) {
-@@ -1806,7 +1829,7 @@ static long wb_writeback(struct bdi_writeback *wb,
+@@ -1759,7 +1780,7 @@ static long wb_writeback(struct bdi_writeback *wb,
  		trace_writeback_start(wb, work);
  		if (list_empty(&wb->b_io))
  			queue_io(wb, work);
@@ -1500,7 +1606,7 @@ index a89e27367..502c365bc 100644
  			progress = writeback_sb_inodes(work->sb, wb, work);
  		else
  			progress = __writeback_inodes_wb(wb, work);
-@@ -1925,6 +1948,7 @@ static long wb_check_start_all(struct bdi_writeback *wb)
+@@ -1878,6 +1899,7 @@ static long wb_check_start_all(struct bdi_writeback *wb)
  		return 0;
  
  	nr_pages = get_nr_dirty_pages();
@@ -1508,7 +1614,7 @@ index a89e27367..502c365bc 100644
  	if (nr_pages) {
  		struct wb_writeback_work work = {
  			.nr_pages	= wb_split_bdi_pages(wb, nr_pages),
-@@ -1950,7 +1974,9 @@ static long wb_do_writeback(struct bdi_writeback *wb)
+@@ -1903,7 +1925,9 @@ static long wb_do_writeback(struct bdi_writeback *wb)
  	long wrote = 0;
  
  	set_bit(WB_writeback_running, &wb->state);
@@ -1518,7 +1624,7 @@ index a89e27367..502c365bc 100644
  		trace_writeback_exec(wb, work);
  		wrote += wb_writeback(wb, work);
  		finish_writeback_work(wb, work);
-@@ -1958,6 +1984,7 @@ static long wb_do_writeback(struct bdi_writeback *wb)
+@@ -1911,6 +1935,7 @@ static long wb_do_writeback(struct bdi_writeback *wb)
  
  	/*
  	 * Check for a flush-everything request
@@ -1527,10 +1633,10 @@ index a89e27367..502c365bc 100644
  	wrote += wb_check_start_all(wb);
  
 diff --git a/include/linux/backing-dev-defs.h b/include/linux/backing-dev-defs.h
-index 07e02d6df..3942ea8d3 100644
+index 9a6bc0951cfa..560284f17c83 100644
 --- a/include/linux/backing-dev-defs.h
 +++ b/include/linux/backing-dev-defs.h
-@@ -238,6 +238,7 @@ struct wb_lock_cookie {
+@@ -237,6 +237,7 @@ struct wb_lock_cookie {
   */
  static inline bool wb_tryget(struct bdi_writeback *wb)
  {
@@ -1538,7 +1644,7 @@ index 07e02d6df..3942ea8d3 100644
  	if (wb != &wb->bdi->wb)
  		return percpu_ref_tryget(&wb->refcnt);
  	return true;
-@@ -249,6 +250,7 @@ static inline bool wb_tryget(struct bdi_writeback *wb)
+@@ -248,6 +249,7 @@ static inline bool wb_tryget(struct bdi_writeback *wb)
   */
  static inline void wb_get(struct bdi_writeback *wb)
  {
@@ -1546,15 +1652,15 @@ index 07e02d6df..3942ea8d3 100644
  	if (wb != &wb->bdi->wb)
  		percpu_ref_get(&wb->refcnt);
  }
-@@ -259,6 +261,7 @@ static inline void wb_get(struct bdi_writeback *wb)
+@@ -258,6 +260,7 @@ static inline void wb_get(struct bdi_writeback *wb)
   */
  static inline void wb_put(struct bdi_writeback *wb)
  {
 +	trace_printk("%s[%d] CG-WB ---\n", __FUNCTION__, __LINE__);
- 	if (WARN_ON_ONCE(!wb->bdi)) {
- 		/*
- 		 * A driver bug might cause a file to be removed before bdi was
-@@ -279,6 +282,7 @@ static inline void wb_put(struct bdi_writeback *wb)
+ 	if (wb != &wb->bdi->wb)
+ 		percpu_ref_put(&wb->refcnt);
+ }
+@@ -270,6 +273,7 @@ static inline void wb_put(struct bdi_writeback *wb)
   */
  static inline bool wb_dying(struct bdi_writeback *wb)
  {
@@ -1563,7 +1669,7 @@ index 07e02d6df..3942ea8d3 100644
  }
  
 diff --git a/include/linux/backing-dev.h b/include/linux/backing-dev.h
-index c28a47cbe..cd78ccd2a 100644
+index c28a47cbe355..cd78ccd2a07a 100644
 --- a/include/linux/backing-dev.h
 +++ b/include/linux/backing-dev.h
 @@ -248,6 +248,7 @@ static inline bool inode_cgwb_enabled(struct inode *inode)
@@ -1623,7 +1729,7 @@ index c28a47cbe..cd78ccd2a 100644
  		xa_unlock_irqrestore(&inode->i_mapping->i_pages, cookie->flags);
  
 diff --git a/include/linux/blk-cgroup.h b/include/linux/blk-cgroup.h
-index 6d766a19f..d25182279 100644
+index 6d766a19f2bb..d251822796ff 100644
 --- a/include/linux/blk-cgroup.h
 +++ b/include/linux/blk-cgroup.h
 @@ -253,6 +253,8 @@ static inline bool blk_cgroup_congested(void)
@@ -1660,7 +1766,7 @@ index 6d766a19f..d25182279 100644
  	blkcg_destroy_blkgs(blkcg);
  }
 diff --git a/include/linux/blk_types.h b/include/linux/blk_types.h
-index f6dfb3073..089773244 100644
+index f6dfb30737d8..089773244c6e 100644
 --- a/include/linux/blk_types.h
 +++ b/include/linux/blk_types.h
 @@ -135,6 +135,8 @@ static inline void bio_issue_init(struct bio_issue *issue,
@@ -1673,7 +1779,7 @@ index f6dfb3073..089773244 100644
  
  /*
 diff --git a/include/linux/writeback.h b/include/linux/writeback.h
-index fdfd04e34..bba7029e0 100644
+index fdfd04e348f6..bba7029e0e20 100644
 --- a/include/linux/writeback.h
 +++ b/include/linux/writeback.h
 @@ -203,6 +203,7 @@ void cgroup_writeback_umount(void);
@@ -1709,7 +1815,7 @@ index fdfd04e34..bba7029e0 100644
  	 * pageout() path doesn't attach @wbc to the inode being written
  	 * out.  This is intentional as we don't want the function to block
 diff --git a/include/trace/events/writeback.h b/include/trace/events/writeback.h
-index 32db72c7c..748da2e1c 100644
+index 32db72c7c055..748da2e1cdc6 100644
 --- a/include/trace/events/writeback.h
 +++ b/include/trace/events/writeback.h
 @@ -137,11 +137,13 @@ DEFINE_EVENT(writeback_dirty_inode_template, writeback_dirty_inode,
@@ -1727,10 +1833,10 @@ index 32db72c7c..748da2e1c 100644
  		return __trace_wb_assign_cgroup(wbc->wb);
  	else
 diff --git a/kernel/cgroup/cgroup.c b/kernel/cgroup/cgroup.c
-index 78ef274b0..e99dcd6f3 100644
+index 4a3dae2a8283..6173588db80a 100644
 --- a/kernel/cgroup/cgroup.c
 +++ b/kernel/cgroup/cgroup.c
-@@ -2663,6 +2663,7 @@ struct task_struct *cgroup_procs_write_start(char *buf, bool threadgroup)
+@@ -2655,6 +2655,7 @@ struct task_struct *cgroup_procs_write_start(char *buf, bool threadgroup)
  	if (kstrtoint(strstrip(buf), 0, &pid) || pid < 0)
  		return ERR_PTR(-EINVAL);
  
@@ -1739,10 +1845,10 @@ index 78ef274b0..e99dcd6f3 100644
  
  	rcu_read_lock();
 diff --git a/mm/filemap.c b/mm/filemap.c
-index 45f1c6d73..1081b5716 100644
+index 52517f28e6f4..001a50f90e85 100644
 --- a/mm/filemap.c
 +++ b/mm/filemap.c
-@@ -2112,6 +2112,8 @@ static ssize_t generic_file_buffered_read(struct kiocb *iocb,
+@@ -2089,6 +2089,8 @@ static ssize_t generic_file_buffered_read(struct kiocb *iocb,
  		if (!page) {
  			if (iocb->ki_flags & IOCB_NOWAIT)
  				goto would_block;
@@ -1751,7 +1857,7 @@ index 45f1c6d73..1081b5716 100644
  			page_cache_sync_readahead(mapping,
  					ra, filp,
  					index, last_index - index);
-@@ -2120,6 +2122,8 @@ static ssize_t generic_file_buffered_read(struct kiocb *iocb,
+@@ -2097,6 +2099,8 @@ static ssize_t generic_file_buffered_read(struct kiocb *iocb,
  				goto no_cached_page;
  		}
  		if (PageReadahead(page)) {
@@ -1761,7 +1867,7 @@ index 45f1c6d73..1081b5716 100644
  					ra, filp, page,
  					index, last_index - index);
 diff --git a/mm/readahead.c b/mm/readahead.c
-index 4e630143a..7b3103fd0 100644
+index 4e630143a0ba..7b3103fd0626 100644
 --- a/mm/readahead.c
 +++ b/mm/readahead.c
 @@ -393,6 +393,7 @@ ondemand_readahead(struct address_space *mapping,
