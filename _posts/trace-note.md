@@ -1,15 +1,4 @@
----
-layout: article
-title: io note
-key: 20200411
-tags:
-  - io note
-  - cx
-lang: zh-Hans
----
-
-
-# // ------ self io note:
+# // ------ trace note:
 
 ## 名词
 
@@ -61,19 +50,6 @@ lang: zh-Hans
 [Linux Kernel iowait 时间的代码原理以及内核拓展文章介绍](http://m.elecfans.com/article/611049.html)
 
 [page cache 配置节点](https://cloud.tencent.com/developer/article/1143727)
-
-[Linux缓存回写——基于linux-4.15](https://blog.csdn.net/SweeNeil/article/details/88813094)
-
-[缺页异常的几种情况处理机制简介](https://blog.csdn.net/zsj100213/article/details/82430224)
-
-[Linux内存管理 (10)缺页中断处理](https://www.cnblogs.com/arnoldlu/p/8335475.html)
-
-[read()/write()的生命旅程——前言与目录](http://blog.sina.com.cn/s/blog_a558c25a0102v7nj.html)
-
-[Linux IO barrier](https://blog.csdn.net/u012414189/article/details/88358862)
-
-[PageCache系列之五 统一缓存之PageCache](https://zhuanlan.zhihu.com/p/42364591)
-
 
 
 ## f2fs note
@@ -354,82 +330,6 @@ O_DIRECT 和 RAW设备最根本的区别是O_DIRECT是基于文件系统的，�
 而基于RAW设备的设计系统，一般是不满现有ext3的诸多缺陷，设计自己的文件系统。自己设计文件布局和索引方式。举个极端例子：把整个磁盘做一个文件来写，不要索引。这样没有inode限制，没有文件大小限制，磁盘有多大，文件就能多大。这样的磁盘卸下来，mount到其他linux系统上，是无法识别其数据的。 
 
 两者都要通过驱动层读写；在系统引导启动，还处于实模式的时候，可以通过bios接口读写raw设备。
-
-## 层次关系
-
-### 具体文件系统层
-        当具体文件系统层（像ext2/3/4等，我称之为具体文件系统）接到写IO请求时，会判断该IO是否具有DIRECTIO（直接IO）标示，如果有，则进入直接IO；没有，则进入BufferIO。
-
-static ssize_t
-ext4_file_write(struct kiocb *iocb,const struct iovec *iov,
-       unsignedlong nr_segs, loff_t pos)
-{
-   structinode *inode = file_inode(iocb->ki_filp);
-   ssize_tret;
-   …
-   if(unlikely(iocb->ki_filp->f_flags & O_DIRECT))
-      ret =ext4_file_dio_write(iocb, iov, nr_segs, pos);
-   else
-      ret =generic_file_aio_write(iocb, iov, nr_segs, pos);
- 
-   returnret;
-}
-
-直接IO：
-
-        控制流，若进入直接IO，则调用具体文件系统层的直接IO处理函数，然后调用通过submit_bio函数将IO提交到通用块层。
-
-        数据流，数据依旧存放在用户态缓存中，并不需要将数据复制到pagecache中，减少了数据复制次数。
-
-缓存IO：
-
-        控制流，若进入BufferIO，则调用具体文件系统的write_begin进入的准备：比如空间分配，缓存映射(涉及到page cache)等；然后将数据copy到内核的page中，最后调用write_end函数来完成IO写操作。至此，IO操作结果一步一步返回到用户态。
-
-        数据流，数据从用户态复制到内核态page cache中。
-
- 
-### Page Cache层
-        Page Cache是文件数据在内存中的副本，因此Page Cache管理与内存管理系统和文件系统都相关：一方面Page Cache作为物理内存的一部分，需要参与物理内存的分配回收过程，另一方面Page Cache中的数据来源于存储设备上的文件，需要通过文件系统与存储设备进行读写交互。从操作系统的角度考虑，Page Cache可以看做是内存管理系统与文件系统之间的联系纽带。因此，PageCache管理是操作系统的一个重要组成部分，它的性能直接影响着文件系统和内存管理系统的性能。
-
-
-### 通用块层
-        通用块层：由于绝大多数情况的IO操作是跟块设备打交道，所以Linux在此提供了一个类似vfs层的块设备操作抽象层。下层对接各种不同属性的块设备，对上提供统一的Block IO请求标准。
-
-        无论是DirectIO还是BufferIO，最后都会通过submit_bio()将IO请求提交到通用块层，通过generic_make_request转发bio ，generic_make_request函数主要是获取请求队列，然后调用make_request_fn方法处理bio。
-
-        submit_bio函数通过generic_make_request转发bio，generic_make_request是一个循环，其通过每个块设备下注册的q->make_request_fn函数与块设备进行交互。如果访问的块设备是一个有queue的设备，那么会将系统的__make_request函数注册到q->make_request_fn中；否则块设备会注册一个私有的方法。在私有的方法中，由于不存在queue队列，所以不会处理具体的请求，而是通过修改bio中的方法实现bio的转发，在私有make_request方法中，往往会返回1，告诉generic_make_request继续转发比bio。
-
-        Generic_make_request的执行上下文可能有两种，一种是用户上下文，另一种为pdflush所在的内核线程上下文。
-
-        在通用块层，提供了一个通用的请求队列压栈方法：blk_queue_bio。在初始化一个有queue块设备驱动的时候，最终都会调用blk_init_allocated_queue函数对请求队列进行初始化，初始化的时候会将blk_queue_bio方法注册到q->make_request_fn。在generic_make_request转发bio请求的时候会调用q->make_request_fn，从而可以将bio压入请求队列进行IO调度。一旦bio进入请求队列之后，可以好好的休息一番，直到unplug机制对bio进行进一步处理。
-
- 
-
-### IO调度层
-        IO调度层：因为绝大多数的块设备都是类似磁盘这样的设备，所以有必要根据这类设备的特点以及应用的不同特点来设置一些不同的调度算法和队列。以便在不同的应用环境下有针对性的提高磁盘的读写效率。
-
-        到目前为止，文件系统（pdflush或者address_space_operations）发下来的bio已经merge到request queue中。
-
-        如果为sync bio，那么直接调用__generic_unplug_device，否则需要在unplug timer的软中断上下文中执行q->unplug_fn。后继request的处理方法应该和具体的物理设备相关，但是在标准的块设备上如何体现不同物理设备的差异性呢？这种差异性就体现在queue队列的方法上，不同的物理设备，queue队列的方法是不一样的。
-
-        queue是块设备的驱动程序提供的一个请求队列。make_request_fn函数将bio放入请求队列中进行调度处理。当前linux kernel提供的调度器有CFQ、Deadline和Noop等等。设置请求队列的目的是考虑了磁盘介质的特性，普通磁盘介质一个最大的问题是随机读写性能很差。为了提高性能，通常的做法是聚合IO，因此在块设备层设置请求队列，对IO进行聚合操作，从而提高读写性能。
-
-        举例中的sda是一个scsi设备，在scsi middle level将scsi_request_fn函数注册到了queue队列的request_fn方法上。在q->unplug_fn（具体方法为：generic_unplug_device）函数中会调用request队列的具体处理函数q->request_fn。Ok，到这一步实际上已经将块设备层与scsi总线驱动层联系在了一起，他们的接口方法为request_fn。
-
- 
-
-### 设备驱动层
-        设备驱动程序要做的事情就是从request_queue里面取出请求，然后操作硬件设备，逐个去执行这些请求。除了处理请求，设备驱动程序还要选择IO调度算法，因为设备驱动程序最知道设备的属性，知道用什么样的IO调度算法最合适。甚至于，设备驱动程序可以将IO调度器屏蔽掉，而直接对上层的bio进行处理。（当然，设备驱动程序也可实现自己的IO调度算法。）可以说，IO调度器是内核提供给设备驱动程序的一组方法。用与不用、使用怎样的方法，选择权在于设备驱动程序。
-
-以sisc设备为例：
-
-接下来的过程实际上和具体的scsi总线操作相关了。在scsi_request_fn函数中会扫描request队列，通过elv_next_request函数从队列中获取一个request。在elv_next_request函数中通过scsi总线层注册的q->prep_rq_fn（scsi层注册为scsi_prep_fn）函数将具体的request转换成scsi驱动所能认识的scsi command。获取一个request之后，scsi_request_fn函数直接调用scsi_dispatch_cmd函数将scsi command发送给一个具体的scsi host。到这一步，有一个问题：scsi command具体转发给那个scsi host呢？秘密就在于q->queuedata中，在为sda设备分配queue队列时，已经指定了sda块设备与底层的scsi设备（scsidevice）之间的关系，他们的关系是通过request queue维护的。
-
-        在scsi_dispatch_cmd函数中，通过scsi host的接口方法queuecommand将scsi command发送给scsi host。通常scsi host的queuecommand方法会将接收到的scsi command挂到自己维护的队列中，然后再启动DMA过程将scsi command中的数据发送给具体的磁盘。DMA完毕之后，DMA控制器中断CPU，告诉CPUDMA过程结束，并且在中断上下文中设置DMA结束的中断下半部。DMA中断服务程序返回之后触发软中断，执行SCSI中断下半部。
-
-         在SCSi中断下半部中，调用scsi command结束的回调函数，这个函数往往为scsi_done，在scsi_done函数调用blk_complete_request函数结束请求request，每个请求维护了一个bio链，所以在结束请求过程中回调每个请求中的bio回调函数，结束具体的bio。Bio又有文件系统的buffer head生成，所以在结束bio时，回调buffer_head的回调处理函数bio->bi_end_io（注册为end_bio_bh_io_sync）。自此，由中断引发的一系列回调过程结束，总结一下回调过程如下：scsi_done->end_request->end_bio->end_bufferhead。
-
-        经设备驱动层，将数据复制到disk cache中。
 
 
 ### f2fs write generic_make_request
@@ -1116,12 +1016,6 @@ ll_rw_block() { // low level access to block devices
             }
             trace_block_bio_queue(); /* block_bio_queue: 8,0 RA 58724688 + 8 [bash] */
           }
-
-          /*int blk_init_allocated_queue(struct request_queue *q)
-                {
-                    blk_queue_make_request(q, blk_queue_bio);
-                }
-          */
           q->make_request_fn /* aka */ blk_queue_bio() {
             blk_queue_bounce();
             blk_queue_split();
@@ -1580,17 +1474,6 @@ struct iolatency_grp {
 };
 ```
 
-
-## actions
-
-### rq to blkg path
-
-blk_qc_t generic_make_request(struct bio *bio)
-    struct request_queue *q = bio->bi_disk->queue;
-    blk_queue_bio(struct request_queue *q, struct bio *bio)
-        rq_qos_throttle(struct request_queue *q, struct bio *bio, spinlock_t *lock)
-            blkcg_iolatency_throttle(struct rq_qos *rqos, struct bio *bio, spinlock_t *lock)
-
 ## 架构概念
 
 [Linux内核学习笔记（八）Page Cache与Page回写](https://blog.csdn.net/damontive/article/details/80552566)
@@ -1598,40 +1481,3 @@ blk_qc_t generic_make_request(struct bio *bio)
 [Linux内核学习笔记（三）Block I/O层](https://blog.csdn.net/damontive/article/details/80112628)
 
 [VFS中的数据结构（superblock、dentry、inode、file）](https://blog.csdn.net/damontive/article/details/79941365)
-
-[bio，request，request_queue的关系](https://www.pianshen.com/article/63871737/)
-
-[文件系统IO子系统 01 - 18](https://blog.csdn.net/u012414189/article/details/88077318?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3)
-
-
-## TODO
-
-- [x] 尝试是否能找到适合google pixel 2xl的4.15以上的内核，若能找到，编译一个可开启cgroup v2的版本并测试． //不可行，仅找到4.4内核
-- [ ] 继续研究组迁移时的逻辑，若与推测相符，提出修改思路．
-- [ ] 根据对iolatency的已有研究，尝试移植到4.9版本内核上去 // 优先级低
-- [x] 补充generic_make_request与设备驱动之间的联系 //已经理清，需要总结
-- [x] 什么情况下走了wbt，　什么情况下走了delay & io_schedule // wbt 与iolatency为不同的rq_qos, 各自通过rq_qos_add来生效, wbt->BLK_WBT; 二者实现原理相似，互不依赖．
-- [x] 研究一下latency_unknown由来， 优先级低 //属于wbt, skip
-- [ ] 研究队列深度对组写入速度的影响
-- [ ] 研究一种在一些位置打印出组信息，队列信息，队列深度的方法 //队列深度未完成，rq和rqos队列深度
-- [ ] 研究组切换时，能否实时调整组深度，和实时的组深度变化
-- [ ] 研究generic_perform_request与pagecache的路径关系
-- [x] 研究wb_timer_fn与时间窗口是否对应 //wbt, skip
-- [x] emmc流程需要抓log整理，找出一些方法指针的对应 //暂时放弃，seattletmo为ufs，　与x86一样走scsi. 需注意可能存在mq
-
-
-- [x] 找出所有的request_queue //确定一个磁盘设备一个rq
-- [x] request_queue 与cgroup的对应关系，是否一对一 //no, gendisk<->request_queue
-- [ ] 在某一时刻打出rq里有多少的request
-- [x] 在throttle方法中打出当前的rq所属组 //不可行，rq为已经没有组归属，仅有一个root_blkg
-- [ ] 参考cfq在权重改变时的重排方法
-- [ ] 在一个组上，depth, inflight代表什么意义
-- [ ] 跟踪一个bio，弄明白bio的完成机制，是在放入rq时完结，还是被下发到驱动才完结
-- [ ] single core不走io_scheduler()路径，why ? 与smp区别在哪里？
-- [ ] 走到io_scheduler的具体条件是什么？ // on going
-- [ ] nr_samples, samples_thresh, deepth, scale_cookie
-- [ ] plug unplug
-- [ ] depth & use_delay //全部为随机4k时，应用depth, 没有限流效果
-                        //use_delay在哪里执行的delay?
-                        //if (iolat->rq_depth.max_depth == 1 && direction < 0) , use_delay
-                        //blkcg_use_delay --> atomic_inc(&blkg->blkcg->css.cgroup->congestion_count);

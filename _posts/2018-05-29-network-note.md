@@ -25,6 +25,10 @@ lang: zh-Hans
 
 ### [Android Studio调试技巧](http://weishu.me/2015/12/21/android-studio-debug-tips-you-may-not-know/)
 
+### [Android性能优化盘点 - 内存优化](https://www.jianshu.com/p/fba7b43bdc9c)
+
+### [知识体系引导 Android 性能优化与框架](https://www.jianshu.com/p/b5b1b8e1747f)
+
 -   usefull author
 
 ### [隔壁李老头](https://www.jianshu.com/users/8b9c629f69dd/subscriptions)
