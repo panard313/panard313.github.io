@@ -120,6 +120,11 @@ sudo chmod a+x etc/init.d/rcS
 qemu-system-x86_64 -kernel ../linux-4.19.100/arch/x86_64/boot/bzImage -hda qemu_rootfs.img -append "root=/dev/sda rootfstype=ext4 rw  console=ttyS0" -m 512 --nographic
 ```
 
+with buildroot:
+```shell
+qemu-system-x86_64 -kernel arch/x86_64/boot/bzImage -drive file=../buildroot-2020.02/output/images/rootfs.ext2,if=ide,format=raw -append "root=/dev/sda rootfstype=ext2 rw  console=ttyS0" -m 512 --nographic
+```
+
 可以看到内核能够正常启动并进入busybox自带的sh，　到这里一个基本的linux系统已经启动成功，可以执行busybox进的所有命令．
 
 ![图一：](/images/qemu/qemu-linux-terminal.png)
