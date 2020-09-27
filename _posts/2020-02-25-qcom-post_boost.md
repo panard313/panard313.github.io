@@ -299,3 +299,9 @@ echo "384000" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq # 设置�
 注意，这里设置的仅为某个CPU核心的频率，你需要对每个online的CPU核心都进行设置，同时以上对文件的修改均需要root权限。
 
 通过减少online的核心数和限制CPU频率固然可以起到节省电量的目的，但是性能也是显著降低，所以需要做一个权衡。
+
+
+## stune
+
+echo 15 > dev/stune/foreground/schedtune.boost
+echo 30 > dev/stune/top-app/schedtune.boost
