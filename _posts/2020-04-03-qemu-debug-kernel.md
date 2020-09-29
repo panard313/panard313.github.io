@@ -286,3 +286,10 @@ append:
 #### links
 
 [How to debug the Linux kernel with GDB and QEMU?](https://stackoverflow.com/questions/11408041/how-to-debug-the-linux-kernel-with-gdb-and-qemu)
+
+
+## extened
+
+#### create img
+
+qemu-img create -f qcow2 -o preallocation=metadata qemu.qcow2 1G
