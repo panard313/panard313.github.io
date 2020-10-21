@@ -81,7 +81,11 @@ lang: zh-Hans
 
 ### [Linux内核工程导论——CGroup子系统](https://blog.csdn.net/ljy1988123/article/details/48032577)
 
+#### [Linux内核工程导论](https://blog.csdn.net/ljy1988123)
+
 ### [IO的传奇一生](https://blog.51cto.com/alanwu/category8.html)
+
+#### [存储之道](https://blog.51cto.com/alanwu?type=1)
 
 ### [cgroupv2](https://facebookmicrosites.github.io/cgroup2/docs/io-controller.html)
 
