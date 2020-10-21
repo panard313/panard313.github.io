@@ -29,6 +29,8 @@ lang: zh-Hans
 
 ### [知识体系引导 Android 性能优化与框架](https://www.jianshu.com/p/b5b1b8e1747f)
 
+### [如何快速验证sepolicy TE文件修改](http://tjtech.me/how-to-verify-sepolicy-te-file-change.html)
+
 -   usefull author
 
 ### [隔壁李老头](https://www.jianshu.com/users/8b9c629f69dd/subscriptions)
@@ -36,6 +38,10 @@ lang: zh-Hans
 ### [应用上网控制](https://blog.csdn.net/xiaoxsen/article/details/78034353)
 
 ###  [Android源码学习笔记](https://blog.csdn.net/column/details/13723.html)
+
+#### [Linux内核工程导论](https://blog.csdn.net/ljy1988123)
+
+#### [存储之道](https://blog.51cto.com/alanwu?type=1)
 
 ### [python spyder](https://www.cnblogs.com/zhaof/p/6915127.html#4122053)
 
@@ -81,11 +87,7 @@ lang: zh-Hans
 
 ### [Linux内核工程导论——CGroup子系统](https://blog.csdn.net/ljy1988123/article/details/48032577)
 
-#### [Linux内核工程导论](https://blog.csdn.net/ljy1988123)
-
 ### [IO的传奇一生](https://blog.51cto.com/alanwu/category8.html)
-
-#### [存储之道](https://blog.51cto.com/alanwu?type=1)
 
 ### [cgroupv2](https://facebookmicrosites.github.io/cgroup2/docs/io-controller.html)
 
