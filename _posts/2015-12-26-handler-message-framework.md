@@ -33,7 +33,7 @@ Android有大量的消息驱动方式来进行交互，比如Android的四剑客
 
 ### 1.2 架构图
 
-![handler_java](/images/handler/Main.jpg)
+![handler_java](../images/handler/Main.jpg)
 
 
 - **Looper**有一个MessageQueue消息队列；
@@ -367,7 +367,7 @@ Handler类在构造方法中，可指定Looper，Callback回调方法以及消�
 
 发送消息调用链：
 
-![java_sendmessage](/images/handler/java_sendmessage.png)
+![java_sendmessage](../images/handler/java_sendmessage.png)
 
 从上图，可以发现所有的发消息方式，最终都是调用`MessageQueue.enqueueMessage()`;
 
@@ -882,7 +882,7 @@ recycle()，将Message加入到消息池的过程，都是把Message加到链表
 
 最后用一张图，来表示整个消息机制
 
-![handler_java](/images/handler/handler_java.jpg)
+![handler_java](../images/handler/handler_java.jpg)
 
 **图解：**
 

@@ -46,7 +46,7 @@ Linux是类Unix系统，借鉴了Unix的设计并实现相关接口，但并非U
 
 Linux内核中进程用`task_struct`结构体表示，称为进程描述符，该结构体相对比较复杂，有几百行代码，记载着该进程相关的所有信息，比如进程地址空间，进程状态，打开的文件等。对内核而言，进程或者线程都称为任务task。内核将所有进程放入一个双向循环链表结构的任务列表(task list)。
 
-![task_struct](/images/linux/process/task_struct.jpg)
+![task_struct](../images/linux/process/task_struct.jpg)
 
     struct task_struct {
        volatile long state; //进程状态
@@ -121,7 +121,7 @@ Linux通过slab动态生成task_struct，那么在栈顶或栈底创建新的结
 
 进程状态转换图：
 
-![process_schedule](/images/linux/process/process_schedule.jpg)
+![process_schedule](../images/linux/process/process_schedule.jpg)
 
 ### 2.3 进程pid
 

@@ -30,7 +30,7 @@ tags:
 
 点击查看[大图](https://panard313.github.io/images/binder/get_servicemanager/get_servicemanager.jpg)
 
-![get_servicemanager](/images/binder/get_servicemanager/get_servicemanager.jpg)
+![get_servicemanager](../images/binder/get_servicemanager/get_servicemanager.jpg)
 
 ###  1.2 defaultServiceManager
 [-> IServiceManager.cpp]

@@ -20,7 +20,7 @@ tags:
 ### 1.1 WMS全貌
 
 
-![wms_relation](/images/wms/wms_relation.jpg)
+![wms_relation](../images/wms/wms_relation.jpg)
 
 说明: [点击查看大图](https://panard313.github.io/images/wms/wms_relation.jpg)
 
@@ -340,4 +340,4 @@ tags:
 其中WindowManagerService.mH的Looper运行在 "android.display"进程，也就意味着WMS.H.handleMessage()在该线程执行。
 流程如下:
 
-![wms_startup](/images/wms/wms_startup.jpg)
+![wms_startup](../images/wms/wms_startup.jpg)

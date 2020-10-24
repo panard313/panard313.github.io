@@ -1375,7 +1375,7 @@ void sendWaitingVisibleReportLocked(ActivityRecord r) {
 ## 五、总结
 
 
-![图1](/images/android-n-ams/start-2-1.jpg)
+![图1](../images/android-n-ams/start-2-1.jpg)
 
 至此，AMS启动Activity的后一部分基本介绍完毕。
 这一部分的代码整体流程如上图所示，我们省略一些细节，例如绘制等。

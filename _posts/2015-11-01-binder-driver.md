@@ -22,7 +22,7 @@ tags:
 Binder驱动是Android专用的，但底层的驱动架构与Linux驱动一样。binder驱动在以misc设备进行注册，作为虚拟字符设备，没有直接操作硬件，只是对设备内存的处理。主要是驱动设备的初始化(binder_init)，打开
 (binder_open)，映射(binder_mmap)，数据操作(binder_ioctl)。
 
-![binder_driver](/images/binder/binder_dev/binder_driver.png)
+![binder_driver](../images/binder/binder_dev/binder_driver.png)
 
 
 ### 1.2 系统调用
@@ -30,7 +30,7 @@ Binder驱动是Android专用的，但底层的驱动架构与Linux驱动一样�
 用户态的程序调用Kernel层驱动是需要陷入内核态，进行系统调用(`syscall`)，比如打开Binder驱动方法的调用链为： open-> __open() -> binder_open()。 open()为用户空间的方法，__open()便是系统调用中相应的处理方法，通过查找，对应调用到内核binder驱动的binder_open()方法，至于其他的从用户态陷入内核态的流程也基本一致。
 
 
-![binder_syscall](/images/binder/binder_dev/binder_syscall.png)
+![binder_syscall](../images/binder/binder_dev/binder_syscall.png)
 
 简单说，当用户空间调用open()方法，最终会调用binder驱动的binder_open()方法；mmap()/ioctl()方法也是同理，在BInder系列的后续文章从用户态进入内核态，都依赖于系统调用过程。
 
@@ -125,7 +125,7 @@ Binder驱动是Android专用的，但底层的驱动架构与Linux驱动一样�
 
 创建binder_proc对象，并把当前进程等信息保存到binder_proc对象，该对象管理IPC所需的各种信息并拥有其他结构体的根结构体；再把binder_proc对象保存到文件指针filp，以及把binder_proc加入到全局链表`binder_procs`。
 
-![binder_procs](/images/binder/binder_dev/binder_procs.png)
+![binder_procs](../images/binder/binder_dev/binder_procs.png)
 
 Binder驱动中通过`static HLIST_HEAD(binder_procs);`，创建了全局的哈希链表binder_procs，用于保存所有的binder_proc队列，每次新创建的binder_proc对象都会加入binder_procs链表中。
 
@@ -261,7 +261,7 @@ binder_mmap通过加锁，保证一次只有一个进程分配内存，保证多
 
 主要工作如下：
 
-![binder_mmap](/images/binder/binder_dev/binder_mmap.png)
+![binder_mmap](../images/binder/binder_dev/binder_mmap.png)
 
 `binder_update_page_range`主要完成工作：分配物理空间，将物理空间映射到内核空间，将物理空间映射到进程空间.
 另外，不同参数下该方法也可以释放物理页面。
@@ -588,7 +588,7 @@ binder_ioctl()函数负责在两个进程间收发IPC数据和IPC reply数据。
 
 对于`binder_ioctl_write_read`的流程图，如下：
 
-![binder_write_read](/images/binder/binder_dev/binder_write_read.png)
+![binder_write_read](../images/binder/binder_dev/binder_write_read.png)
 
 流程：
 
@@ -647,7 +647,7 @@ ioctl命令常见命令的使用场景，其中BINDER_WRITE_READ最为频繁
 
 #### BWR核心数据图表
 
-![binder_transaction_data](/images/binder/binder_transaction_data.jpg)
+![binder_transaction_data](../images/binder/binder_transaction_data.jpg)
 
 binder_write_read是整个Binder IPC过程，最为核心的数据结构之一。
 

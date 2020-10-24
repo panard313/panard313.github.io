@@ -98,7 +98,7 @@ schedule过程说明：
 |AppIdleController|监听app是否空闲|
 
 
-![state_controller](/images/jobscheduler/state_controller.jpg)
+![state_controller](../images/jobscheduler/state_controller.jpg)
 
 
 接下来,以ConnectivityController为例,说一说相应Controller的创建过程, 其他Controller也基本类似.
@@ -1110,7 +1110,7 @@ this.service是指获取远程IJobService【小节3.2】的代理端，mCallback
 
 JobScheduler启动调用schedule()，结束则调用cancel(int jobId)或cancelAll(),整个JobScheduler过程涉及不少记录job的对象,关系如下:
 
-![job](/images/jobscheduler/job.jpg)
+![job](../images/jobscheduler/job.jpg)
 
 JobSchedulerService通过成员遍历mJobs指向JobStore对象;JobStore的mJobSet记录着所有的JobStatus对象;
 JobStatus通过job指向JobInfo对象; JobInfo对象里面记录着jobId, 组件名以及各种触发scheduler的限制条件信息.
@@ -1118,7 +1118,7 @@ JobStatus通过job指向JobInfo对象; JobInfo对象里面记录着jobId, 组件
 
 再来看看整个jobscheduler的执行过程:[点击查看大图](https://panard313.github.io/images/jobscheduler/job_scheduler_sequence.jpg)
 
-![job_scheduler_sequence](/images/jobscheduler/job_scheduler_sequence.jpg)
+![job_scheduler_sequence](../images/jobscheduler/job_scheduler_sequence.jpg)
 
 上图整个过程涉及两次跨进程的调用, 第一次是从app进程进入system_server进程的JobSchedulerStub, 采用IJobScheduler接口.
 第二次则是JobScheduler通过bindService方式启动之后, 再回到system_server进程,然后调用startJob(),这是通过IJobService接口,

@@ -259,7 +259,7 @@ PowerManagerService定义了一个内部类BinderService, 继承于IPowerManager
 
 这些阶段跟系统服务大致的顺序图,如下:
 
-![system_server服务启动流程](/images/boot/systemServer/system_server_boot_process.jpg)
+![system_server服务启动流程](../images/boot/systemServer/system_server_boot_process.jpg)
 
 PHASE_BOOT_COMPLETED=1000，该阶段是发生在Boot完成和home应用启动完毕, 对于系统服务更倾向于监听该阶段，而非监听广播ACTION_BOOT_COMPLETED
 

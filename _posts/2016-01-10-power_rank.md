@@ -671,7 +671,7 @@ BatterySipper中，功耗计算方法：
 
 **软件功耗总公式**
 
-![calculate_software_power](/images/android-service/battery_stats_service/calculate_software_power.png)
+![calculate_software_power](../images/android-service/battery_stats_service/calculate_software_power.png)
 
 
 ## 三、 硬件排行榜
@@ -1065,7 +1065,7 @@ remainingActivePower =  （radioActiveTimeMs - mTotalAppMobileActiveMs）* mPowe
 ### 硬件耗电总公式
 
 
-![calculate_hardware_power](/images/android-service/battery_stats_service/calculate_hardware_power.png)
+![calculate_hardware_power](../images/android-service/battery_stats_service/calculate_hardware_power.png)
 
 
 ## 四、总结

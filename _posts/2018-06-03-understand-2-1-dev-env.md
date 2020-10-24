@@ -17,7 +17,7 @@ lang: zh-Hans
 到目前为止，Android系统的最新版本是4.0.3。而就在本书即将完稿之时，业界有传闻说Android 4.0.4版本已经对大厂商发布。Android系统推出速度之快让很多开发人员都很惊讶。当然，推出的速度如此之快有一些是出于商业上的考虑。不管怎样，Android系统在进化过程中，其大体架构相对保持稳定。图1-1为Android的系统架构图。
 
 
-![图1-1  Android系统架构](/images/understand2/1-1.png)
+![图1-1  Android系统架构](../images/understand2/1-1.png)
 
 相信绝大多数读者对图1-1或类似图表的内容已经司空见惯。此处，我们就不再赘述。
 
@@ -25,7 +25,7 @@ lang: zh-Hans
 
 
 
-![图 1-2  本书涵盖的内容](/images/understand2/1-2.png)
+![图 1-2  本书涵盖的内容](../images/understand2/1-2.png)
 
 从图1-2中，读者可发现本书的大部分内容都在讨论Service。确实如此。因为Android Java层Framework的核心就是这些Service。毫不夸张地说，正是这些Service支撑了整个Java层世界的运转。读者可参考第3章的图3-1来了解Framework中Service的概貌。
 

@@ -718,7 +718,7 @@ tags:
 
 当进程被AMS或者lmk所杀时, system_server则会收到死亡回调,并进入binderDied()方法. 整个过程主要是移除各种系统相关的信息. 整个过程图:
 
-![binder_died](/images/process/binder_died.jpg)
+![binder_died](../images/process/binder_died.jpg)
 
 
 这个过程中进入AMS.handleAppDiedLocked后: 左边分支`cleanUpApplicationRecordLocked`用于清理死亡进程中运行的四大组件service, BroadcastReceiver, ContentProvider相关信息; 右边分支`ASS.handleAppDiedLocked`清理死亡进程中运行的activity相关信息.

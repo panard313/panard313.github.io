@@ -113,7 +113,7 @@ idegen专门为IDE环境调试源码而设计的工具， 依次执行如下命�
 如果已经把全部项目导入到Android Studio，又想删除怎么办，其实有一个简单的方法就是进入目录`Project Structure` -> `Modules`，
 可快速去除某些模块, 其中红色代码Exclueded选项(即代表已删除的目录), 如下图:
 
-![as_modules](/images/as/as_modules.png)
+![as_modules](../images/as/as_modules.png)
 
 ### 2.3 配置源码正确跳转
 这里的配置JDK/SDK，是用于解决在分析和调试源码的过程，能正确地跳转到目标源码，而非SDK中的代码。
@@ -124,31 +124,31 @@ idegen专门为IDE环境调试源码而设计的工具， 依次执行如下命�
 Project Structure -> SDKs, 新建 `JDK(None)`, 其中JDK目录可选择跟原本JDK一致即可,
 然后删除其classpath和SourcePath的内容，确保使用Android系统源码文件
 
-![jdk_none](/images/as/jdk_none.png)
+![jdk_none](../images/as/jdk_none.png)
 
 
 #### Step 2 配置SDK
 
 Project Structure -> SDKs, 选中`Android API 25 Platform`, 然后选择其Java SDK为前面新建的`JDK(None)`
 
-![sdk_none](/images/as/sdk_none.png)
+![sdk_none](../images/as/sdk_none.png)
 
 #### Step 3 选择SDK
 
 Project Structure -> Project -> 选中Project SDK, 选择前面的`Android API 25 Platform`
 
-![project_sdk](/images/as/project_sdk.png)
+![project_sdk](../images/as/project_sdk.png)
 
 
 #### Step 4 建立依赖
 Project Structure -> Modules -> android -> Dependencies:
 先删除Android API 25 Platform之外的所有依赖, 然后点击下图绿色的`+`号来选择`Jars or directories`，将frameworks添加进来, 也可添加其他所关注的源码；
 
-![project_dependencies](/images/as/project_dependencies.png)
+![project_dependencies](../images/as/project_dependencies.png)
 
 下图便是添加后的结果图:
 
-![project_result](/images/as/project_result.png)
+![project_result](../images/as/project_result.png)
 
 
 ## 三. 在线调试
@@ -161,7 +161,7 @@ Project Structure -> Modules -> android -> Dependencies:
 frameworks各大核心服务运行在system_server进程, 在调试器上名字为system_process,通过如下操作attach到我们要调试的目标进程,
 同理, 要调试其他app进程也是这个方式.
 
-![as_attach](/images/as/as_attach.png)
+![as_attach](../images/as/as_attach.png)
 
 
 
@@ -169,7 +169,7 @@ frameworks各大核心服务运行在system_server进程, 在调试器上名字�
 
 首先需要设置断点, 一旦进入断点便会停下来, 可以查看当时各个线程/变量值. 关于调试下一步等快捷键, 只需点击Tools即可看到.
 
-![as_debugger](/images/as/as_debugger.png)
+![as_debugger](../images/as/as_debugger.png)
 
 
 

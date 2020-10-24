@@ -34,7 +34,7 @@ Android有时会抛出Binder相关的异常，比如DeadObjectException，Transa
 
 更多Android相关异常：
 
-![binderException](/images/binder/binderException.jpg)
+![binderException](../images/binder/binderException.jpg)
 
 
 下面以startService为例来说明这个异常抛出过程。

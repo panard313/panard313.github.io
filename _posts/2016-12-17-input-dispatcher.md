@@ -921,14 +921,14 @@ runCommandsLockedInterruptible是不断地从mCommandQueue队列取出命令，�
 
 点击查看[大图](https://panard313.github.io/images/input/input_dispatcher_seq.jpg):
 
-![input_dispatcher_seq](/images/input/input_dispatcher_seq.jpg)
+![input_dispatcher_seq](../images/input/input_dispatcher_seq.jpg)
 
 
 ### 4.2 核心方法
 
 用一张图来整体概况InputDispatcher线程的主要工作：
 
-![input_dispatcher](/images/input/input_dispatcher.jpg)
+![input_dispatcher](../images/input/input_dispatcher.jpg)
 
 图解:
 

@@ -67,7 +67,7 @@ sp强指针其实就是一个模块类，先来看看其定义：
 
 ### 1.2 关系图
 
-![Refbase_class](/images/refbase/Refbase_class.jpg)
+![Refbase_class](../images/refbase/Refbase_class.jpg)
 
 ## 二. 源码分析
 

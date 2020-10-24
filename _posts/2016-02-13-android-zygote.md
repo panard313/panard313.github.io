@@ -45,7 +45,7 @@ Zygote进程能够重启的地方:
         
 从App_main()开始，Zygote启动过程的函数调用类大致流程如下：
 
-![zygote_process](/images/boot/zygote/zygote_process.jpg)
+![zygote_process](../images/boot/zygote/zygote_process.jpg)
 
 ## 二、Zygote启动过程
 
@@ -453,7 +453,7 @@ array[i]是指gRegJNI数组, 该数组有100多个成员。其中每一项成员
 
 zygote进程内加载了preload()方法中的所有资源，当需要fork新进程时，采用copy on write技术，如下：
 
-![zygote_fork](/images/boot/zygote/zygote_fork.jpg)
+![zygote_fork](../images/boot/zygote/zygote_fork.jpg)
 
 ### 3.4 startSystemServer
 [-->ZygoteInit.java]
@@ -631,7 +631,7 @@ Zygote采用高效的I/O多路复用机制，保证在没有客户端连接请�
 
 Zygote启动过程的调用流程图：
 
-![zygote_start](/images/boot/zygote/zygote_start.jpg)
+![zygote_start](../images/boot/zygote/zygote_start.jpg)
 
 1. 解析init.zygote.rc中的参数，创建AppRuntime并调用AppRuntime.start()方法；
 2. 调用AndroidRuntime的startVM()方法创建虚拟机，再调用startReg()注册JNI函数；

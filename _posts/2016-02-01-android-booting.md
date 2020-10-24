@@ -19,7 +19,7 @@ Android系统底层基于Linux Kernel, 当Kernel启动过程会创建init进程,
 init进程会启动servicemanager(binder服务管家), Zygote进程(Java进程的鼻祖). Zygote进程会创建
 system_server进程以及各种app进程.
 
-![android-booting](/images/process/android-booting.jpg)
+![android-booting](../images/process/android-booting.jpg)
 
 
 ## 二. init
@@ -99,7 +99,7 @@ init进程的主要功能点:
 当init子进程(Zygote)退出时，会产生SIGCHLD信号，并发送给init进程，通过socket套接字传递数据，调用到wait_for_one_process()方法，根据是否是oneshot，来决定是重启子进程，还是放弃启动。由于缺省模式oneshot=false,因此Zygote一旦被杀便会再次由init进程拉起.
 
 
-![init_oneshot](/images/boot/init/init_oneshot.jpg)
+![init_oneshot](../images/boot/init/init_oneshot.jpg)
 
 接下来,便是进入了Zygote进程.
 

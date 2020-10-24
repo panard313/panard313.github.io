@@ -226,7 +226,7 @@ public static final void init2() {
 
 
 
-![图3-1  Services群英会](/images/understand2/3-1.png)
+![图3-1  Services群英会](../images/understand2/3-1.png)
 
 图3-1中有7大类共43个Service（包括Watchdog）。实际上，还有一些Service并没有在ServerThread的run函数中露面，后面遇到时再做介绍。图3-1中的7大类服务主要包括：
 
@@ -627,7 +627,7 @@ public void add(DropBoxManager.Entry entry) {
 
 
 
-![图3-2  真实设备中dropbox目录的内容](/images/understand2/3-2.png)
+![图3-2  真实设备中dropbox目录的内容](../images/understand2/3-2.png)
 
 图3-2中最后一项data_app_anr@1324836096560.txt.gz的大小是6.1KB，该文件解压后得到的文件大小是42kB。看来，压缩确实节省了不少存储空间。
 
@@ -735,7 +735,7 @@ int main(int argc, char* const argv[])
 
 从上面代码可知，dumpsys通过Binder调用某个Service的dump函数。那么“dumpsys diskstats”的输出会是什么呢？马上来试试，结果如图3-3所示。
 
-![图3-3  dumpsys diskstats的结果图示](/images/understand2/3-3.png)
+![图3-3  dumpsys diskstats的结果图示](../images/understand2/3-3.png)
 
 图3-3说明了执行“dumpsysdiskstats”打印了系统中内部存储设备的使用情况。dumpsys是工作中常用的命令，建议读者掌握它的用法。
 
@@ -1076,7 +1076,7 @@ ClipboardService（简称CBS，下同）是Android系统中的元老级服务了
 
 
 
-![图3-4  和剪贴服务有关的类](/images/understand2/3-4.png)
+![图3-4  和剪贴服务有关的类](../images/understand2/3-4.png)
 
 由图3-4可知：
 

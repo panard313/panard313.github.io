@@ -22,7 +22,7 @@ Android从5.0开始就采用art虚拟机, 该虚拟机有些类似Java虚拟机,
 
 ### 1.1 架构图
 
-![](/images/classloader/classloader.jpg)
+![](../images/classloader/classloader.jpg)
 
 ## 二. ClassLoader构造函数
 

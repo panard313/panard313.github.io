@@ -472,13 +472,13 @@ Zygote服务会随着main class的启动而启动，退出后会由init重启zyg
 
 流程如下：
 
-![zygote_init](/images/boot/init/zygote_init.jpg)
+![zygote_init](../images/boot/init/zygote_init.jpg)
 
 而关于Zygote重启在前面的信号处理过程中讲过，是处理SIGCHLD信号，init进程重启zygote进程，更多关于Zygote内容见[Zygote篇](https://panard313.github.io/2016/02/13/android-zygote/)。
 
 ### 4.3 服务重启
 
-![init_oneshot](/images/boot/init/init_oneshot.jpg)
+![init_oneshot](../images/boot/init/init_oneshot.jpg)
 
 当init子进程退出时，会产生SIGCHLD信号，并发送给init进程，通过socket套接字传递数据，调用到wait_for_one_process()方法，根据是否是oneshot，来决定是重启子进程，还是放弃启动。
 

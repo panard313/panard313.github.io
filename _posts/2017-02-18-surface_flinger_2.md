@@ -34,7 +34,7 @@ tags:
 
 先来看看SurfaceFlinger主线程绘制的systrace图：点击查看[大图](https://panard313.github.io/images/surfaceFlinger/systrace_sf.png)
 
-![systrace_sf](/images/surfaceFlinger/systrace_sf.png)
+![systrace_sf](../images/surfaceFlinger/systrace_sf.png)
 
 ## 二. preComposition
 

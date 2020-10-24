@@ -14,7 +14,7 @@ tags:
 Android系统稳定性对于用户体验至关重要. 对于稳定性问题从表现来看有: 死机重启, 自动关机, 无法开机,冻屏,黑屏以及闪退, 无响应等情况;
 从技术层面来划分无外乎两大类: 长时间无法执行完成(Timeout) 以及异常崩溃(crash). 主要分类如下:
 
-![stability_summary.jpg](/images/stability/stability_summary.jpg)
+![stability_summary.jpg](../images/stability/stability_summary.jpg)
 
 
 ### 1.1 Timeout

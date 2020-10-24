@@ -31,7 +31,7 @@ SystemServer的在Android体系中所处的地位，SystemServer由Zygote fork�
 [Android系统启动-zygote篇](https://panard313.github.io/22016/02/13/android-zygote/)中讲到Zygote启动过程中会调用startSystemServer()，可知`startSystemServer()`函数是system_server启动流程的起点，
 启动流程图如下：
 
-![system_server_boot_process](/images/boot/systemServer/system_server.jpg)
+![system_server_boot_process](../images/boot/systemServer/system_server.jpg)
 
 
 上图前4步骤（即颜色为紫色的流程）运行在是`Zygote`进程，从第5步（即颜色为蓝色的流程）ZygoteInit.handleSystemServerProcess开始是运行在新创建的`system_server`，这是fork机制实现的（fork会返回2次）。下面从startSystemServer()开始讲解详细启动流程。

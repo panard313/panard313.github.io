@@ -1012,7 +1012,7 @@ mCondition.broadcast能够唤醒处理waitForEvent()过程的EventThread【见�
 
 Vsync处理流程图：点击查看[大图](https://panard313.github.io/images/surfaceFlinger/vsync.jpg)
 
-![vsync](/images/surfaceFlinger/vsync.jpg)
+![vsync](../images/surfaceFlinger/vsync.jpg)
 
 1. 底层vsync信号发送过来，一路执行到【小节3.6】DispSyncThread.updateModel()方法中调用mCond.signal()
 来唤醒DispSyncThread线程；

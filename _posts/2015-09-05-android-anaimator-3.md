@@ -122,7 +122,7 @@ tags:
 - 插值函数：
     - 公式：`y=t`
 - 插值曲线：
-![Linear Interpolator](/images/interpolator/1.png)
+![Linear Interpolator](../images/interpolator/1.png)
 
 ### 1.2 Accelerate
 - 资源ID: @android:anim/accelerate_interpolator
@@ -135,7 +135,7 @@ tags:
     - 公式：`y=t^(2f)`
     - 缺省：`y=t^2`
 - 插值曲线：
-![Accelerate Interpolator](/images/interpolator/2.png)
+![Accelerate Interpolator](../images/interpolator/2.png)
 
 ### 1.3 Decelerate
 - 资源ID: @android:anim/decelerate_interpolator
@@ -148,7 +148,7 @@ tags:
     - 公式：`y= 1-(1-t）^(2f)`,
     - 缺省：`y= 2t-t^2`
 - 插值曲线：
-![Decelerate Interpolator](/images/interpolator/3.png)
+![Decelerate Interpolator](../images/interpolator/3.png)
 
 ### 1.4 AccelerateDecelerate
 - 资源ID: @android:anim/accelerate_decelerate_interpolator
@@ -159,7 +159,7 @@ tags:
 - 插值函数：
     - 公式：`y = 0.5cos((t+1)π)+0.5`
 - 插值曲线：
-![AccelerateDecelerate Interpolator](/images/interpolator/4.png)
+![AccelerateDecelerate Interpolator](../images/interpolator/4.png)
 
 
 ### 1.5 Anticipate
@@ -173,7 +173,7 @@ tags:
     - 公式：`y = t*t*((s+1)t-s)`,
     - 缺省：`y = t*t*(3t-2)`
 - 插值曲线：
-![Anticipate Interpolator](/images/interpolator/5.png)
+![Anticipate Interpolator](../images/interpolator/5.png)
 
 
 ### 1.6 Overshoot
@@ -187,7 +187,7 @@ tags:
     - 公式：`y  = (t-1)(t-1)((s+1)(t-1)+s) + 1`,
     - 缺省：`y = (t-1)(t-1)(3t-1) + 1`
 - 插值曲线：
-![ Overshoot Interpolator](/images/interpolator/6.png)
+![ Overshoot Interpolator](../images/interpolator/6.png)
 
 ### 1.7 AnticipateOvershoot
 - 资源ID: @android:anim/anticipate_overshoot_interpolator
@@ -206,7 +206,7 @@ tags:
         - `y = 2t*t*(8t-3),  当t < 0.5时`,
         - `y = 2(t-1)(t-1)(8t-5) + 1 ,  当t >= 0.5时`,
 - 插值曲线：
-![ AnticipateOvershoot Interpolator](/images/interpolator/7.png)
+![ AnticipateOvershoot Interpolator](../images/interpolator/7.png)
 
 
 ### 1.8 Bounce
@@ -221,7 +221,7 @@ tags:
         -  y = 8*(1.1226t - 0.8526)^2 + 0.9 ，当 t < 0.9644
         -  y = 8*(1.1226t - 1.0435)^2 + 0.95 ，当 t <= 1.0
 - 插值曲线：
-![Bounce Interpolator](/images/interpolator/8.png)
+![Bounce Interpolator](../images/interpolator/8.png)
 
 ### 1.9 Cycle
 - 资源ID: @android:anim/cycle_interpolator
@@ -233,7 +233,7 @@ tags:
     - 公式：`y  = sin（2*c*t*π）`,
     - 缺省：`y = sin（2*t*π）`
 - 插值曲线：
-![ Cycle Interpolator](/images/interpolator/9.png)
+![ Cycle Interpolator](../images/interpolator/9.png)
 
 ----------
 

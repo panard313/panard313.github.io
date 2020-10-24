@@ -76,7 +76,7 @@ PackageManagerService是本书分析的第一个核心服务，也是Android系�
 
 
 
-![图4-1  PackageManagerService及客户端类家族](/images/understand2/4-1.png)
+![图4-1  PackageManagerService及客户端类家族](../images/understand2/4-1.png)
 
 由图4-1可知：
 
@@ -523,7 +523,7 @@ SharedUserSetting addSharedUserLPw(String name,int uid, int pkgFlags) {
 
 
 
-![图4-2  SharedUserSetting类的关系图](/images/understand2/4-2.png)
+![图4-2  SharedUserSetting类的关系图](../images/understand2/4-2.png)
 
 由图4-2可知：
 
@@ -732,7 +732,7 @@ void readPermissions() {
 
 
 
-![图4-3  /system/etc/permissions目录下的内容](/images/understand2/4-3.png)
+![图4-3  /system/etc/permissions目录下的内容](../images/understand2/4-3.png)
 
 图4-3中列出的是本人G7手机上/system/etc/permissions目录下的内容。在上面的代码中，虽然最后才解析platform.xml文件， 不过此处先分析此文件其内容如下所示：
 
@@ -844,7 +844,7 @@ platform.xml文件中主要使用了如下4个标签：
 
 
 
-![图4-4  /system/etc/permission目录中文件的来源](/images/understand2/4-4.png)
+![图4-4  /system/etc/permission目录中文件的来源](../images/understand2/4-4.png)
 
 由图4-4可知，当编译的设备目标为htc-passion时，就会将Android源码目录/frameworks/base/data/etc/下某些和该目标设备硬件特性匹配的XML文件复制到最终输出目录/system/etc/permissions下。编译完成后，将生成system镜像。把该镜像文件烧到手机中，就成了目标设备使用的情况了。
 
@@ -993,7 +993,7 @@ readPermissions函数果然将XML中的标签转换成对应的数据结构。�
 
 
 
-![图4-4  通过readPermissions函数建立的数据结构及其关系](/images/understand2/4-4-4.png)
+![图4-4  通过readPermissions函数建立的数据结构及其关系](../images/understand2/4-4-4.png)
 
 这里必须再次强调：图4-4中各种数据结构的目的是为了保存XML中各种标签及它们之间的关系。在分析过程中，最重要的是理解各种标签的作用，而不是它们所使用的数据结构。
 
@@ -1559,7 +1559,7 @@ throws XmlPullParserException, IOException {
 
 
 
-![图4-5  PackageParser大家族](/images/understand2/4-5.png)
+![图4-5  PackageParser大家族](../images/understand2/4-5.png)
 
 由图4-5可知：
 
@@ -1655,7 +1655,7 @@ private PackageParser.PackagescanPackageLI(PackageParser.Package pkg,
 
 
 
-![图4-6  framework-res.apk的AndroidManifest.xml](/images/understand2/4-6.png)
+![图4-6  framework-res.apk的AndroidManifest.xml](../images/understand2/4-6.png)
 
 实际上，framework-res.apk还包含了以下几个常用的Activity。
 
@@ -2009,7 +2009,7 @@ scanDirLI用于对指定目录下的APK文件进行扫描，如图4-7所示为�
 
 
 
-![图4-7  scanDirLI工作流程总结](/images/understand2/4-7.png)
+![图4-7  scanDirLI工作流程总结](../images/understand2/4-7.png)
 
 图4-7比较简单，相关知识无须赘述。读者在自行分析代码时，只要注意区分这两个同名scanPackageLI函数即可。
 
@@ -2017,7 +2017,7 @@ scanDirLI用于对指定目录下的APK文件进行扫描，如图4-7所示为�
 
 
 
-![图4-8  PKMS中重要的数据结构](/images/understand2/4-8.png)
+![图4-8  PKMS中重要的数据结构](../images/understand2/4-8.png)
 
 图4-8借用UML的类图来表示PKMS中重要的数据结构。每个类图的第一行为成员变量名，第二行为数据类型，第三行为注释说明。
 
@@ -2663,7 +2663,7 @@ MCS_BOUND的处理还算简单，就是调用HandlerParams的startCopy函数。�
 
 
 
-![图4-8  HandlerParams及InstallArgs家族成员](/images/understand2/4-8-8.png)
+![图4-8  HandlerParams及InstallArgs家族成员](../images/understand2/4-8-8.png)
 
 由图4-8可知：
 
@@ -3134,7 +3134,7 @@ int copyApk(IMediaContainerService imcs, booleantemp) throws RemoteException {
 
 
 
-![图4-9  createCopyFile生成的临时文件](/images/understand2/4-9.jpg)
+![图4-9  createCopyFile生成的临时文件](../images/understand2/4-9.jpg)
 
 由图4-9可知：/data/app下有两个文件，第一个是正常的APK文件，第二个是createCopyFile生成的临时文件。
 
@@ -3352,7 +3352,7 @@ case POST_INSTALL: {
 
 
 
-![图4-10  APK安装流程](/images/understand2/4-10.png)
+![图4-10  APK安装流程](../images/understand2/4-10.png)
 
 图4-10中列出以下内容：
 
@@ -3602,7 +3602,7 @@ for (i=0; i<N; i++) {
 
 
 
-![图4-11  相关数据结构示意图](/images/understand2/4-11.png)
+![图4-11  相关数据结构示意图](../images/understand2/4-11.png)
 
 结合代码，由图4-11可知：
 
@@ -4212,7 +4212,7 @@ int dexopt(const char *apk_path, uid_t uid, intis_public)
 
 
 
-![图4-12  dex文件示例](/images/understand2/4-12.png)
+![图4-12  dex文件示例](../images/understand2/4-12.png)
 
 提示 dexopt进程由android源码/dalvik/dexopt/OptMain.cpp定义。感兴趣的读者可深入研究dex优化的工作原理。
 
@@ -4292,7 +4292,7 @@ done:
 
 
 
-![图4-13  movefiles示例](/images/understand2/4-13.png)
+![图4-13  movefiles示例](../images/understand2/4-13.png)
 
 以图4-13中最后两行为例，movefiles将把com.google.android.gsf下的databases目录转移到com.andorid.providers.im下。从文件中的注释可知，movefiles的功能和系统升级有关。
 

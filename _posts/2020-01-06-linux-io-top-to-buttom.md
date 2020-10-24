@@ -17,11 +17,11 @@ lang: zh-Hans
 
 　　普通文件与设备文件的IO集中解决了数据的存储与持久化的问题。正如进程是内核对CPU的抽象，虚拟内存是对物理内存的抽象，文件是对所有IO对象的抽象（在本文，则主要是指对磁盘的抽象）。为了解决数据存储与持久化问题，有很多不同类型的文件系统（ext2,ext3,ext4,xfs,…)，它们大多数是工作在内核态的，也有少数的用户态文件系统（fuse）。linux为了便于管理这些不同的文件系统，提出了一个虚拟文件系统（VFS）的概念，对这些不同的文件系统提供了一套统一的对外接口。本文将会从虚拟文件系统说起，自顶向下地去阐述io的每一层的概念。
 
-![图1](/images/io/ttb_arch.png)
+![图1](../images/io/ttb_arch.png)
 
 ## linux io体系结构
 
-![图2](/images/io/ttb_2.jpg)
+![图2](../images/io/ttb_2.jpg)
 
       本文将按照上图的架构自顶向下依次分析每一层的要点。
 
@@ -95,7 +95,7 @@ SYSCALL_DEFINE3(write, unsigned int, fd, const char __user *, buf,
 　　但是，如果每一家文件系统都定义自己的一套接口，对于上层应用来说就很难去管理。在这样的时代背景下，vfs应运而生。vfs为不同的文件系统提供了统一的对上层的接口，使得上层应用在调用的时候无需知道底层的具体文件系统，只有在真正执行读写操作的时候才调用相应文件系统的读写函数。这个思想与面向对象编程的多态思想是非常相似的。实际上，vfs就是定义了4种类型的基本对象，不同的文件系统要做的工作就是去实现具体的这4种对象。下面介绍一下这4种对象。这4种对象分别是superblock,inode,dentry和file。file对象就是我们用户进程打开了一个文件所产生的，每个file对象对应一个唯一的dentry对象。dentry代表目录项，是跟文件路径相关的，一个文件路径对应唯一的一个dentry。dentry与inode则是多对一的关系，inode存放单个文件的元信息，由于文件可能存在链接，所以多个路径的文件可能指向同一个inode。superblock对象则是整个文件系统的元信息，它还负责存储空间的分配与管理。它们的关系可以用下图表示：
 
 
-![图3](/images/ttb_3.png)
+![图3](../images/ttb_3.png)
 
 ### superblock对象
 
@@ -724,7 +724,7 @@ ssize_t do_sync_write(struct file *filp, const char __user *buf, size_t len, lof
 
 　　可以看到，vfs的读写很大程度上依赖于高速缓存的，实际上直接读写硬盘的机会可能没有我们想象的多。对于读任务，如果是顺序读的场景，我们的进程同步读取的数据正常情况下已经在高速缓存中存在了，我们直接从高速缓存中取出数据便返回上层，然后内核会异步地进行预读取；如果是写任务，则绝大部分时候是直接写到高速缓存中便返回，然后再异步地进行writeback。除非高速缓存占用过多，才会同步地写回一部分数据。
 
-![图5](/images/io/ttb_4.png)
+![图5](../images/io/ttb_4.png)
 
 ## 高速缓存
 
@@ -736,7 +736,7 @@ ssize_t do_sync_write(struct file *filp, const char __user *buf, size_t len, lof
 
 　　前面我们提到vfs的inode对象，在每一个inode对象中都间接持有了一个radix tree的数据结构，所以page cache的查找是以文件为单位进行的。
 
-![图 radix tree](/images/io/ttb_5.png)
+![图 radix tree](../images/io/ttb_5.png)
 
        可以看到radix tree是分层组织的，每一层有64个元素，层数越多能够保存的page数目就越多，而tree node的分配与释放是根据文件大小来调整的。由于索引是32位的，所以radix tree最多有6层，且当树的深度为6时，最高层最多只有4个元素。
 
@@ -786,7 +786,7 @@ ssize_t do_sync_write(struct file *filp, const char __user *buf, size_t len, lof
 - 预读的大小是动态变化的，如果进程持续顺序读取文件，那么预读会持续增加，直到达到文件系统的上限（默认是128KB）；如果出现随机访问，预读会逐渐减少直到完全禁止。
 - 当进程重复访问文件的很小一部分，预读就会停止。
 
-![图 read ahead](/images/io/ttb_7.png)
+![图 read ahead](../images/io/ttb_7.png)
 
 ### buffer cache
 
@@ -828,13 +828,13 @@ struct buffer_head {
 - b_data指向buffer cache数据的地址，该地址必定在b_page指向的页内。
 - b_bdev代表该buffer cache所映射的块设备，该字段和b_blocknr，b_size一起唯一决定了该数据所在的磁盘位置。
 
-![图  buffer page](/images/io/ttb_9.png)
+![图  buffer page](../images/io/ttb_9.png)
 
 ## 通用块层
 
 　　前面说到，高速缓存这一层分为page cache和buffer cache，buffer cache是建立在page cache之上的。page cache是面向文件的抽象，而buffer cache则是面向块设备的抽象。由于我们对文件的读写请求最终还是会转化成对磁盘（块设备）的读写请求，这种请求是要落到磁盘扇区的。
 
-![图  sector to block](/images/io/ttb_10.png)
+![图  sector to block](../images/io/ttb_10.png)
 
 从buffer_head的结构中可以看到，每一个buffer cache都有一个磁盘的逻辑块号，这个磁盘块是文件系统的块号，每一个磁盘块可以包含一个或多个扇区，这取决于buffer cache的大小（文件系统格式化时的块大小）。所以，buffer cache的大小是连续分配磁盘大小的最小单位。但对于大多数情况，整个page都会映射到连续的磁盘区域，因此page的大小将成为一般情况下的连续分配磁盘的最小单位。
 
@@ -919,7 +919,7 @@ unsigned int bv_offset;
 };
 ```
 
-![图 bio vec](/images/io/ttb_11.png)
+![图 bio vec](../images/io/ttb_11.png)
 
        不管是buffer cache还是Page cache，它们要提交读写磁盘的请求时，都要把数据封装成bio_vec的形式，然后放到bio结构内。
 
@@ -964,7 +964,7 @@ xfs的read_page函数是xfs_vm_readpage。我们不打算去探究该函数的�
 
 　　可以看到，read_page函数的核心逻辑非常简单。不过，高速缓存一般都是采用预读的策略来读page的，因此一次会读多个page，此时一般会调用文件系统的read_pages函数，该函数会生成多个内存段的bio，即带有多个bio_io_vec，把连续的磁盘块一次读出来，减少io次数。
 
-![图 block device](/images/io/ttb_12.png)
+![图 block device](../images/io/ttb_12.png)
 
 ### IO调度程序层
 
@@ -1110,7 +1110,7 @@ struct request {
 
 　　这个是目前我们项目里采用的调度器。这个调度器在继承了Linus Elevator调度器的优点的同时，还回避了它的缺点。
 
-![图 deadline io scheduler](/images/io/ttb_13.png)
+![图 deadline io scheduler](../images/io/ttb_13.png)
 
 这个调度器维护了4个中间队列，其中sorted queue与Linus Elevator调度器的队列一样，根据磁盘块位置进行合并和排序, 不过对读写请求进行了区分，读请求和写请求分开排序，因此有两个排序队列。同时还另外增加了两个冗余队列，在请求插入sorted queue时，还会分别填充插入读请求或者写请求的超时队列。这两个冗余队列按照普通FIFO的逻辑，按时间排序。每一个请求都有一个超时时间，默认读请求的超时时间是500ms，写请求是5s。
 
@@ -1204,7 +1204,7 @@ write写page时检查是否需要刷新。
 
 ## 写回架构
 
-![图 writeback-structure](/images/io/ttb_14.png)
+![图 writeback-structure](../images/io/ttb_14.png)
 
 每一个磁盘都对应一个backing_device_info的结构,可以通过相应块设备的请求队列找到该结构。work_list存储了该设备的所有写回任务，每一个写回任务由wb_writeback_work定义，包括要写回多少页，写回哪些页，是否同步等等。bdi_writeback结构则定义了写回线程执行的函数，写回线程会在必要性被唤醒，然后执行写回逻辑。bdi_writeback主要有3个队列，其中每当有inode变脏，都会加入到b_dirty队列中，b_io则是所有需要写回的inode，wb_writeback_work所定义的写回任务就是针对b_io定义的inode。b_more_io则是保存所有需要再次写回的inode，这个队列的元素往往是因为在处理写回任务时，发现某些在b_io中的inode被锁住而不能马上写回，而临时转移到到b_more_io中。
 
@@ -1274,4 +1274,4 @@ write写page时检查是否需要刷新。
     [ext文件系统原理可以看：](https://my.oschina.net/fileoptions/blog/1826935)
 
 
-![图 15](/images/io/ttb_15.png)
+![图 15](../images/io/ttb_15.png)

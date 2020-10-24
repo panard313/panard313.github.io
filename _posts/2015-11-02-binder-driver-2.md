@@ -16,7 +16,7 @@ tags:
 
 Client进程通过RPC(Remote Procedure Call Protocol)与Server通信，可以简单地划分为三层，驱动层、IPC层、业务层。`demo()`便是Client端和Server共同协商好的统一方法；handle、RPC数据、代码、协议这4项组成了IPC层的数据，通过IPC层进行数据传输；而真正在Client和Server两端建立通信的基础设施便是Binder Driver。
 
-![binder_ipc](/images/binder/binder_dev/binder_ipc.jpg)
+![binder_ipc](../images/binder/binder_dev/binder_ipc.jpg)
 
 例如，当名为`BatteryStatsService`的Client向ServiceManager注册服务的过程中，IPC层的数据组成为：`Handle=0`，RPC代码为`ADD_SERVICE_TRANSACTION`，RPC数据为`BatteryStatsService`，Binder协议为`BC_TRANSACTION`。
 
@@ -26,7 +26,7 @@ Client进程通过RPC(Remote Procedure Call Protocol)与Server通信，可以简
 
 先列举一次完整的Binder通信过程：
 
-![binder_protocol](/images/binder/binder_dev/binder_transaction_ipc.jpg)
+![binder_protocol](../images/binder/binder_dev/binder_transaction_ipc.jpg)
 
 Binder协议包含在IPC数据中，分为两类:
 
@@ -40,7 +40,7 @@ Binder IPC通信至少是两个进程的交互：
 
 #### 2.1.1 通信过程
 
-![binder_protocol](/images/binder/binder_dev/binder_protocol.jpg)
+![binder_protocol](../images/binder/binder_dev/binder_protocol.jpg)
 
 其中binder_work.type共有6种类型：
 
@@ -320,9 +320,9 @@ BR_DEAD_REPLY，BR_FAILED_REPLY，BR_ERROR这些都是失败或错误相关的�
 
 #### 3.3 协议转换图
 
-![protocol_transaction.jpg](/images/binder/protocol_transaction.jpg)
+![protocol_transaction.jpg](../images/binder/protocol_transaction.jpg)
 
-![protocol_binder_dead.jpg](/images/binder/protocol_binder_dead.jpg)
+![protocol_binder_dead.jpg](../images/binder/protocol_binder_dead.jpg)
 
 
 图解：(以BC_TRANSACTION为例)
@@ -335,7 +335,7 @@ BR_DEAD_REPLY，BR_FAILED_REPLY，BR_ERROR这些都是失败或错误相关的�
 
 #### 3.4 数据转换图
 
-![binder_dataflow.jpg](/images/binder/binder_dataflow.jpg)
+![binder_dataflow.jpg](../images/binder/binder_dataflow.jpg)
 
 图(左)说明：
 
@@ -356,7 +356,7 @@ BR_DEAD_REPLY，BR_FAILED_REPLY，BR_ERROR这些都是失败或错误相关的�
 
 在上一篇文章从代码角度阐释了[binder_mmap()](https://panard313.github.io/2015/11/01/binder-driver/#bindermmap)，这也是Binder进程间通信效率高的核心机制所在，如下图：
 
-![binder_physical_memory](/images/binder/binder_dev/binder_physical_memory.jpg)
+![binder_physical_memory](../images/binder/binder_dev/binder_physical_memory.jpg)
 
 虚拟进程地址空间(vm_area_struct)和虚拟内核地址空间(vm_struct)都映射到同一块物理内存空间。当Client端与Server端发送数据时，Client（作为数据发送端）先从自己的进程空间把IPC通信数据`copy_from_user`拷贝到内核空间，而Server端（作为数据接收端）与内核共享数据，不再需要拷贝数据，而是通过内存地址空间的偏移量，即可获悉内存地址，整个过程只发生一次内存拷贝。一般地做法，需要Client端进程空间拷贝到内核空间，再由内核空间拷贝到Server进程空间，会发生两次拷贝。
 
@@ -364,4 +364,4 @@ BR_DEAD_REPLY，BR_FAILED_REPLY，BR_ERROR这些都是失败或错误相关的�
 
 下面这图是从Binder在进程间数据通信的流程图，从图中更能明了Binder的内存转移关系。
 
-![binder_memory_map](/images/binder/binder_dev/binder_memory_map.jpg)
+![binder_memory_map](../images/binder/binder_dev/binder_memory_map.jpg)

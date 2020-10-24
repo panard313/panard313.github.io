@@ -63,18 +63,18 @@ PagedView是滑屏最主要的类,下面是init()方法出初始化参数，假�
 ## 2. 滑动原理：
 先来看看launcher桌面的整体UI布局图：
 
-![launcher ui](/images/launcher/1.png)
+![launcher ui](../images/launcher/1.png)
 
 ### 1. 手指按下：
 当手指按下时，触发ACTION_DOWN事件，由Activity
 
-![launcher_down](/images/launcher/launcher_down.jpg)
+![launcher_down](../images/launcher/launcher_down.jpg)
 
 当手指按下时，还没有准备滚动，此时`mTouchState = TOUCH_STATE_REST`，故Worksapce，PagedView并不会拦截事件，虽然没有拦截器进行拦截，也没有onTouchEvent消费，但由于CellLayout的clickable="true"，故ACTION_DOWN事件仍然是被消费了，具体说明见上一篇文章[Android事件分发机制](https://panard313.github.io/2015/09/19/android-touch/).
 
 ### 2. 手指移动：
 
-![launcher_move](/images/launcher/launcher_move.jpg)
+![launcher_move](../images/launcher/launcher_move.jpg)
 
 决定是否屏幕是否开始滑动的阈值计算：
 
@@ -92,7 +92,7 @@ PagedView是滑屏最主要的类,下面是init()方法出初始化参数，假�
 
 ### 3. 手指离开屏幕
 
-![launcher_up](/images/launcher/launcher_up.jpg)
+![launcher_up](../images/launcher/launcher_up.jpg)
 
 达到下面两种情况之一，都可以触发launcher滑屏事件:
 

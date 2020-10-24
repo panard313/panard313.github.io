@@ -16,7 +16,7 @@ lang: zh-Hans
 
 针对不同的操作系统，IO历程是有所差别的，但是很多基本思想是相同的。在此，我想以Linux操作系统为样本，对整个IO历程进行深入分析，最主要的是设计思想方面的考虑。
 
-![p1](/images/io-life/1.jpg)
+![p1](../images/io-life/1.jpg)
 
 上图描述了IO操作中所涉及到的软硬件模块，从这张图中我们可以一窥整个系统还是很庞大的，主要涉及了文件系统、块设备层、SCSI层、PCI层、SAS/Ethernet网络以及磁盘/U盘。本文会根据作者的理解对IO在上述各个层次的游历过程进行详细阐述。
 
@@ -32,7 +32,7 @@ lang: zh-Hans
 
 通过上述分析，整个过程看似比较复杂，涉及到dentry，inode以及file对象。其实这个模型还是很简单的。Dentry用来描述文件目录，在磁盘上会采用元数据的方式存储在一个block中，文件目录本身在Linux中也是一个文件。Inode描述一个具体的文件，也通过元数据的方式在磁盘上保存。如果对一个文件系统从根目录开始往下看，整个文件系统是一颗庞大的inode树：
 
-![p2](/images/io-life/2.jpg)
+![p2](../images/io-life/2.jpg)
 
 在打开一个文件的过程中，文件系统所要做的事情就是找到指定文件的inode，所以在这个过程中会有磁盘元数据读操作。一旦文件所属的inode被找到，那么需要在内存中初始化一个描述被打开文件的对象，这个对象就是file。所以，dentry，inode之类的信息在磁盘上是永久存储的，file对象是在内存中是临时存在的，它会随着文件的创建而生成，随着文件的关闭而消亡。
 
@@ -106,7 +106,7 @@ ssize_t do_sync_write(struct file *filp, const char __user *buf, size_t len, lof
 
 对于一些大文件，如果不采用radix tree去管理page页，那么需要耗费大量的时间去查找一个文件内对应地址的page页。为了提高查找效率，Linux采用了radix tree的这种管理方式。Radix tree是通用的字典类型数据结构，radix tree又被称之为PAT位树（Patricia Trie or crit bit tree）。Radix tree是一种多叉搜索树，树的叶子节点是实际的数据条目。下图是一个radix tree的例子，该radix tree的分叉为4，树高为4，树中的每个叶子节点用来快速定位8位文件内偏移地址，可以定位256个page页。例如，图中虚线对应的两个叶子节点的地址值为0x00000010和0x11111010，通过这两个地址值，可以很容易的定位到相应的page缓存页。
 
-![p3](/images/io-life/3.jpg)
+![p3](../images/io-life/3.jpg)
 
 通过radix tree可以解决大文件page页查询问题。在Linux的实现过程中，EXT3写操作处理函数会调用generic_file_buffered_write完成page页缓存写过程。在该函数中，其实现逻辑说明如下：
 
@@ -153,7 +153,7 @@ EXT3文件系统是Linux中使用最为广泛的一个文件系统，其在EXT2�
 
 在设计一个文件系统的时候，需要考虑很多方面的问题，上述仅仅是列出了一些基本点，针对不同的文件系统，会有很多的具体问题。例如对于淘宝的TFS集群文件系统，由于系统前端采用了大量的缓存，从而使得TFS的输入全是大文件，因此可以采用大文件设计思想对其进行优化。比如减少目录层次，这样在检索一个文件的时候，不需要花费太多的时间，这种处理可以提升系统性能。另一个例子是中科蓝鲸的BWFS在非线编领域的应用。BWFS是一个带外的集群存储系统，是一种SAN集群文件系统。这种文件系统架构的最大好处是可扩展性极高，由于元数据和数据IO流分离，所以，在很多应用中可以得到很高的集群性能。但是，这种架构也有一个问题，当应用文件以小文件为主的时候，元数据服务器会成为整个系统的性能瓶颈。因为，Client在访问一个文件的时候首先需要访问元数据服务器获取具体的块地址信息。
 
-![p4](/images/io-life/4.jpg)
+![p4](../images/io-life/4.jpg)
 
 为了解决这个问题，文件系统设计人员需要对小文件这一个问题进行优化，其采用的策略是在Client进行元数据缓存。通过元数据缓存可以减少元数据访问的频率，自然就解决了这个系统性能瓶颈点问题。
 
@@ -163,7 +163,7 @@ EXT3文件系统是Linux中使用最为广泛的一个文件系统，其在EXT2�
 
 EXT3将整个磁盘空间划分成多个块组，每个块组都采用元数据信息对其进行描述。块组内的具体格式可以描述如下：
 
-![p5](/images/io-life/5.jpg)
+![p5](../images/io-life/5.jpg)
 
 从上图我们可以看出一个块组内的基本信息包括：
 
@@ -209,7 +209,7 @@ static void __set_page_dirty(struct page *page,
 
 - 1）在radix tree中设置需要回写的page页为dirty。我们知道Linux为了加速dirty页的检索，在radix tree中采用了tag机制。Tag本质上就是一种flag，radix tree的每层都有tag，上层的tag信息是下层信息的汇总。所以，如果radix tree中没有脏页，那么最顶层的tag就不会被标识成dirty。如果radix tree中有脏页，脏页所在的那条分支tag才会出现dirty flag。显然，采用这种方法可以加速脏页的检索。如下图所示，如果0x00000010地址所在的page页为脏，那么其所在的访问路径会被标识成Dirty，而其他的路径不受影响。因此，文件系统在查询脏页的时候，会节省很多的检索时间。
 
-![p6](/images/io-life/6.jpg)
+![p6](../images/io-life/6.jpg)
 
 - 2）将文件inode标识成dirty。通过__mark_inode_dirty函数将文件inode设置成脏，并且将该inode交给回写线程进行处理。通知回写线程的处理方式比较简单，直接将该inode挂载到writeback线程调度处理的inode链表中。我们知道，每个设备都会有一个writeback线程处理脏页回写过程，每个writeback都会维护一条需要处理的inode链表。当writeback线程被唤醒之后，其会从inode链表中获取需要处理的inode，并且从该inode所在的radix树中获取脏页，然后生成IO将数据写入磁盘。对于EXT3文件系统而言，其一定会架构在一个块设备之上，因此，在mount文件系统的时候，会将底层块设备的writeback对象（bdi）告诉给EXT3文件系统的root_inode。这样文件系统内部的inode需要进行回写数据时，直接将该inode设置成dirty，然后通过root_inode获取writeback，并且将需要处理的inode挂载到任务链表中，最后唤醒writeback线程进行数据回写操作。
 
@@ -219,7 +219,7 @@ EXT3所在设备的writeback线程被唤醒之后会将文件中的dirty page页
 
 - 1）将数据写入page cache，每个文件都会采用一个radix tree对page页进行高效检索管理。当数据被写入page页之后，需要将该页标识成dirty，说明该页中有新的数据需要刷新到磁盘。为了提高radix tree检索dirty page的性能，Linux采用了Tag机制。当page页被标识成dirty之后，需要将该inode加入到对应的writeback线程任务处理队列中，等待writeback线程调度处理。Radix tree和writeback之间的关系如下图所示。
 
-![p7](/images/io-life/7.jpg)
+![p7](../images/io-life/7.jpg)
 
 - 2）每个块设备都会有一个writeback内核线程处理page cache/buffer的回写任务。当该线程被调度后，会检索对应inode的radix tree，获取所有的脏页，然后调用块设备接口将脏数据回写到磁盘。
 
@@ -653,7 +653,7 @@ Elevator子系统是IO 路径上非常重要的组成部分，前面已经分析
 
 通过上面分析，一个IO在经过块设备层处理之后，终于来到了elevator层。我们熟知，一个request在送往设备之前会被放入到每个设备所对应的request queue。其实，通过分析一个IO在elevator层其实会经过很多request queue，不同的request queue会有不同的作用。如下图所示，一个IO在经历很多层queue的调度处理之后，最后才能达到每个设备的request queue。Linux中各个request queue之间的关系如下图所示：
 
-![p8](/images/io-life/8.jpg)
+![p8](../images/io-life/8.jpg)
 
 在Linux-3.2中，已经采用新的unplug机制对请求进行批量unplug处理，相对于2.6.23 kernel这是新的一层。在老Kernel中，没有这层unplug机制，request请求可以直接进入elevator，然后通过内核中的unplug定时器对elevator中的request进行unplug调度处理。在新kernel中，每个线程可以对自己的request进行unplug调度处理。例如，ext3文件系统的writeback线程可以主动unplug自己的request，这种application awareness的方法可以最大限度的减少请求处理的延迟时间。
 
@@ -661,7 +661,7 @@ Elevator子系统是IO 路径上非常重要的组成部分，前面已经分析
 
 通过分析，我们已经知道Request在三类request queue中被调度处理，其主要处理时机点可以描述如下：
 
-![p9](/images/io-life/9.jpg)
+![p9](../images/io-life/9.jpg)
 
 在一般的请求处理过程中，request被创建并且会被挂载到unplug request queue中，然后通过flush request方法将request从unplug request queue中移至elevator request queue中。当一个新的BIO需要被处理时，其可以在unplug request queue或者elevator request queue中进行合并。当需要将请求发送到底层设备时，可以通过调用run_queue的方法将elevator分类处理过的request转移至device request queue中，最后调用scsi_dispatch_cmd方法将请求发送到HBA。在这个过程有一些问题需要处理：底层设备可能存在故障；HBA的处理队列是有长度限制的。因此，如何连续调度device request queue及重新调度request成了一个需要考虑的问题。在Linux中，如果scsi层需要重新调度一个request，可以通过blk_requeue_request接口来完成。通过该接口，可以把request重新放回到device request queue中。另外，在一个request结束之后的回调函数中，需要通过scsi_run_queue函数来再次调度处理device request queue中的剩余请求，从而可以保证批量处理device request queue中的请求，HBA也一直运行在最大的queue depth深度。
 
@@ -957,7 +957,7 @@ Deadline这种调度器对读写request进行了分类管理，并且在调度�
 
 Deadline这种调度算法的基本思想可以采用下图进行描述：
 
-![p10](/images/io-life/10.jpg)
+![p10](../images/io-life/10.jpg)
 
 读写请求被分成了两个队列，并且采用两种方式将这些request管理起来。一种是采用红黑树（RB tree）的方式将所有request组织起来，通过request的访问地址作为索引；另一种方式是采用队列的方式将request管理起来，所有的request采用先来后到的方式进行排序，即FIFO队列。每个request会被分配一个time stamp，这样就可以知道这个request是否已经长时间没有得到调度，需要优先处理。在请求调度的过程中，读队列是优先得到处理的，除非写队列长时间没有得到调度，存在饿死的状况。
 
@@ -1096,7 +1096,7 @@ IO的QoS控制是非常必要的，在同一系统中，不同进程/线程所�
 
 为了更好的理解CFQ算法的整个框架，需要理清几个关键数据结构之间的关系，下图是cfq_group，cfq_data，cfq_queue，ioc，cfq_ioc，blkio_cgroup以及blkio_group数据结构之间的关系图。
 
-![p11](/images/io-life/11.jpg)
+![p11](../images/io-life/11.jpg)
 
 通过上图，我们可以知道ioc是每个线程所拥有的IO上下文（context），由于一个线程可以对多个磁盘设备进行操作，因此，每个线程会对每个正在操作的磁盘对象创建一个cfq_ioc。在cfq_ioc中会保存与这个磁盘设备相关的策略对象cfq_group以及IO调度对象cfq_queue。因此，当一个线程往一个磁盘设备进行写操作时，可以通过IO上下文获取这个request所应该附属的策略对象cfq_group和调度对象cfq_queue。
 
@@ -1110,7 +1110,7 @@ CFQ算法是针对一个磁盘设备的，即每个磁盘设备都会管理一�
 
 理清楚cfq算法中关键数据结构之间的关系之后，最重要的问题就是如何实现request的调度处理。下图展示了cfq中各层对象的调度处理方法。
 
-![p12](/images/io-life/12.jpg)
+![p12](../images/io-life/12.jpg)
 
 在调度一个request时，首先需要选择一个一个合适的cfq_group。Cfq调度器会为每个cfq_group分配一个时间片，当这个时间片耗尽之后，会选择下一个cfq_group。每个cfq_group都会分配一个vdisktime，并且通过该值采用红黑树对cfq_group进行排序。在调度的过程中，每次都会选择一个vdisktime最小的cfq_group进行处理。
 
@@ -1233,17 +1233,17 @@ keep_queue:
 
 辗转反侧，一个IO终于从应用层达到了IO Scheduler层，并且经过scheduler调度处理之后准备前往SCSI层，向目的地Disk方向前进。一个IO历尽千辛万苦从应用层来到IO调度器，正准备调度走，回眸往事，不禁潸然泪下，路漫漫，一路走来真是不易！从应用层走到文件系统；在文件系统的Cache中停留许久之后，又被Writeback线程写入到块设备层；经过块设备层的调度处理之后，终于来到IO调度层；经过IO层严格调度之后，最终得到机会往SCSI协议层奔去。不就是一个IO操作吗？居然要经过这么多层的调度处理，想到这里，IO难免会觉得委屈，但不管怎样，从IO调度器出来之后，IO还是可以春风得意地奔向SCSI协议层的怀抱，在那里准备打包，并梦想着乘坐高速列车驶向心仪已久的目的地——Disk Drive。
 
-![p13](/images/io-life/13.jpg)
+![p13](../images/io-life/13.jpg)
 
 春风得意的IO那里知道，他其实是一个幸运儿，他才走了很短的路程，未来的路还很漫长。更为幸运的是，他前面走过的路非常的平顺，其实没有太多的波折，是每个IO都会经历的过程。通常来讲，在很多高端的存储系统中，一个IO在块设备层会经历更多的软件层，这些软件层可以被称之为块设备层的IO堆栈。
 
 块设备的IO堆栈包括SSD缓存系统、卷管理器、Snapshot快照系统、CDP持续数据保护系统、RAID磁盘阵列系统。这些软件层可以堆叠在一起，也可以单独存在。在一个后端存储系统中，SSD缓存系统、Snapshot、卷管理、RAID磁盘阵列往往会被堆叠在一起，从而构成一套高性能、高可用、易管理的存储系统。一个具有完整IO堆栈的系统层次结构如下图所示：
 
-![p14](/images/io-life/14.jpg)
+![p14](../images/io-life/14.jpg)
 
 近几年SSD的发展的确飞速迅猛，其最大表现在于大容量的Nand Flash存储芯片的研发和SSD Firmware的推进发展。Nand Flash技术在电子技术领域其实不是一个新东西，很早就采用了。但是，那时候的Nand Flash性能和容量远远不如现在，那时Nand Flash仅仅作为电子系统设计中的一个持久化数据保存地，我在10多年前就西门子合作采用Nand Flash来设计存储高速公路收费信息的系统，将Nand Flash作为一个裸磁盘使用。另外，在航天航空领域也会采用Nand Flash来替代机械硬盘，但是性能很一般，诸如DOM卡、USB存储之类的东西。随着Nand Flash制造工艺的不断突破，存储容量不断增大。基于Nand Flash的SSD终于诞生了，并且曾经一度想替代存储领域的主角——机械硬盘。SSD的最大优点在于随机读写性能强，不存在机械寻道时间，因此具有很高的IOPS和带宽。当然，节能、可靠性也是SSD一大优点。SSD的最大缺点在于使用寿命，每个Flash块都存在擦写次数的限制，会影响数据存储的安全性。另外，Nand Flash在写操作时会存在写放大等问题，这个问题会影响到SSD的小写性能以及使用寿命。因此，如何解决SSD本身存在的这些问题是SSD研发的重点，各个SSD公司都会设计自己的Firmware来应对这些问题。正是因为这个原因，SSD Firmware是一个SSD公司的核心技术机密。从外部使用者的角度来看，SSD比机械磁盘具有更好的随机/顺序读写性能，但是容量远远小于磁盘，所以在短时间内无法采用SSD整体替换磁盘系统，除非是一些规模不是很大的存储应用系统。为了更好的结合SSD和磁盘，可以将SSD作为一种缓存系统应用于磁盘存储系统之上。大家知道，在现有的存储架构下，内存作为磁盘存储系统的Cache，那么引入SSD之后，可以将SSD作为磁盘存储的二级Cache。正是这个原因，在目前的很多存储系统中都会加入SSD缓存系统作为读Cache，或者作为数据自动分层的高效存储资源。SSD缓存层加入之后，对于很多应用可以极大提高系统的IOPS和IO带宽。
 
-![p15](/images/io-life/15.jpg)
+![p15](../images/io-life/15.jpg)
 
 大家知道snapshot是一种快照系统，为了达到数据在时间轴上可回滚的目的，可以采用snapshot的技术对数据在时间轴上做切片。如果用户想要回滚到历史上某个时间点的数据集，那么可以采用这个时间点的快照。快照可以在文件系统层实现，也可以在块层达到相同的目的。由于文件系统本身采用inode tree之类的树维护了数据块的映射信息，因此，实现起来相对容易。在块层如果需要实现快照，那么需要数据块映射机制作为支撑。块层快照往往在卷管理器之上实现快照语义，卷管理器可以作为资源块分配机制为快照进行资源动态分配。快照算法通常有写时拷贝COW和写时映射ROW两种，对于不同的应用需求，这两种算法有各自的优缺点。从结构上分，快照有草型快照和链式快照之分，不同的结构有不同的效率和性能。
 
@@ -1251,7 +1251,7 @@ keep_queue:
 
 磁盘阵列RAID技术是大家非常熟悉的技术，其主要目的是用来保护用户数据和提高读写性能。由于RAID技术可以在多个磁盘之间并发IO，因此使得应用IO性能大为提高。另外，在RAID技术中可以采用XOR、RS编码以及擦除码等编解码技术进行数据信息冗余，因此，可以提高数据可靠性。RAID技术从诞生之初到现在已经发展的极为成熟，几乎所有的存储系统都会采用RAID作为系统的数据保护层和性能优化层。下图是1988年Patterson, Gibson和Katz联合发表的RAID学术论文：
 
-![p16](/images/io-life/16.jpg)
+![p16](../images/io-life/16.jpg)
 
 
 通常来讲，一个系统可以采用硬件RAID卡或者纯软件的技术手段来实现RAID功能，在中低端系统中通常都会采用硬件RAID方案来实现RAID功能，但是在高端系统中，都会考虑采用软件的方式来实现RAID功能。软件方式实现RAID功能的优点在于可以根据应用特征实现复杂的数据保护方式。例如，在备份系统中对数据保护的要求比较高，实现的RAID需要比其它RAID具有更强的数据保护能力，因此，软件RAID的方案是一个比较好的选择。伴随着磁盘容量的不断增大，RAID本身存在的问题也越来越突出：一个问题是RAID的数据重构时间变的越来越长；另一个问题是RAID数据重构IO对应用IO性能造成严重影响。为了解决上述RAID问题，传统RAID正面临着架构转型。
@@ -1279,13 +1279,13 @@ keep_queue:
 
 RAID的数据分布是很讲究的。在RAID5之前，所有的校验数据集中在一块磁盘上，此时，这个磁盘就成了校验数据瓶颈。为了解除这种瓶颈，RAID5、RAID将校验数据采用分布是存储的方式。下图是RAID的校验数据分布。
 
-![p17](/images/io-life/17.jpg)
+![p17](../images/io-life/17.jpg)
 
 这种数据分布被称之为左循算法，PQ分布是可以通过条带号计算出来的。从上图我们也可以知道RAID的数据分布和物理磁盘是一一对应的，通过逻辑条带号就可以知道数据在每个物理磁盘上的分布情况。仔细考虑一下，RAID6之类的算法其实是一种数据保护算法，是一种数据编解码算法。传统的RAID将这种数据保护算法和物理磁盘进行了紧耦合绑定，这是传统RAID的一大特征。
 
 其实，数据保护算法完全可以在一种逻辑域中完成，物理磁盘的管理可以在一种物理域中实现。逻辑域和物理域可以通过某种映射关系联系在一起。逻辑域和磁盘物理域拆分的最主要目的是加速数据重构过程，并且可以优化应用层性能一致性的问题。拆分之后的两个域之间关系可以表示如下：
 
-![p18](/images/io-life/18.jpg)
+![p18](../images/io-life/18.jpg)
 
 通过这种架构上的拆分，RAID中的数据分布将会发生本质上的变化。例如一个盘阵系统中有20块磁盘，其中创建了一个RAID5和一个RAID6。那么，通过物理磁盘管理域中allocator的资源分配，RAID5和RAID6 中的数据将会均匀分布在所有的20块磁盘中，而不是RAID5的数据分布在固定10块磁盘上，而RAID6的数据分布在另外10块磁盘上。这种数据布局打破了传统RAID的规则数据分布，带来的最大好处就是提升数据重构性能。通过上述描述，我们可以知道一块物理磁盘上存储的数据涉及到所有数据保护域的RAID。所以，当一块物理磁盘损坏之后，所有的RAID都会参与到数据重构的过程中，而不仅仅是一个RAID的事情了。这就好比传统RAID在处理数据重构时，都是“自家各扫门前雪”，但是，引入新型架构之后，数据重构过程就变成了“众人拾材火焰高”。
 
@@ -1295,17 +1295,17 @@ RAID的数据分布是很讲究的。在RAID5之前，所有的校验数据集�
 
 RAID6算法是RAID实现过程中需要考虑的重要问题，从算法本身来看，RAID6算法是比较简单的：
 
-![p19](/images/io-life/19.jpg)
+![p19](../images/io-life/19.jpg)
 
 P码运算很简单，只需要把所有的数据累加起来就可以了。Q略有复杂，需要涉及到乘法运算。将上面的算式表示成矩阵的形式，表示如下：
 
-![p20](/images/io-life/20.jpg)
+![p20](../images/io-life/20.jpg)
 
 输入数据和编码矩阵的乘积就是我们需要存储的RAID数据。
 
 我们知道CPU的强项不在于算术运算，一次乘法运算需要耗费很多个指令周期，因此，如何避免编解过程中的乘法运算成了RAID技术实现的重点。要做到高效编码，需要引入一个有限域——加逻华域。在加逻华域中，加法运算变成了异或XOR运算，显然能够提高效率。但是，在加逻华域中，乘法运算还是二进制乘法，还具有一定的复杂度，为了将这种乘法运算转换成简单的异或操作，又引入了对数/反对数操作。我们知道，通过对数操作可以将乘法转换成加法操作，这个特性被RAID编解码采用了。例如，A*B的操作就可以通过如下方式进行转换：
 
-![p21](/images/io-life/21.jpg)
+![p21](../images/io-life/21.jpg)
 
 所以，A*B的计算过程可以分解成如下四步：
 
@@ -1653,7 +1653,7 @@ compute_parity（）函数实现如下两个方面的功能：
 
 这两种方法实现的示意图如下：
 
-![p22](/images/io-life/22.jpg)
+![p22](../images/io-life/22.jpg)
 
 （图中假设第2块数据需要更新）
 
@@ -1669,7 +1669,7 @@ RAID5在写的时候有两种方法，一种是读-修改-写操作，另一种�
 
 handle_stripe函数是RAID5驱动中最重要的函数。在RAID5驱动中有三个函数会调用handle_stripe（），如下图所示：
 
-![p23](/images/io-life/23.jpg)
+![p23](../images/io-life/23.jpg)
 
 访问该函数的话可能返回的结果：
 
@@ -1717,7 +1717,7 @@ set_bit(STRIPE_HANDLE, &sh->state);
 
 具体的操作过程可以描述如下：
 
-![p24](/images/io-life/24.jpg)
+![p24](../images/io-life/24.jpg)
 
 - 2、故障发生时清除IO请求
 
@@ -1777,7 +1777,7 @@ RAID5写操作是驱动程序中比较复杂的一块。他通过多次调用han
 
 这两个IO写过程可以用图表示如下：
 
-![p25](/images/io-life/25.jpg)
+![p25](../images/io-life/25.jpg)
 
 写过程的具体描述：
 
@@ -1829,7 +1829,7 @@ towirte    rmw == 0   rcw == 0
 
 写过程的详细描述见下图：
 
-![p26](/images/io-life/26.jpg)
+![p26](../images/io-life/26.jpg)
 
 - 6、IO请求分发功能
 
@@ -1977,7 +1977,7 @@ release_stripe（）函数封装了_release_stripe（）。因此，讨论_relea
 
 从上面的分析中，我们可以看到写操作的第一个步骤是一个pre_read的过程，并且是一个延迟操作的过程。延迟操作往往需要等到handle_list中的stripe处理完成之后，再从delayed_list挂接到handle_stripe中。因为在写操作的第一阶段需要置Wantread标记，调度一个读操作，那么STRIPE_PREREAD_ACTIVE标记必须有效。而该标记的设置在raid5_activate_delayed（）函数中实现。该函数的调用又需要等到handle_list为空（raid5d（）中实现）。这个过程可以描述成如下流程：
 
-![p27](/images/io-life/27.jpg)
+![p27](../images/io-life/27.jpg)
 
 Release_stripe（）函数执行过程：
 
@@ -2054,7 +2054,7 @@ RAID5中涉及的几个list：
 
 几个list的挂接关系可以基本描述如下：
 
-![p28](/images/io-life/28.jpg)
+![p28](../images/io-life/28.jpg)
 
 ### 7、错误处理数据恢复方法
 
@@ -2062,7 +2062,7 @@ RAID需要进行IO的出错处理。在RAID5这个级别可以纠正由于一个
 
 基本的数据恢复过程如下图所示：
 
-![p29](/images/io-life/29.jpg)
+![p29](../images/io-life/29.jpg)
 
 在RAID5系统中，其数据同步/恢复操作分为两个阶段：
 

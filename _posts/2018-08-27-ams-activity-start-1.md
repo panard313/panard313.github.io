@@ -22,7 +22,7 @@ lang: zh-Hans
 
 我们就借鉴其中的例子，进行相应的说明：
 
-![图1](/images/android-n-ams/start-1-1.jpg)
+![图1](../images/android-n-ams/start-1-1.jpg)
 
 上图列出了用户在Android系统上想干的三件事，分别用A、B、C表示。
 
@@ -40,7 +40,7 @@ lang: zh-Hans
 
 对Android的设计理念有一定的了解后，我们看看Android是如何组织Task及它所包含的Activity。
 
-![图2](/images/android-n-ams/start-1-2.jpg)
+![图2](../images/android-n-ams/start-1-2.jpg)
 
 上图为一个比较经典的示例：图中的Task包含4个Activity。用户可以单击按钮跳转到下一个Activity。同时，通过返回键可以回到上一个Activity。
 
@@ -55,7 +55,7 @@ lang: zh-Hans
 这些后台Task内部Activity保持顺序不变。用户可以一次将整个Task挪到后台或置为前台，如下图所示：
 
 
-![图3](/images/android-n-ams/start-1-3.png)
+![图3](../images/android-n-ams/start-1-3.png)
 
 在AMS中，将用ActivityRecord来作为Activity的记录者、TaskRecord作为Task的记录者，TaskRecord中有对应的ActivityStack专门管理ActivityRecord。
 
@@ -71,7 +71,7 @@ Android定义了4种Activity的启动模式，分别为Standard、SingleTop、Si
 
 Standard模式启动Activity的栈结构如下图所示：
 
-![图4](/images/android-n-ams/start-1-4.jpg)
+![图4](../images/android-n-ams/start-1-4.jpg)
 
 - SingleTop模式
 这种模式会考虑当前要激活的Activity实例在任务栈中是否正处于栈顶。
@@ -82,7 +82,7 @@ Standard模式启动Activity的栈结构如下图所示：
 
 SingleTop模式启动Activity的栈结构如下图所示：
 
-![图5](/images/android-n-ams/start-1-5.jpg)
+![图5](../images/android-n-ams/start-1-5.jpg)
 
 注意：当用SingleTop模式启动位于栈顶的Activity时，并不会创建新的Activity，但栈顶Activity的onNewIntent函数将被调用。
 
@@ -101,7 +101,7 @@ SingleTop模式启动Activity的栈结构如下图所示：
 
 SingleTask模式启动Activity的栈结构如下图所示：
 
-![图6](/images/android-n-ams/start-1-6.jpg)
+![图6](../images/android-n-ams/start-1-6.jpg)
 
 - SingleInstance模式
 SingleInstance模式是一种加强版的SingleTask模式，它除了具有SingleTask所有的特性外，还加强了一点，那就是具有此模式的Activity只能单独地位于一个任务栈中。
@@ -1804,7 +1804,7 @@ private final void startProcessLocked(......) {
 
 整体来讲，这部分代码的流程基本可以用下图表示：
 
-![图7](/images/android-n-ams/start-1-7.jpg)
+![图7](../images/android-n-ams/start-1-7.jpg)
 
 自己对AMS的驾驭能力还不够，不能较好地精炼出最核心的流程，因此这部分分析不够简洁，
 目前的分析只能算作一个代码阅读笔记，如有不恰当的地方，欢迎指正。

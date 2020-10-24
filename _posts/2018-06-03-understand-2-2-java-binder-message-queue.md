@@ -86,7 +86,7 @@ frameworks/base/core/jni/android_app_NativeActivity.cpp
 
 如果读者读过卷I第6章“深入理解Binder”，相信就不会对Binder架构中代表Client的Bp端及代表Server的Bn端感到陌生。Java层中Binder实际上也是一个C/S架构，而且其在类的命名上尽量保持与Native层一致，因此可认为，Java层的Binder架构是Native层Binder架构的一个镜像。Java层的Binder架构中的成员如图2-1所示。
 
-![图2-1  Java层中的Binder家族](/images/understand2/2-1.png)
+![图2-1  Java层中的Binder家族](../images/understand2/2-1.png)
 
 由图2-1可知：
 
@@ -550,7 +550,7 @@ sp<IBinder> ibinderForJavaObject(JNIEnv*env, jobject obj)
 
 图2-2展示了Java Binder、JavaBBinderHolder和JavaBBinder的关系。
 
-![图2-2 JavaBinder、JavaBBinderHolder和JavaBBinder三者的关系](/images/understand2/2-2.png)
+![图2-2 JavaBinder、JavaBBinderHolder和JavaBBinder三者的关系](../images/understand2/2-2.png)
 
 从图2-2可知：
 
@@ -639,7 +639,7 @@ caseSTART_ACTIVITY_TRANSACTION:
 
 通过这种方式，来自客户端的请求就能传递到正确的Java Binder对象了。图2-3展示AMS响应请求的整个流程。
 
-![图2-3  AMS响应请求的流程](/images/understand2/2-3.png)
+![图2-3  AMS响应请求的流程](../images/understand2/2-3.png)
 
 图2-3中，右上角的大方框表示AMS这个对象，其间的虚线箭头表示调用子类重载的函数。
 
@@ -647,7 +647,7 @@ caseSTART_ACTIVITY_TRANSACTION:
 
 图2-4展示了Java层的Binder架构。
 
-![图 2-4  Java层Binder架构](/images/understand2/2-4.png)
+![图 2-4  Java层Binder架构](../images/understand2/2-4.png)
 
  根据图2-4可知：
 
@@ -1338,7 +1338,7 @@ void Looper::sendMessageAtTime(nsecs_t uptime,
 
 MessageQueue只是消息处理大家族的一员，该家族的成员合照如图2-5所示。
 
-![图2-5  消息处理的家族合照](/images/understand2/2-5.png)
+![图2-5  消息处理的家族合照](../images/understand2/2-5.png)
 
 结合前述内容可从图2-5中得到：
 

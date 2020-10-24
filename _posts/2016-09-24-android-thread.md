@@ -485,7 +485,7 @@ mCanCallJava在Thread对象创建时，在构造函数中默认设置mCanCallJav
 
 Native线程中是否可以执行Java代码的区别，在于通过javaThreadShell()方法从而实现在_threadLoop()执行前后增加分别将当前线程增加hook到虚拟机和从虚拟机移除的功能。调用过程：
 
-![android_thread_create](/images/process/android-thread-create.jpg)
+![android_thread_create](../images/process/android-thread-create.jpg)
 
 1. Native线程(Java版)：该过程相对比较复杂，见如上流程图：
 2. Native线程： 相对简单，只有上图中的紫色部分：thread.run ->  androidCreateRawThreadEtc ->   _threadLoop

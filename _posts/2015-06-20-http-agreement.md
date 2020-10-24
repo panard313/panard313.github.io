@@ -14,7 +14,7 @@ tags:
 
 ### 1.消息格式
 
-![http request](/images/http/request_header.png)
+![http request](../images/http/request_header.png)
 
 一个完整的 HTTP/1.1消息格式分三部分：
 
@@ -75,7 +75,7 @@ HTTP/1.1协议共定义八种请求方法：
 
 ### 1.消息格式
 
- ![http response](/images/http/response_header.png)
+ ![http response](../images/http/response_header.png)
 
 一个完整的 HTTP/1.1消息格式分三部分：
 

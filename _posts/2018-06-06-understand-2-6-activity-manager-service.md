@@ -71,7 +71,7 @@ AMS是本书碰到的第一块难啃的骨头[①]，涉及的知识点较多。
 先来看AMS的家族图谱，如图6-1所示。
 
 
-![图6-1  AMS家族图谱](/images/understand2/6-1.png)
+![图6-1  AMS家族图谱](../images/understand2/6-1.png)
 
 由图6-1可知：
 -  AMS由ActivityManagerNative（以后简称AMN）类派生，并实现Watchdog.Monitor和BatteryStatsImpl.BatteryCallback接口。而AMN由Binder派生，实现了IActivityManager接口。
@@ -383,7 +383,7 @@ public ContextImpl getSystemContext() {
 
 
 
-![图6-2  ContextImpl和它的“兄弟”们](/images/understand2/6-2.png)
+![图6-2  ContextImpl和它的“兄弟”们](../images/understand2/6-2.png)
 
 由图6-2可知：
 -  先来看派生关系， ApplicationContentResolver从ConentResolver派生，它主要用于和ContentProvider打交道。ContextImpl和ContextWrapper均从Context继承，而Application则从ContextWrapper派生。
@@ -416,7 +416,7 @@ Android运行环境是构建在进程之上的。有Android开发经验的读者
 
 
 
-![图6-3  Context家族图谱](/images/understand2/6-3.png)
+![图6-3  Context家族图谱](../images/understand2/6-3.png)
 
 由图6-3可知：
 
@@ -468,7 +468,7 @@ AMS的main函数的目的有两个：
 
 
 
-![图6-4  ActivityThread和ContextImpl的部分成员变量](/images/understand2/6-4.png)
+![图6-4  ActivityThread和ContextImpl的部分成员变量](../images/understand2/6-4.png)
 
 由图6-4可知：
 -  ActivityThread中有一个mLooper成员，它代表一个消息循环。这恐怕是ActivityThread被称做“Thread”的一个直接证据。另外，mServices用于保存Service，Activities用于保存ActivityClientRecord，mAllApplications用于保存Application。关于这些变量的具体作用，以后遇到时再说。
@@ -600,7 +600,7 @@ AMS如何与应用进程交互？例如AMS启动一个位于其他进程的Activ
 
 
 
-![图6-5  ApplicationThread类](/images/understand2/6-5.png)
+![图6-5  ApplicationThread类](../images/understand2/6-5.png)
 
 由图6-5可知：
 
@@ -687,7 +687,7 @@ AMS中有两个成员变量用于保存ProcessRecord，一个是mProcessNames，
 
 
 
-![图6-6  mPidsSelfLocked和mProcessNames数据结构示意图](/images/understand2/6-6.png)
+![图6-6  mPidsSelfLocked和mProcessNames数据结构示意图](../images/understand2/6-6.png)
 
 #### 3.  AMS的setSystemProcess总结
 
@@ -831,7 +831,7 @@ queryContentProviders函数很简单，就是从PKMS那里查找满足条件的P
 
 
 
-![图6-7  SettingsProvider的AndroidManifest.xml文件示意](/images/understand2/6-7.png)
+![图6-7  SettingsProvider的AndroidManifest.xml文件示意](../images/understand2/6-7.png)
 
 由图6-7可知，SettingsProvider设置了其uid为“android.uid.system”，同时在application中设置了process名为“system”。而在framework-res.apk中也做了相同的设置。所以，现在可以确认SettingsProvider将和framework-res.apk运行在同一个进程，即SystemServer中。
 
@@ -849,7 +849,7 @@ AMS及ProcessRecord均使用了一个新的数据结构ContentProviderRecord来�
 
 
 
-![图6-8  ContentProvicerRecord及相应的“管理团队”](/images/understand2/6-8.png)
+![图6-8  ContentProvicerRecord及相应的“管理团队”](../images/understand2/6-8.png)
 
 由图6-8可知：
 
@@ -1009,7 +1009,7 @@ private IContentProvider installProvider(Contextcontext,
 
 
 
-![图6-9  ActivityThread中ContentProvider涉及的数据结构](/images/understand2/6-9.png)
+![图6-9  ActivityThread中ContentProvider涉及的数据结构](../images/understand2/6-9.png)
 
 由图6-9可知：
 
@@ -1594,7 +1594,7 @@ mMainStack为AMS的成员变量，类型为ActivityStack，该类是Activity调�
 
 
 
-![图6-10  用户想干什么](/images/understand2/6-10.png)
+![图6-10  用户想干什么](../images/understand2/6-10.png)
 
 图6-10列出了用户在Android系统上想干的三件事情，分别用A、B、C表示，将每一件事情称为一个Task。一个Task还可细分为多个子步骤，即Activity。
 
@@ -1608,7 +1608,7 @@ mMainStack为AMS的成员变量，类型为ActivityStack，该类是Activity调�
 
 
 
-![图6-11  Task及Back Stack示例](/images/understand2/6-11.png)
+![图6-11  Task及Back Stack示例](../images/understand2/6-11.png)
 
 由图6-11可知：
 
@@ -1620,7 +1620,7 @@ mMainStack为AMS的成员变量，类型为ActivityStack，该类是Activity调�
 
 
 
-![图6-12  多个Task的情况](/images/understand2/6-12.png)
+![图6-12  多个Task的情况](../images/understand2/6-12.png)
 
 由图6-12可知：对多Task的情况来说，系统只支持一个处于前台的Task，即用户当前看到的Activity所属的Task，其余的Task均处于后台，这些后台Task内部的Activity保持顺序不变。用户可以一次将整个Task挪到后台或者置为前台。
 
@@ -1640,7 +1640,7 @@ Android设计了一个ActivityStack类来负责上述工作，它的组成如图
 
 
 
-![图6-13  ActivityStack及相关成员](/images/understand2/6-13.png)
+![图6-13  ActivityStack及相关成员](../images/understand2/6-13.png)
 
 由图6-13可知：
 
@@ -2503,7 +2503,7 @@ startProcessLocked通过发送消息给Zygote以派生一个应用进程[④]，
 很抱歉，我们现在还处于startActivity分析之旅的中间点，即使越过了很多险滩恶途，一路走来还是发觉有点艰难。此处用图6-14来记录半程中的各个关键点。
 
 
-![图6-14  startActivity半程总结](/images/understand2/6-14.png)
+![图6-14  startActivity半程总结](../images/understand2/6-14.png)
 
 图6-14列出了针对本例的调用顺序，其中对每个函数的大体功能也做了简单描述。
 
@@ -3258,7 +3258,7 @@ final ActivityRecord activityIdleInternal(IBindertoken, boolean fromTimeout,
 
 #### 7.  startActivity分析之后半程总结
 总结startActivity后半部分的流程，主要涉及目标进程和AMS的交互，如图6-15所示。
-![图6-15  startActivity后半程总结](/images/understand2/6-15.png)
+![图6-15  startActivity后半程总结](../images/understand2/6-15.png)
 
 图6-15中涉及16个重要函数调用，而且这仅是startActivity后半部分的调用流程，可见整个流程有多么复杂！
 
@@ -3438,7 +3438,7 @@ AMS没有为stop设置超时消息处理。严格来说，还是有超时限制�
 ##### （5） startPausingLocked总结
 总结startPausingLocked流程，如图6-16所示。
 
-![图6-16  startPausingActivity流程总结](/images/understand2/6-16.png)
+![图6-16  startPausingActivity流程总结](../images/understand2/6-16.png)
 
 图6-16比较简单，读者最好结合代码再把流程走一遍，以加深理解。
 
@@ -3559,7 +3559,7 @@ privateIntent registerReceiverInternal(BroadcastReceiver receiver,
 
 先来看IIntentReceiver，它是一个Interface，图6-17列出了和它相关的成员图谱。
 
-![图6-17  IIntentReceiver相关成员示意图](/images/understand2/6-17.png)
+![图6-17  IIntentReceiver相关成员示意图](../images/understand2/6-17.png)
 
 由图6-17可知：
 
@@ -3642,7 +3642,7 @@ public Intent registerReceiver(IApplicationThreadcaller, String callerPackage,
 ```
 以上代码的流程倒是很简单，不过其中出现的几个成员变量和数据类型却严重阻碍了我们的思维活动。先解决它们，BroadcastFilter及相关成员变量如图6-18所示。
 
-![图6-18  BroadcastFilter及相关成员变量](/images/understand2/6-18.png)
+![图6-18  BroadcastFilter及相关成员变量](../images/understand2/6-18.png)
 
 结合代码，对图6-18中各数据类型和成员变量的作用及关系的解释如下：
 
@@ -3691,7 +3691,7 @@ returnsticky;
 
 
 
-![图6-19  BroadcastReceiver及相关变量](/images/understand2/6-19.png)
+![图6-19  BroadcastReceiver及相关变量](../images/understand2/6-19.png)
 
 图6-19比较简单，读者可自行研究。
 
@@ -4273,7 +4273,7 @@ public void finishReceiver(IBinder who, intresultCode, String resultData,
 
 
 
-![图6-20  Broadcast处理流程](/images/understand2/6-20.png)
+![图6-20  Broadcast处理流程](../images/understand2/6-20.png)
 
 在图6-20中，将调用函数所属的实际对象类型标注了出来，其中第11步的MyBroadcastReceiver为本例中所注册的广播接收者。
 
@@ -4321,7 +4321,7 @@ startService调用轨迹如图6-21和图6-22所示。
 
 
 
-![图6-21  startService流程图之一](/images/understand2/6-21.png)
+![图6-21  startService流程图之一](../images/understand2/6-21.png)
 
 图6-21列出了和startService相关的调用流程。在这个流程中，可假设Service所对应的进程已经存在。
 
@@ -4329,7 +4329,7 @@ startService调用轨迹如图6-21和图6-22所示。
 
 
 
-![图6-22  startService中相关Message的处理流程](/images/understand2/6-22.png)
+![图6-22  startService中相关Message的处理流程](../images/understand2/6-22.png)
 
 注意图6-21和图6-22中也包含了bindService的处理流程。在实际分析时，读者可分开研究bindService和startService的处理流程。
 
@@ -5126,7 +5126,7 @@ updateOomAdjLocked调用点很多，这里给出其中一个updateOomAdjLocked�
 
 
 
-![图6-23  updateOomAdjLocked函数的调用点统计图](/images/understand2/6-23.png)
+![图6-23  updateOomAdjLocked函数的调用点统计图](../images/understand2/6-23.png)
 
 注意，图6-23统计的是updateOomAdjLocked(ProcessRecord)函数的调用点。从该图可知，此函数被调用的地方较多，这也说明AMS非常关注应用进程的状况。
 
@@ -5529,11 +5529,11 @@ if(restart) {//如果需要重启，则调用startProcessLocked处理它
 
 分析完整个处理流程，有些读者或许会咂舌。应用进程的诞生是一件很麻烦的事情，没想到应用进程的善后工作居然也很费事，希望各个应用进程能活得更稳健点儿。
 
-图6-24展示了应用进程进行Crash处理的流程。](/images/understand2/6-5.png)
+图6-24展示了应用进程进行Crash处理的流程。](../images/understand2/6-5.png)
 
 
 
-![图6-24  应用进程的Crash处理流程](/images/understand2/6-24.png)
+![图6-24  应用进程的Crash处理流程](../images/understand2/6-24.png)
 
  
 

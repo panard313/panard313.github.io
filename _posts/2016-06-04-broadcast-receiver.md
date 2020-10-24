@@ -1720,7 +1720,7 @@ ATP位于system_server进程，是Binder Bp端通过Binder驱动向Binder Bn端�
 
 最后,通过一幅图来总结整个广播处理过程. 点击查看[大图](https://panard313.github.io//images/ams/send_broadcast.jpg)
 
-![send_broadcast](/images/ams/send_broadcast.jpg)
+![send_broadcast](../images/ams/send_broadcast.jpg)
 
 #### 5.2.1 并行广播
 

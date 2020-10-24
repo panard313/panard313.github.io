@@ -139,11 +139,11 @@ REST是使用标准的HTTP方法来操作资源的，但仅仅因此就理解成
 
 下面展示的是github获取某个组织下的项目列表的请求，可以看到在响应头里边增加Link头告诉客户端怎么访问下一页和最后一页的记录。 而在响应体里边，用url来链接项目所有者和项目地址。
 
-![get](/images/http-restful/1.jpg)
+![get](../images/http-restful/1.jpg)
 
 又例如下面这个例子，创建订单后通过链接引导客户端如何去付款。
 
-![get](/images/http-restful/2.jpg)
+![get](../images/http-restful/2.jpg)
 
 上面的例子展示了如何使用超媒体来增强资源的连通性。很多人在设计RESTful架构时，使用很多时间来寻找漂亮的URI，而忽略了超媒体。所以，应该多花一些时间来给资源的表述提供链接，而不是专注于"资源的CRUD"。
 

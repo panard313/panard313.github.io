@@ -67,7 +67,7 @@ media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
 在Native层的服务以media服务为例，来说一说服务注册过程，先来看看media的整个的类关系图。
 点击查看[大图](https://panard313.github.io/images/binder/addService/add_media_player_service.png)
 
-![add_media_player_service](/images/binder/addService/add_media_player_service.png)
+![add_media_player_service](../images/binder/addService/add_media_player_service.png)
 
 图解：
 
@@ -82,7 +82,7 @@ media入口函数是`main_mediaserver.cpp`中的`main()`方法，代码如下：
 
 点击查看[大图](https://panard313.github.io/images/binder/addService/addService.jpg)
 
-![addService](/images/binder/addService/addService.jpg)
+![addService](../images/binder/addService/addService.jpg)
 
 ## 二. ProcessState
 
@@ -1074,7 +1074,7 @@ binder_write进入binder驱动后，将BC_FREE_BUFFER和BC_REPLY命令协议发�
 
 Media服务注册的过程涉及到MediaPlayerService(作为Client进程)和Service Manager(作为Service进程)，通信流程图如下所示：
 
-![media_player_service_ipc](/images/binder/addService/media_player_service_ipc.png)
+![media_player_service_ipc](../images/binder/addService/media_player_service_ipc.png)
 
 
 过程分析：

@@ -29,7 +29,7 @@ ServiceManager本身工作相对简单，其功能：查询和注册服务。 �
 
 ### 1.1 流程图
 
-![create_servicemanager](/images/binder/create_servicemanager/create_servicemanager.jpg)
+![create_servicemanager](../images/binder/create_servicemanager/create_servicemanager.jpg)
 
 启动过程主要以下几个阶段：
 
