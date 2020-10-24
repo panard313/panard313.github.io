@@ -22,7 +22,7 @@ tags:
 
 从模块地角度划分Android整个存储架构：
 
-![arch-vold-mount](../images/io/arch-vold-mount.jpg)
+![arch-vold-mount](/images/io/arch-vold-mount.jpg)
 
 图解：
 
@@ -66,7 +66,7 @@ Vold作为native守护进程，进程名为"/system/bin/vold"，pid=387，通过
 
 (3) 从进程/线程视角来看Android存储架构:
 
-![arch-io-process](../images/io/arch-io-process.jpg)
+![arch-io-process](/images/io/arch-io-process.jpg)
 
 - Java层：采用 `1个主线程`(system_server) + `3个子线程`(VoldConnector, MountService, CryptdConnector)；
 - Native层：采用 `1个主线程`(/system/bin/vold) + `3个子线程`(vold) + `1子进程`(/system/bin/sdcard)；
@@ -80,9 +80,9 @@ Tips: 同一个模块可以运行在各个不同的进程/线程， 同一个进
 
 ### 1.3 类关系图
 
-![vold](../images/io/vold.jpg)
+![vold](/images/io/vold.jpg)
 
-![volume](../images/io/volume.jpg)
+![volume](/images/io/volume.jpg)
 
 上图中4个蓝色块便是前面谈到的核心模块。
 
@@ -369,7 +369,7 @@ MountService线程通过socket发送cmd事件给vold，对于vold守护进程在
 
 #### 2.1.7 小节
 
-![mountservice_socket](../images/io/mountservice_socket.jpg)
+![mountservice_socket](/images/io/mountservice_socket.jpg)
 
 简称表:
 
@@ -517,7 +517,7 @@ sendMsg经过层层调用，进入sendDataLockedv方法
 
 #### 2.2.4 小节
 
-![volume_reset](../images/io/volume_reset.jpg)
+![volume_reset](/images/io/volume_reset.jpg)
 
 ### 2.3 Kernel上报事件
 
@@ -753,7 +753,7 @@ NetlinkManager启动的过程中，会创建并启动NetlinkHandler，在该过�
 
 此处，我们以设备插入为例，来描绘一下整个流程图：
 
-![kernel_process](../images/io/kernel_process.jpg)
+![kernel_process](/images/io/kernel_process.jpg)
 
 ### 2.4 不请自来的广播
 
@@ -946,7 +946,7 @@ onEventLocked增加同步锁，用于多线程并发访问的控制。根据vold
 
 #### 2.4.7 小结
 
-![unsolicited_broadcasts](../images/io/unsolicited_broadcasts.jpg)
+![unsolicited_broadcasts](/images/io/unsolicited_broadcasts.jpg)
 
 ## 三、总结
 

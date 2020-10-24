@@ -66,7 +66,7 @@ PowerManagerService负责Andorid系统中电源管理方面的工作。作为系
 
 先来看直接与PowerManagerService有关的类家族成员，如图5-1所示
 
-![图5-1  PowerManagerService及相关类家族](../images/understand2/5-1.png)
+![图5-1  PowerManagerService及相关类家族](/images/understand2/5-1.png)
 
 由图5-1可知：
 -  PowerManagerService从IPowerManager.Stub类派生，并实现了Watchdog.Monitor及LocalPowerManager接口。PowerManagerService内部定义了较多的成员变量，在后续分析中，我们会对其中比较重要的成员逐一进行介绍。
@@ -1460,7 +1460,7 @@ BatteryStatsService(String filename) {
 
 图5-2展示了BSS及BSImpl的家族图谱。
 
-![图5-2  BSS及BSImpl家族图谱](../images/understand2/5-2.png)
+![图5-2  BSS及BSImpl家族图谱](/images/understand2/5-2.png)
 
 由图5-2可知：
 -  BSS通过成员变量mStats指向一个BSImpl类型的对象。
@@ -1488,7 +1488,7 @@ BSImpl功能是进行电量统计，那么是否存在计量工具呢？答案�
 
 BSImpl一共使用了4种计量工具，如图5-3所示。
 
-![图5-3  计量工具图例](../images/understand2/5-3.png)
+![图5-3  计量工具图例](/images/understand2/5-3.png)
 
 由图5-3可知：
 -  一共有两大类计量工具，Counter用于计数，Timer用于计时。
@@ -1518,7 +1518,7 @@ mVideoOnTimer |StopwatchTimer |使用Video的耗电量
 ##### （2） BatteryStats.Uid介绍
 在Android 4.0中，和进程相关的用电量统计并非以单个PID为划分单元，而是以Uid为组，相关类结构如图5-4所示。
 
-![图5-4  BatteryStats.Uid家族](../images/understand2/5-4.png)
+![图5-4  BatteryStats.Uid家族](/images/understand2/5-4.png)
 
 由图5-4可知：
 -  Wakelock用于统计该Uid对应进程使用wakeLock的情况。
@@ -1674,7 +1674,7 @@ public void publish(Context context) {
 
 在以上代码中，比较有意思的是PowerProfile类，它将解析Android 4.0源码/frameworks/base/core/res/res/xml/power_profile.xml文件。此XML文件存储的是各种操作（和硬件相关）的耗电情况，如图5-5所示。
 
-![图5-5  PowerProfile文件示例](../images/understand2/5-5.png)
+![图5-5  PowerProfile文件示例](/images/understand2/5-5.png)
 
 由图5-5可知，该文件保存了各种操作的耗电情况，以mAh（毫安）为单位。PowerProfile的getNumSpeedSteps将返回CPU支持的频率值，目前在该XML中只定义了一个值，即400MHz。
 

@@ -23,7 +23,7 @@ Android系统将进程做得很友好的封装,对于上层app开发者来说进
 
 Activity, Service, ContentProvider, BroadcastReceiver这四大组件,在启动的过程,当其所承载的进程不存在时需要调用startProcessLocked先创建进程
 
-![component_process](../images/process/component_process.jpg)
+![component_process](/images/process/component_process.jpg)
 
 #### 2.1.1 Activity
 
@@ -272,7 +272,7 @@ Activity, Service, ContentProvider, BroadcastReceiver这四大组件在启动时
 
 进程的创建过程交由系统进程system_server来完成的.
 
-![app_process_ipc](../images/process/app_process_ipc.jpg)
+![app_process_ipc](/images/process/app_process_ipc.jpg)
 
 简称:
 
@@ -1313,6 +1313,6 @@ Activity, Service, ContentProvider, BroadcastReceiver这四大组件,在启动�
 再然后进入重点以startProcessLocked以引线一路讲解整个过程所遇到的核心方法. 在整个过程中有新创建的进程与system_server进程之间的交互过程
 是通过binder进行通信的, 这里有两条binder通道分别为AMP/AMN 和 ATP/ATN.
 
-![start_process](../images/process/start_process.jpg)
+![start_process](/images/process/start_process.jpg)
 
 上图便是一次完整的进程创建过程,app的任何组件需要有一个承载其运行的容器,那就是进程, 那么进程的创建过程都是由系统进程system_server通过socket向zygote进程来请求fork()新进程, 当创建出来的app process与system_server进程之间的通信便是通过binder IPC机制.

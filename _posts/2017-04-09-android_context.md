@@ -34,7 +34,7 @@ tags:
 
 [点击查看大图](https://panard313.github.io/images/context/context.jpg)
 
-![context](../images/context/context.jpg)
+![context](/images/context/context.jpg)
 
 
 图解:

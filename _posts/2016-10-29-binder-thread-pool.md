@@ -447,7 +447,7 @@ Binder主线程的创建是在其所在进程创建的过程一起创建的，�
 
 Binder设计架构中，只有第一个Binder主线程(也就是Binder_1线程)是由应用程序主动创建，Binder线程池的普通线程都是由Binder驱动根据IPC通信需求创建，Binder线程的创建流程图：
 
-![binder_thread_create](../images/binder/binder-thread-pool/binder_thread_create.jpg)
+![binder_thread_create](/images/binder/binder-thread-pool/binder_thread_create.jpg)
 
 每次由Zygote fork出新进程的过程中，伴随着创建binder线程池，调用spawnPooledThread来创建binder主线程。当线程执行binder_thread_read的过程中，发现当前没有空闲线程，没有请求创建线程，且没有达到上限，则创建新的binder线程。
 

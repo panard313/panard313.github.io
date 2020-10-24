@@ -15,7 +15,7 @@ tags:
 
 上一篇文章[startActivity启动过程分析](https://panard313.github.io/2016/03/12/start-activity/)，介绍了startActivity是如何一步步创建的，再来看看生命周期的控制。先来一张官方的Activity状态转换图：
 
-![activity_lifecycle](../images/activity/activity_lifecycle.jpg)
+![activity_lifecycle](/images/activity/activity_lifecycle.jpg)
 
 Activity的生命周期中只有在以下3种状态之一，才能较长时间内保持状态不变。
 
@@ -34,7 +34,7 @@ Activity的生命周期中只有在以下3种状态之一，才能较长时间�
 
 **App进程是应用程序所在进程**，主线程主要负责Activity/Service等组件的生命周期以及UI相关操作都运行在这个线程； 另外，每个App进程中至少会有两个binder线程 ApplicationThread(简称AT)和ActivityManagerProxy（简称AMP），除了下图中所示的线程，其实还有很多线程，比如signal catcher线程等。
 
-![app_process](../images/activity/app_process.jpg)
+![app_process](/images/activity/app_process.jpg)
 
 `Binder`用于不同进程之间通信，由一个进程的Binder客户端向另一个进程的服务端发送事件，比如图中线程2向线程4发送事务；而`handler`用于同一个进程中不同线程的通信，比如图中线程4向主线程发送消息。
 

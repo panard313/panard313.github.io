@@ -301,7 +301,7 @@ SystemServer启动各种服务中最后的一个环节便是AMS.systemReady()，
 
 SystemServiceManager的startBootPhase()贯穿system_server进程的整个启动过程：
 
-![system_server服务启动流程](../images/boot/systemServer/system_server_boot_process.jpg)
+![system_server服务启动流程](/images/boot/systemServer/system_server_boot_process.jpg)
 
 其中`PHASE_BOOT_COMPLETED=1000`，该阶段是发生在Boot完成和home应用启动完毕。系统服务更倾向于监听该阶段，而不是注册广播ACTION_BOOT_COMPLETED，从而降低系统延迟。
 

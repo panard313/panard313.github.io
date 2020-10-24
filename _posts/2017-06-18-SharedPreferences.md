@@ -38,7 +38,7 @@ SP采用xml文件格式来保存数据, 该文件所在目录位于/data/data/<p
 
 [点击查看大图](https://panard313.github.io/images/sp/shared_preference.jpg)
 
-![shared_preference](../images/sp/shared_preference.jpg)
+![shared_preference](/images/sp/shared_preference.jpg)
 
 SharedPreferences与Editor只是两个接口. SharedPreferencesImpl和EditorImpl分别实现了对应接口.
 另外, ContextImpl记录着SharedPreferences的重要数据, 如下:
@@ -51,7 +51,7 @@ SharedPreferences与Editor只是两个接口. SharedPreferencesImpl和EditorImpl
 
 [点击查看大图](https://panard313.github.io/images/sp/shared_preferences_arch.jpg)
 
-![shared_preferences_arch](../images/sp/shared_preferences_arch.jpg)
+![shared_preferences_arch](/images/sp/shared_preferences_arch.jpg)
 
 图解:
 

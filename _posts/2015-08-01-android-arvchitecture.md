@@ -15,7 +15,7 @@ tags:
 
 Android系统体系架构图：
 
-![android architecture](../images/android-arch/1.png)
+![android architecture](/images/android-arch/1.png)
 
 Android系统体系架构分为5层，自顶而下分别是：
 
@@ -40,7 +40,7 @@ Binder Inter-Process Communication(IPC),进程间通信机制允许framework来�
 硬件抽象层（HAL）定义了一个标准接口用于硬件厂商的实现. HAL允许功能实现，而不会影响或修改上层的系统。HAL的实现被打包成模块（.so）文件，并在适当的时候被加载进Android系统。
 
 
-![HAL components](../images/android-arch/2.png)
+![HAL components](/images/android-arch/2.png)
   硬件抽象层组件
 
 - **标准HAL结构**
@@ -58,7 +58,7 @@ HAL的实现被用于构建成模块（.so）文件，并在适当的时机通�
 ## 二、实战
 对于Android的体系结构，通过上面的讲解，还是比较抽象，下面将通过具体的一个模块Audio来举例说明。先展示一张Audio的体系结构图：
 
-![Audio architecture](../images/android-arch/3.png)
+![Audio architecture](/images/android-arch/3.png)
 
 - **Application framework**, 应用程序框架包括使用android.media API与audio硬件交互的app代码。在内部，这个代码调用相应的JNI类来访问与audio硬件交互的native代码。
 

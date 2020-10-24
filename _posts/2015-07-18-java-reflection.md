@@ -106,7 +106,7 @@ Java程序在运行时，运行时系统对每一个对象都有一项类型标�
 ### 1.如何通过反射获取一个类？
 Class.forName(String className); (最常用)
 
-![class newinstance](../images/java-reflect/java_reflect_1.jpg)
+![class newinstance](/images/java-reflect/java_reflect_1.jpg)
 
 ### 2.如何调用私有类，或者类的私有方法或属性？
 - 私有类： 通过getDeclaredConstructor获取constructor，再调用constructor.setAccessible(true);

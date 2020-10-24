@@ -22,7 +22,7 @@ tags:
 先以一幅图来展示AMS管理ContentProvider所涉及的相关数据结构：
 [点击查看大图](https://panard313.github.io/images/ams/provider/content_provider_record.jpg)
 
-![content_provider_record](../images/ams/provider/content_provider_record.jpg)
+![content_provider_record](/images/ams/provider/content_provider_record.jpg)
 
 ### 2.1 ContentProviderRecord
 
@@ -68,6 +68,6 @@ tags:
 
 [点击查看大图](https://panard313.github.io/images/ams/provider/Seq_provider.jpg)
 
-![Seq_provider](../images/ams/provider/Seq_provider.jpg)
+![Seq_provider](/images/ams/provider/Seq_provider.jpg)
 
 更多源码详细过程，见[理解ContentProvider原理](https://panard313.github.io/2016/07/30/content-provider/)

@@ -14,7 +14,7 @@ tags:
 
 系统启动架构图：
 
-![process_status](../images/android-process/android-boot.jpg)
+![process_status](/images/android-process/android-boot.jpg)
 
 上图在[Android系统-开篇](https://panard313.github.io/2016/01/30/android-boot/)中有讲解，是从Android系统启动的角度来分析，本文是从进程/线程的视角来分析该问题。
 
@@ -133,7 +133,7 @@ Zygote本身是一个Native的应用程序，刚开始的名字为“app_process
 
 共享父进程的地址空间的便是子线程，即VSIZE必然相同，否则就是子进程，如下图：
 
-![ps_zygote64](../images/android-process/pt_zygote64_2.png)
+![ps_zygote64](/images/android-process/pt_zygote64_2.png)
 
 图中红色圈起来的便是子线程，其他都是子进程。
 

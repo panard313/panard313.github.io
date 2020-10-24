@@ -25,7 +25,7 @@ Binder作为Android系统提供的一种IPC机制，无论从事系统开发还�
 
 从进程角度来看IPC机制
 
-![binder_interprocess_communication](../images/binder/prepare/binder_interprocess_communication.png)
+![binder_interprocess_communication](/images/binder/prepare/binder_interprocess_communication.png)
 
 每个Android的进程，只能运行在自己进程所拥有的虚拟地址空间。对应一个4GB的虚拟地址空间，其中3GB是用户空间，1GB是内核空间，当然内核空间的大小是可以通过参数配置调整的。对于用户空间，不同进程之间彼此是不能共享的，而内核空间却是可共享的。Client进程向Server进程通信，恰恰是利用进程间可共享的内核内存空间来完成底层通信工作的，Client端与Server端进程往往采用ioctl等方法跟内核空间的驱动进行交互。
 
@@ -33,7 +33,7 @@ Binder作为Android系统提供的一种IPC机制，无论从事系统开发还�
 
 Binder通信采用C/S架构，从组件视角来说，包含Client、Server、ServiceManager以及binder驱动，其中ServiceManager用于管理系统中的各种服务。架构图如下所示：
 
-![ServiceManager](../images/binder/prepare/IPC-Binder.jpg)
+![ServiceManager](/images/binder/prepare/IPC-Binder.jpg)
 
 可以看出无论是注册服务和获取服务的过程都需要ServiceManager，需要注意的是此处的Service Manager是指Native层的ServiceManager（C++），并非指framework层的ServiceManager(Java)。ServiceManager是整个Binder通信机制的大管家，是Android进程间通信机制Binder的守护进程，要掌握Binder机制，首先需要了解系统是如何首次[启动Service Manager](https://panard313.github.io/2015/11/07/binder-start-sm/)。当Service Manager启动之后，Client端和Server端通信时都需要先[获取Service Manager](https://panard313.github.io/2015/11/08/binder-get-sm/)接口，才能开始通信服务。
 
@@ -49,7 +49,7 @@ Binder通信采用C/S架构，从组件视角来说，包含Client、Server、Se
 
 BpBinder(客户端)和BBinder(服务端)都是Android中Binder通信相关的代表，它们都从IBinder类中派生而来，关系图如下：
 
-![Binder关系图](../images/binder/prepare/Ibinder_classes.jpg)
+![Binder关系图](/images/binder/prepare/Ibinder_classes.jpg)
 
 - client端：BpBinder.transact()来发送事务请求；
 - server端：BBinder.onTransact()会接收到相应事务。

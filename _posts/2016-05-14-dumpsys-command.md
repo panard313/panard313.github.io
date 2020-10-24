@@ -81,7 +81,7 @@ tags:
 
     dumpsys activity s com.sina.weibo
 
-![dumpsys_service](../images/tools/dumpsys_service.png)
+![dumpsys_service](/images/tools/dumpsys_service.png)
 
 解读：
 
@@ -95,7 +95,7 @@ tags:
 
      dumpsys activity s com.sina.weibo
 
-![dumpsys_broadcast](../images/tools/dumpsys_broadcast.png)
+![dumpsys_broadcast](/images/tools/dumpsys_broadcast.png)
 
 解读：
 
@@ -109,7 +109,7 @@ tags:
 
     dumpsys activity a com.sina.weibo
 
-![dumpsys_activity_task](../images/tools/dumpsys_activity_task.png)
+![dumpsys_activity_task](/images/tools/dumpsys_activity_task.png)
 
 解读：
 
@@ -121,7 +121,7 @@ tags:
 
     dumpsys activity p com.sina.weibo
 
-![dumpsys_processes](../images/tools/dumpsys_processes.png)
+![dumpsys_processes](/images/tools/dumpsys_processes.png)
 
 - 格式：ProcessRecord{Hashcode pid:进程名/uid}，进程pid=7306，进程名为`com.sina.weibo:PluginP03`，uid=10094.
 - 该进程中还有Services，Connections, Providers, Receivers，可以看出该进程是没有Activity的进程。

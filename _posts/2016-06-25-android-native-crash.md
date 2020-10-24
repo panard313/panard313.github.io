@@ -798,7 +798,7 @@ NativeCrashListener的主要工作：
 
 点击查看[大图](https://panard313.github.io/images/stability/native_crash.jpg)
 
-![native_crash](../images/stability/native_crash.jpg)
+![native_crash](/images/stability/native_crash.jpg)
 
 Native程序通过link连接后，当发生Native Crash时，则kernel会发送相应的`signal`，当进程捕获致命的`signal`，通知`debuggerd`调用`ptrace`来获取有价值的信息(这是发生在crash前)。
 

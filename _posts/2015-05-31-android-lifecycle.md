@@ -13,7 +13,7 @@ tags:
 
 先展示一张Activity的生命周期图：
 
-![activity lifecycle](../images/lifecycle/activity.png)
+![activity lifecycle](/images/lifecycle/activity.png)
 
 
 ### 1.1 Activity状态
@@ -95,7 +95,7 @@ tags:
 
 先展示一张Service的生命周期图：
 
-![service lifecycle](../images/lifecycle/service.png)
+![service lifecycle](/images/lifecycle/service.png)
 
 
 ### 2.1  启动方式：

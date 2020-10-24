@@ -538,7 +538,7 @@ private final void handleAppDiedLocked(ProcessRecord app,
 
 ## 四、总结
 
-![image-1](../images/android-n-ams/crash-1.jpg)
+![image-1](/images/android-n-ams/crash-1.jpg)
 
 整体来讲，Android中进程crash后的处理流程基本上如上图所示。
 这个流程相对来说是比较简单的，唯一麻烦点的地方可能是进程结束后，

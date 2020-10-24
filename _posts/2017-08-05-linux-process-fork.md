@@ -51,7 +51,7 @@ fork, vfork, clone根据不同参数调用do_fork
 当然还有vfork其实也是一样的， 通过系统调用到sys_vfork，然后再调用do_fork方法，该方法
 现在很少使用，所以下图省略该方法。
 
-![do_fork](../images/linux/process/do_fork.jpg)
+![do_fork](/images/linux/process/do_fork.jpg)
 
 fork执行流程:
 
@@ -66,7 +66,7 @@ fork执行流程:
 进程与线程最大的区别在于资源是否共享，线程间共享的资源主要包括内存地址空间，文件系统，已打开文件，信号等信息，
 如下图蓝色部分的flags便是线程创建过程所必需的参数。
 
-![clone_flags](../images/linux/process/clone_flags.jpg)
+![clone_flags](/images/linux/process/clone_flags.jpg)
 
 fork采用Copy on Write机制，父子进程共用同一块内存，只有当父进程或者子进程执行写操作时会拷贝一份新内存。
 另外，创建进程也是有可能失败，比如进程个数达到系统上限(32768)或者系统可用内存不足。

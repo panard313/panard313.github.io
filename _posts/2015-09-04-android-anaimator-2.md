@@ -25,7 +25,7 @@ tags:
 
 图1是在屏幕上进行水平位移的动画，总时间是40ms，移动总距离为40pixels(像素)，每10ms刷新一帧，同时移动10pixels。在第40ms动画结束，停止在水平位置40pixels的位置。整个动画过程采用的是线程插值器（ linear interpolation），意味着以匀速移动。
 
-![linear animation](../images/animator/1.png)
+![linear animation](/images/animator/1.png)
 图1. 线性插值的动画
 
 
@@ -33,14 +33,14 @@ tags:
 
 当然，也可以指定差值器是非线性的，图2采用的是先加速，再减速的差值器。同样是在40ms内移动40pixels。在开始的时候，动画一直加速到一半的距离（20pixels）,然后在减速剩下的一半距离直到动画结束。从图2可以看出，动画的两头的位移量低于中间部门的位移量。
 
-![non-linear animation](../images/animator/2.png)
+![non-linear animation](/images/animator/2.png)
 图2. 非线性插值的动画
 
 
 ### 1.3 动画过程
 图3描述了属性动画在整个过程中，主要类的工作流程：
 
-![animations work](../images/animator/3.jpg)
+![animations work](/images/animator/3.jpg)
 图3. 动画过程
 
 `ValueAnimator`记录动画的运行时间，位移，当前将要绘制的属性。以及

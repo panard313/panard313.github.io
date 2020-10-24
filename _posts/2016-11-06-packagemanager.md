@@ -28,7 +28,7 @@ tags:
 PackageManagerService(简称PKMS)，是Android系统中核心服务之一，管理着所有跟package相关的工作，常见的比如安装、卸载应用。
 PKMS服务也是通过binder进行通信，IPackageManager.aidl由工具转换后自动生成binder的服务端IPackageManager.Stub和客户端IPackageManager.Stub.Proxy，具体关系如图：
 
-![package_manager_service](../images/pkms/package_manager_service.jpg)
+![package_manager_service](/images/pkms/package_manager_service.jpg)
 
 - Binder服务端：PackageManagerService继承于IPackageManager.Stub；
 - Binder客户端：ApplicationPackageManager(简称APM)的成员变量`mPM`继承于IPackageManager.Stub.Proxy;

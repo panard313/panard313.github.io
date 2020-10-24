@@ -392,7 +392,7 @@ if (mBackupTarget != null && app == mBackupTarget.app) {
 
 上面四部分的逻辑基本上如下图所示：
 
-![image-1](../images/android-n-ams/process-3-1.jpg)
+![image-1](/images/android-n-ams/process-3-1.jpg)
 
 
 后续的处理逻辑，仍然满足上述规则。

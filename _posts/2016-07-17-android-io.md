@@ -711,7 +711,7 @@ ReentrantLock的劣势：
 
 这里以一张简单的流程图来说明上述过程:
 
-![volume_reset](../images/io/volume_reset.jpg)
+![volume_reset](/images/io/volume_reset.jpg)
 
 ## 三、Vold
 
@@ -730,9 +730,9 @@ Vold的service定义如下：
 
 接下来便进入Vold的main(),在开启新的征途之前,为了不被代码弄晕,先来用一幅图来介绍下这些核心类之间的关系以及主要方法,以方便更好的往下阅读.
 
-![vold](../images/io/vold.jpg)
+![vold](/images/io/vold.jpg)
 
-![volume](../images/io/volume.jpg)
+![volume](/images/io/volume.jpg)
 
 ### 3.1 main
 

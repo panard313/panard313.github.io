@@ -132,7 +132,7 @@ qemu-system-x86_64 -kernel linux-4.19/arch/x86_64/boot/bzImage -drive file=build
 
 可以看到内核能够正常启动并进入busybox自带的sh，　到这里一个基本的linux系统已经启动成功，可以执行busybox进的所有命令．
 
-![图一：](../images/qemu/qemu-linux-terminal.png)
+![图一：](/images/qemu/qemu-linux-terminal.png)
 
 
 ## 开始debug
@@ -170,11 +170,11 @@ gdb \
 
 内核启动后停住：
 
-![图二:](../images/qemu/qemu-kernel-hangup.png)
+![图二:](/images/qemu/qemu-kernel-hangup.png)
 
 gdb连接后可以看到内核停在init/main.c start_kernel()
 
-![图三:](../images/qemu/qemu-kernel-bp.png)
+![图三:](/images/qemu/qemu-kernel-bp.png)
 
 ### gdb常规操作：
 
@@ -231,7 +231,7 @@ workspace, 以便vscode能够进行kernel全域的代码跳转
 
 如下图：
 
-![vscode](../images/qemu/vscode-debug.png)
+![vscode](/images/qemu/vscode-debug.png)
 
 #### vscode settings:
 

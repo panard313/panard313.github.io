@@ -376,7 +376,7 @@ updateLruProcessLocked函数的第一部分主要是判断：是否需要调整�
 
 这部分的代码相当简单，但从中可以看出LRU中进程排列的规则，基本上可以用下图来表示：
 
-![图1](../images/android-n-ams/process-1.jpg)
+![图1](/images/android-n-ams/process-1.jpg)
 
 
 LRU表按照顺序，重要性逐渐升高，即当系统需要内存时，将优先kill掉排在前面的进程。

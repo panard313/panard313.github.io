@@ -970,11 +970,11 @@ InputReader线程不断循环地执行InputReader.loopOnce(), 每次处理完生
 
 点击查看[大图](https://panard313.github.io/images/input/input_reader_seq.jpg):
 
-![input_reader_seq](../images/input/input_reader_seq.jpg)
+![input_reader_seq](/images/input/input_reader_seq.jpg)
 
 InputReader的核心工作就是从EventHub获取数据后生成EventEntry事件，加入到InputDispatcher的mInboundQueue队列，再唤醒InputDispatcher线程。
 
-![input_reader](../images/input/input_reader.jpg)
+![input_reader](/images/input/input_reader.jpg)
 
 说明:
 

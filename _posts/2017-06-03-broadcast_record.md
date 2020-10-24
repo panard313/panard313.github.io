@@ -32,7 +32,7 @@ tags:
 
 [点击查看大图](https://panard313.github.io/images/ams/broadcast/broadcast_record.jpg)
 
-![broadcast_record](../images/ams/broadcast/broadcast_record.jpg)
+![broadcast_record](/images/ams/broadcast/broadcast_record.jpg)
 
 ### 2.1 BroadcastRecord
 
@@ -64,7 +64,7 @@ BroadcastFilter继承于IntentFilter.
 
 [点击查看大图](https://panard313.github.io/images/ams/broadcast/broadcast_relation1.jpg)
 
-![broadcast_relation1](../images/ams/broadcast/broadcast_relation1.jpg)
+![broadcast_relation1](/images/ams/broadcast/broadcast_relation1.jpg)
 
 - mRegisteredReceivers：类型为HashMap， 其key数据类型为客户端InnerReceiver的Binder Bp端，value为ReceiverList（广播接收者列表）；
   - ReceiverList是一个BroadcastFilter列表；
@@ -106,7 +106,7 @@ queryIntentReceivers()方法来查询指定Intent所对应的ResolveInfo列表�
 ### 3.2 发送过程
 
 [点击查看大图](https://panard313.github.io/images/ams/broadcast/seq_broadcast.jpg)
-![seq_broadcast](../images/ams/broadcast/seq_broadcast.jpg)
+![seq_broadcast](/images/ams/broadcast/seq_broadcast.jpg)
 
 处理过程，根据注册方式不同执行流程略有不同。
 

@@ -12,7 +12,7 @@ tags:
 
 先来看一幅Linux kernel map：点击查看[大图](https://panard313.github.io/images/linux/linux_kernel_map.png)
 
-![linux kernel map](../images/linux/linux_kernel_map.png)
+![linux kernel map](/images/linux/linux_kernel_map.png)
 
 这是makelinux网站提供的一幅非常经典的Linux内核图，涵盖了内核最为核心的方法.
 Linux除了驱动开发外，还有很多通用子系统，比如CPU, memory, file system等核心模块，即便不做底层驱动开发，

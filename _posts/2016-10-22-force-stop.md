@@ -130,7 +130,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
 ### 1.8 小节
 
-![am_force_stop](../images/process/am_force_stop.jpg)
+![am_force_stop](/images/process/am_force_stop.jpg)
 
 进程绝杀技force-stop，并非任意app可直接调用, 否则App间可以相互停止对方，则岂非天下大乱。该方法的存在便是供系统差遣。一般地，点击home弹出的清理用户最近使用app采取的策略便是force-stop.
 
@@ -1484,7 +1484,7 @@ AMP.forceStopPackage来运行在执行adb时所创建的进程，经过Binder Dr
 
 forceStop的功能如下：
 
-![force_stop](../images/process/force_stop.jpg)
+![force_stop](/images/process/force_stop.jpg)
 
 1. Process: 调用AMS.killPackageProcessesLocked()清理该package所涉及的进程;
 2. Activity: 调用ASS.finishDisabledPackageActivitiesLocked()清理该package所涉及的Activity;

@@ -196,9 +196,9 @@ tags:
 
 流程图：
 
-![process-kill-quiet](../images/android-process/process-kill-quiet.jpg)
+![process-kill-quiet](/images/android-process/process-kill-quiet.jpg)
 
-![process-kill-group](../images/android-process/process-kill-group.jpg)
+![process-kill-group](/images/android-process/process-kill-group.jpg)
 
 说明:
 
@@ -505,7 +505,7 @@ tags:
 
 到此Signal信号已发送给目标线程，先用一副图来小结一下上述流程：
 
-![process-kill](../images/android-process/process-kill.jpg)
+![process-kill](/images/android-process/process-kill.jpg)
 
 **图解：**
 
@@ -659,7 +659,7 @@ SignalCatcher是一个守护线程，用于捕获SIGQUIT、SIGUSR1信号，并�
 
 Android系统中，由Zygote孵化而来的子进程，包含system_server进程和各种App进程都存在一个SignalCatcher线程，但是Zygote进程本身是没有这个线程的。
 
-![signal_catcher_thread](../images/android-process/signal_catcher_thread.png)
+![signal_catcher_thread](/images/android-process/signal_catcher_thread.png)
 
 上图是systemui所在进程的部分线程信息，可以看到其中有一个SignalCatcher线程，该线程具体是如何处理信号的呢，请往下继续看。
 
@@ -734,7 +734,7 @@ Android系统中，由Zygote孵化而来的子进程，包含system_server进程
 
 当adb终端输入:`adb -3 10562`，则signal信号传递过程如下：
 
-![kill_3](../images/linux/signal/kill_3.png)
+![kill_3](/images/linux/signal/kill_3.png)
 
 功能：dump桌面App的进程信息。
 
@@ -754,7 +754,7 @@ Android系统中，由Zygote孵化而来的子进程，包含system_server进程
 
 当adb终端输入:`adb -10 10562`，则signal信号传递过程如下：
 
-![kill_10](../images/linux/signal/kill_10.png)
+![kill_10](/images/linux/signal/kill_10.png)
 
 功能：强制桌面App执行gc操作。
 
@@ -770,7 +770,7 @@ Android系统中，由Zygote孵化而来的子进程，包含system_server进程
 
 当adb终端输入:`adb -9 8707`，则signal信号传递过程如下：
 
-![kill_9](../images/linux/signal/kill_9.png)
+![kill_9](/images/linux/signal/kill_9.png)
 
 功能：杀掉手机浏览器进程。
 

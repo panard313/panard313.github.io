@@ -201,7 +201,7 @@ ProcessList.java中定义的oom_adj值较多，由此可见Android对于进程�
 
 这里按照Android对进程的分类，粗略划分一下不同oom_adj对应的场景，以便后文的分析：
 
-![图1](../images/android-n-ams/process-2-1.jpg)
+![图1](/images/android-n-ams/process-2-1.jpg)
 
 这里唯一要注意的是：CACHED_APP_MIN_ADJ和CACHED_APP_MAX_ADJ的分配，跨越了后台进程和Empty进程的范畴。
 
@@ -508,7 +508,7 @@ computeOomAdjLocked函数较长，需要单独用一篇博客介绍。
 
 这一部分代码的流程基本如下图所示：
 
-![图2](../images/android-n-ams/process-2-2.jpg)
+![图2](/images/android-n-ams/process-2-2.jpg)
 
 ### 3 updateOomAdjLocked Part-III
 
@@ -759,7 +759,7 @@ if (memFactor != ProcessStats.ADJ_MEM_FACTOR_NORMAL) {
 
 这部分代码的流程基本如下图所示：
 
-![图3](../images/android-n-ams/process-2-3.jpg)
+![图3](/images/android-n-ams/process-2-3.jpg)
 
 在这一部分的最后，我们看看进程ApplicationThread中的scheduleTrimMemory接口：
 ```java

@@ -22,7 +22,7 @@ Android系统中最为重要的服务便是AMS, AMS管理着framework层面四�
 先以一幅图来展示AMS管理Service所涉及的相关数据结构：
 [点击查看大图](https://panard313.github.io/images/ams/service_record.jpg)
 
-![service_record](../images/ams/service_record.jpg)
+![service_record](/images/ams/service_record.jpg)
 
 图中，从上至下存在简单的包含关系：
 
@@ -92,7 +92,7 @@ ServiceRecord的成员变量app，用于记录当前service运行在哪个进程
 
 #### 2.5 LoadedApk
 
-![loaded_apk](../images/ams/loaded_apk.jpg)
+![loaded_apk](/images/ams/loaded_apk.jpg)
 
 LoadedApk对象，往往运行在client进程，通过其成员变量mServices来记录相关的service信息。不同的Context下，对于同一个
 ServiceConnection会对应唯一的LoadedApk.ServiceDispatcher对象。ServiceDispatcher用于服务分发，即服务连接或死亡事件的派发。
@@ -164,7 +164,7 @@ Service的启动方式主要有startService和bindService的方式.
 
 启动流程图, [点击查看大图](https://panard313.github.io/images/ams/service_lifeline.jpg)
 
-![service_lifeline](../images/ams/service_lifeline.jpg)
+![service_lifeline](/images/ams/service_lifeline.jpg)
 
 #### 3.2.2 bindService
 
@@ -177,7 +177,7 @@ Service的启动方式主要有startService和bindService的方式.
 
 启动流程图, [点击查看大图](https://panard313.github.io/images/ams/bind_service.jpg)
 
-![bind_service](../images/ams/bind_service.jpg)
+![bind_service](/images/ams/bind_service.jpg)
 
 说明：
 

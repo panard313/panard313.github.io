@@ -251,7 +251,7 @@ private Intent registerReceiverInternal(BroadcastReceiver receiver, int userId,
 
 IIntentReceiver对应的继承关系如下图所示：
 
-![图1](../images/android-n-ams/broadcast-1.jpg)
+![图1](/images/android-n-ams/broadcast-1.jpg)
 
 结合上图，我们需要知道的是：
 - 1、BroadcastReceiver收到的广播实际上是AMS发送的，因此BroadcastReceiver与AMS之间必须进行Binder通信。
@@ -516,7 +516,7 @@ AMS需要判断系统中保存的粘性广播中，是否有与该BroadcastRecei
 
 上述代码的整个过程，还是比较好理解的，唯一麻烦一点的就是涉及到了一些数据结构，需要稍微整理一下：
 
-![图2](../images/android-n-ams/broadcast-2.jpg)
+![图2](/images/android-n-ams/broadcast-2.jpg)
 
 在AMS中，BroadcastReceiver的过滤条件由BroadcastFilter表示，如上图所示，该类继承自IntentFilter。
 
@@ -529,7 +529,7 @@ AMS中利用mRegisterdReceivers这个HashMap，来保存广播对应的ReceiverL
 
 这部分流程比较简单，大致如下图所示：
 
-![图3](../images/android-n-ams/broadcast-3.jpg)
+![图3](/images/android-n-ams/broadcast-3.jpg)
 
 ## 三、sendBroadcast流程分析
 分析完广播接收方注册BroadcastReceiver的流程，现在我们来看看广播发送方sendBroadcast的流程。
@@ -929,7 +929,7 @@ if ((receivers != null && receivers.size() > 0)
 
 至此，整个broadcastIntentLocked函数分析完毕，除去一些条件判断的细节外，整个工作流程如下图所示：
 
-![图4](../images/android-n-ams/broadcast-4.jpg)
+![图4](/images/android-n-ams/broadcast-4.jpg)
 
 - 1、处理粘性广播。
 
@@ -1168,7 +1168,7 @@ void performReceiveLocked(.........) {
 
 这一部分整体的流程如下图所示：
 
-![图5](../images/android-n-ams/broadcast-5.jpg)
+![图5](/images/android-n-ams/broadcast-5.jpg)
 
 ### 2 processNextBroadcast函数Part II
 至此，processNextBroadcast函数已经发送完所有的动态普通广播，我们看看该函数后续的流程：
@@ -1325,7 +1325,7 @@ do {
 这一部分整体的判断逻辑大致上如下图所示：
 
 大图链接
-![图6](../images/android-n-ams/broadcast-6.jpg)
+![图6](/images/android-n-ams/broadcast-6.jpg)
 
 ### 3 processNextBroadcast函数Part III
 ```java
@@ -1580,7 +1580,7 @@ if (!badApp && isPendingBroadcastProcessLocked(pid)) {
 
 这一部分整体的流程大致如下图所示：
 
-![图7](../images/android-n-ams/broadcast-7.jpg)
+![图7](/images/android-n-ams/broadcast-7.jpg)
 
 ## 五、应用进程处理广播分析
 最后，我们看看应用进程收到广播处理请求后的流程。
@@ -1744,7 +1744,7 @@ public void finishReceiver(IBinder who, int resultCode, String resultData,
 ```
 这里写图片描述
 
-![图8](../images/android-n-ams/broadcast-8.jpg)
+![图8](/images/android-n-ams/broadcast-8.jpg)
 
 ### 2、静态广播的处理流程
 AMS处理静态广播时，最后通过Binder通信调用的是进程对应ApplicationThread的scheduleReceiver接口：

@@ -200,7 +200,7 @@ public void onServiceConnected(ComponentName name, IBinder service) {
 ### 3 生命周期
 这里写图片描述
 
-![图1](../images/android-n-ams/service-1.jpg)
+![图1](/images/android-n-ams/service-1.jpg)
 
 两种Service生命周期对应的回调函数，可以用上面这张比较经典的图来表示，其中：
 - Unbounded Service回调函数的顺序依次为：onCreate、onStartCommand、onDestroy；
@@ -517,7 +517,7 @@ retrieveServiceLocked函数看起来比较长，但逻辑还是比较清晰的�
 
 ActiveServices中，保存ServiceRecord涉及的数据结构主要如下图所示：
 
-![图2](../images/android-n-ams/service-2.jpg)
+![图2](/images/android-n-ams/service-2.jpg)
 
 ##### 2.1.2 startServiceLocked Part-II
 
@@ -1355,7 +1355,7 @@ private void serviceDoneExecutingLocked(ServiceRecord r, boolean inDestroying,
 
 这部分的流程可以简化为下图：
 
-![图3](../images/android-n-ams/service-3.jpg)
+![图3](/images/android-n-ams/service-3.jpg)
 
 ## 三、Unbounded Service的结束流程
 接下来，我们看看Unbounded Service的结束流程。
@@ -1736,7 +1736,7 @@ public void removeContextRegistrations(Context context,
 至此，Unbounded Service的主要流程分析完毕，在之前分析startService的基础上，理解stopService的流程还是比较容易的。
 以下是stopService中最主要步骤对应的流程图：
 
-![图4](../images/android-n-ams/service-4.jpg)
+![图4](/images/android-n-ams/service-4.jpg)
 
 ## 四、Bounded Service的启动流程
 
@@ -1955,7 +1955,7 @@ bindServiceLocked的第一阶段，主要是进行一些条件检查、根据参
 bindServiceLocked的第二部分看起来比较繁琐，主要进行ConnectionRecord相关的一系列数据结构的更新。
 这些数据结构的关系，大概如下图所示，这里的UML图并不严格，仅表示它们之间的关系：
 
-![图5](../images/android-n-ams/service-5.jpg)
+![图5](/images/android-n-ams/service-5.jpg)
 
 #### 2.3 bindServiceLocked Part-III
 ```java
@@ -2348,7 +2348,7 @@ public void doConnected(ComponentName name, IBinder service) {
 
 至此，Bounded Service的启动流程分析完毕，整个流程可简化为下图：
 
-![图6](../images/android-n-ams/service-6.jpg)
+![图6](/images/android-n-ams/service-6.jpg)
 
 ## 五、Bounded Service的结束流程
 最后，我们来看看Bounded Service结束的流程。
@@ -2581,7 +2581,7 @@ private void handleUnbindService(BindServiceData data) {
 
 至此，Bounded Service结束流程分析完毕，对应的流程图可简化为下图：
 
-![图7](../images/android-n-ams/service-7.jpg)
+![图7](/images/android-n-ams/service-7.jpg)
 
 ## 六、总结
 

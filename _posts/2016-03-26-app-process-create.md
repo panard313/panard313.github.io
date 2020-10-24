@@ -53,7 +53,7 @@ tags:
 
 对于大多数的应用开发者来说创建线程比较熟悉，而对于创建进程并没有太多的概念。对于系统工程师或者高级开发者，还是有很必要了解Android系统是如何一步步地创建出一个进程的。先来看一张进程创建过程的简要图：
 
-![start_app_process](../images/android-process/start_app_process.jpg)
+![start_app_process](/images/android-process/start_app_process.jpg)
 
 图解：
 
@@ -417,7 +417,7 @@ VM_HOOKS是Zygote对象的静态成员变量：VM_HOOKS = new ZygoteHooks();
 #### 7.1 Zygote进程
 
 先说说Zygote进程，如下图：
-![zygote_sub_thread](../images/android-process/zygote_sub_thread.png)
+![zygote_sub_thread](/images/android-process/zygote_sub_thread.png)
 
 从图中可知Zygote进程有4个Daemon子线程分别是ReferenceQueueDaemon，FinalizerDaemon，FinalizerWatchdogDaemon，HeapTaskDaemon。图中线程名显示的并不完整是由于底层的进程结构体`task_struct`是由长度为16的char型数组保存，超过15个字符便会截断。
 
@@ -577,7 +577,7 @@ fork()采用copy on write技术，这是linux创建进程的标准方法，调�
 fork()的主要工作是寻找空闲的进程号pid，然后从父进程拷贝进程信息，例如数据段和代码段，fork()后子进程要执行的代码等。
 Zygote进程是所有Android进程的母体，包括system_server和各个App进程。zygote利用fork()方法生成新进程，对于新进程A复用Zygote进程本身的资源，再加上新进程A相关的资源，构成新的应用进程A。其中下图中Zygote进程的libc、vm、preloaded classes、preloaded resources是如何生成的，可查看另一个文章[Android系统启动-zygote篇](https://panard313.github.io/2016/02/13/android-zygote/#preload)，见下图：
 
-![zygote_fork](../images/boot/zygote/zygote_fork.jpg)
+![zygote_fork](/images/boot/zygote/zygote_fork.jpg)
 
 copy-on-write过程：当父子进程任一方修改内存数据时（这是on-write时机），才发生缺页中断，从而分配新的物理内存（这是copy操作）。
 
@@ -755,7 +755,7 @@ VM_HOOKS.postForkCommon的主要功能是在fork新进程后，启动Zygote的4�
 
 **时序图：** 点击查看[大图](https://panard313.github.io/images/android-process/fork_and_specialize.jpg)
 
-![fork_and_specialize](../images/android-process/fork_and_specialize.jpg)
+![fork_and_specialize](/images/android-process/fork_and_specialize.jpg)
 
 
 到此App进程已完成了创建的所有工作，接下来开始新创建的App进程的工作。在前面ZygoteConnection.runOnce方法中，zygote进程执行完`forkAndSpecialize()`后，新创建的App进程便进入`handleChildProc()`方法，下面的操作运行在App进程。
@@ -1005,7 +1005,7 @@ Process.start()方法是阻塞操作，等待直到进程创建完成并返回�
 
 点击查看[大图](https://panard313.github.io/images/android-process/process-create.jpg)
 
-![process-create](../images/android-process/process-create.jpg)
+![process-create](/images/android-process/process-create.jpg)
 
 上图中，`system_server`进程通过socket IPC通道向`zygote`进程通信，`zygote`在fork出新进程后由于fork**调用一次，返回两次**，即在zygote进程中调用一次，在zygote进程和子进程中各返回一次，从而能进入子进程来执行代码。该调用流程图的过程：
 

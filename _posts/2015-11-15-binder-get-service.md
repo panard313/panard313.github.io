@@ -19,7 +19,7 @@ tags:
 
 点击查看[大图](https://panard313.github.io/images/binder/addService/add_media_player_service.png)
 
-![get_media_player_service](../images/binder/getService/get_media_player_service.png)
+![get_media_player_service](/images/binder/getService/get_media_player_service.png)
 
 图解：
 

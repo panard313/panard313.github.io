@@ -93,12 +93,12 @@ NotificationListenerService继承于Service，该服务是为了给app提供获�
 
 [点击查看大图](https://panard313.github.io/images/notification/notification_class.jpg)
 
-![notification](../images/notification/notification_class.jpg)
+![notification](/images/notification/notification_class.jpg)
 
 #### 1.2.2 通知处理流程图
 [点击查看大图](https://panard313.github.io/images/notification/notification_seq.jpg)
 
-![notification](../images/notification/notification_seq.jpg)
+![notification](/images/notification/notification_seq.jpg)
 
 可见，通知发送与通知取消流程的步骤一直对齐，这里就只介绍通知发送流程，通知取消流程就不再介绍。
 

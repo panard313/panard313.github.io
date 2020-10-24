@@ -51,7 +51,7 @@ GityuanService这个服务运行在remote进程。
 
 [点击查看大图](https://panard313.github.io/images/ams/process_record.jpg)
 
-![process_record](../images/ams/process_record.jpg)
+![process_record](/images/ams/process_record.jpg)
 
 
 #### 2.2 进程与AMS的关联
@@ -131,7 +131,7 @@ provider的代理。此时会在进程A的ProcessRecord.conProviders添加一个
 可见，AMS是整个四大组件最为核心的对象，所有组件都或多或少依赖该对象的数据结构信息。
 关系图如下：[点击查看大图](https://panard313.github.io/images/ams/four_component.jpg)
 
-![four_component](../images/ams/four_component.jpg)
+![four_component](/images/ams/four_component.jpg)
 
 
 #### 3.1 Activity
@@ -281,7 +281,7 @@ AS对象
 
 关系图如下：[点击查看大图](https://panard313.github.io/images/ams/client_component.jpg)
 
-![client_component](../images/ams/client_component.jpg)
+![client_component](/images/ams/client_component.jpg)
 
 App端的组件信息，都保存在ActivityThread和LoadedApk这两个对象，主要保存信息：
 

@@ -447,7 +447,7 @@ final void activityStoppedLocked(........) {
 
 ## 四、总结
 
-![图一](../images/android-n-ams/start-3-1.jpg)
+![图一](/images/android-n-ams/start-3-1.jpg)
 
 startPausingLocked的分析告一段落，这部分内容在了解整个Activity的启动流程后，还是比较好理解的。
 主要就是调用前一个Activity的onPause等接口，使其处于中断状态，然后再进入到启动新Activity的流程中。

@@ -1182,7 +1182,7 @@ Service的onBind()是抽象方法, 所以大家创建Service子类时必须要�
 
 整体调用流程图：[大图](https://panard313.github.io/images/ams/bind_service.jpg)
 
-![bind_service](../images/ams/bind_service.jpg)
+![bind_service](/images/ams/bind_service.jpg)
 
 说明：
 

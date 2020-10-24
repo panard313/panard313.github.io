@@ -112,7 +112,7 @@ tags:
 
 考虑一种铁路连接器的场景：
 
-![railroad junction](../images/optimize/1.jpg)
+![railroad junction](/images/optimize/1.jpg)
 
 为了解释这样现象，假设这是早在1800年，一个在长途或无线电通信出现之前的时代。
 
@@ -131,7 +131,7 @@ tags:
 ----------
 考虑一个if语句，对于处理器的来说，它就是一个分支指令地址：
 
-![railroad junction](../images/optimize/2.png)
+![railroad junction](/images/optimize/2.png)
 
 当处理器遇到分支，并不知道哪一条路该走，应该怎么办？
 处理器中止执行，等待前一条判断语句执行完成。然后你继续正确的线路。

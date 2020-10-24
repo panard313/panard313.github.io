@@ -17,7 +17,7 @@ tags:
 
 先用上一篇文章的流程图来简单回顾一下：点击查看[大图](https://panard313.github.io/images/activity/start_activity.jpg)
 
-![start_activity](../images/activity/start_activity.jpg)
+![start_activity](/images/activity/start_activity.jpg)
 
 接下来，从文章[startActivity启动过程分析](https://panard313.github.io/2016/03/12/start-activity/)的小节[2.10] AS.startActivityLocked()开始说起。
 

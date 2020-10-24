@@ -18,7 +18,7 @@ tags:
 ## 二、 类加载的生命周期
 类的生命周期是指把Class字节码从文件中加载到内存，直到卸载内存整个过程，分为7个步骤。
 
-![jvm_class_loading_2](../images/jvm/jvm_class_loading_2.png)
+![jvm_class_loading_2](/images/jvm/jvm_class_loading_2.png)
 
 图中用红色圈起来的3个过程分别为验证、准备、解析，它们合称为链接(Linking)过程。另外图中紫色的5项是严格按照执行。而蓝色的解析阶段不一定要在初始化之前， 也可以在初始化之后再解析，这种情况称为动态绑定或晚期绑定。
 

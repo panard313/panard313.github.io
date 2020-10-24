@@ -205,7 +205,7 @@ UID和PID是IPCThreadState的成员变量， 都是32位的int型数据，通过
 2. 线程B通过Binder调用当前线程的某个组件：此时线程B是线程B某个组件的调用端，则`mCallingUid`和`mCallingPid`应该保存当前线程B的PID和UID，故需要调用`clearCallingIdentity()`方法完成这个功能。当线程B调用完某个组件，由于线程B仍然处于线程A的被调用端，因此`mCallingUid`和`mCallingPid`需要恢复成线程A的UID和PID，这是调用`restoreCallingIdentity()`即可完成。
 
 
-![binder_clearCallingIdentity](../images/binder/binder_clearCallingIdentity.jpg)
+![binder_clearCallingIdentity](/images/binder/binder_clearCallingIdentity.jpg)
 
 一句话：图中过程2（调用组件2开始之前）执行`clearCallingIdentity()`，过程3（调用组件2结束之后）执行`restoreCallingIdentity()`。
 
@@ -218,7 +218,7 @@ UID和PID是IPCThreadState的成员变量， 都是32位的int型数据，通过
 
 **分析：**这个过程分为两个阶段
 
-![binder_clearCallingIdentity_2](../images/binder/binder_clearCallingIdentity_2.jpg)
+![binder_clearCallingIdentity_2](/images/binder/binder_clearCallingIdentity_2.jpg)
 
 
 - 第一阶段：你的朋友请你帮忙的过程，这个过程并不一定所有朋友都会帮的，这时就需要一个权限检测，那么在你的朋友"远程调用"你执行任务时，你会记录他的"Identity"信息（比如是性别），有了信息那么就可以权限检测，不妨令权限规则是如果这个朋友是女性则答应帮忙，否则就认定权限不够拒绝执行（可能黑客会想到先去一趟泰国，权限控制可能相应需要打补丁了），若答应帮忙则进入第二阶段，否则直接返回。

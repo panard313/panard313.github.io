@@ -88,7 +88,7 @@ ClassLoader的双亲委派模型中，各个ClassLoader之间的关系是通过�
 
 类加载器的层级查找顺序依次为：启动类加载器，扩展类加载器，系统类加载器。系统类加载器是默认的应用程序类加载器。
 
-![classloader](../images/jvm/classloader.png)
+![classloader](/images/jvm/classloader.png)
 
 这样的好处是不同层次的类加载器具有不同优先级，比如所有Java对象的超级父类java.lang.Object，位于rt.jar，无论哪个类加载器加载该类，最终都是由启动类加载器进行加载，保证安全。即使用户自己编写一个java.lang.Object类并放入程序中，虽能正常编译，但不会被加载运行，保证不会出现混乱。那么有人会继续追问，如果自己再自定义一个类加载器来加载自己定义的java.lang.Object类呢? 这样做也是不会成功的，虚拟机将会抛出一异常。
 

@@ -39,7 +39,7 @@ tags:
 
 **输出结果：**
 
-![ps_command](../images/android-process/ps_command.jpg)
+![ps_command](/images/android-process/ps_command.jpg)
 
 
 **结果分析：**

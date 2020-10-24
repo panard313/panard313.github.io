@@ -22,7 +22,7 @@ Android内核是基于Linux系统, 而Linux现存多种进程间IPC方式:管道
 
 在说到Binder架构之前, 先简单说说大家熟悉的TCP/IP的五层通信体系结构:
 
-![tcp_ip_arch](../images/binder/binder_start_service/tcp_ip_arch.jpg)
+![tcp_ip_arch](/images/binder/binder_start_service/tcp_ip_arch.jpg)
 
 - 应用层: 直接为用户提供服务;
 - 传输层: 传输的是报文(TCP数据)或者用户数据报(UDP数据)
@@ -40,7 +40,7 @@ Android内核是基于Linux系统, 而Linux现存多种进程间IPC方式:管道
 
 Binder架构也是采用分层架构设计, 每一层都有其不同的功能:
 
-![binder_ipc_arch](../images/binder/binder_start_service/binder_ipc_arch.jpg)
+![binder_ipc_arch](/images/binder/binder_start_service/binder_ipc_arch.jpg)
 
 - **Java应用层:** 对于上层应用通过调用AMP.startService, 完全可以不用关心底层,经过层层调用,最终必然会调用到AMS.startService.
 - **Java IPC层:** Binder通信是采用C/S架构, Android系统的基础架构便已设计好Binder在Java framework层的Binder客户类BinderProxy和服务类Binder;
@@ -56,7 +56,7 @@ Binder架构也是采用分层架构设计, 每一层都有其不同的功能:
 Binder系统如此庞大, 那么这里需要寻求一个出发点来穿针引线, 一窥视Binder全貌. 那么本文将从全新的视角,以[startService流程分析](https://panard313.github.io/2016/03/06/start-service/)为例子来说说Binder所其作用.
 首先在发起方进程调用AMP.startService，经过binder驱动，最终调用系统进程AMS.startService,如下图:
 
-![start_server_binder](../images/binder/binder_start_service/start_server_binder.jpg)
+![start_server_binder](/images/binder/binder_start_service/start_server_binder.jpg)
 
 AMP和AMN都是实现了IActivityManager接口,AMS继承于AMN.  其中AMP作为Binder的客户端,运行在各个app所在进程, AMN(或AMS)运行在系统进程system_server.
 
@@ -65,7 +65,7 @@ AMP和AMN都是实现了IActivityManager接口,AMS继承于AMN.  其中AMP作为
 
 Binder通信采用C/S架构，从组件视角来说，包含Client、Server、ServiceManager以及binder驱动，其中ServiceManager用于管理系统中的各种服务。下面说说startService过程所涉及的Binder对象的架构图：
 
-![ams_ipc](../images/binder/binder_start_service/ams_ipc.jpg)
+![ams_ipc](/images/binder/binder_start_service/ams_ipc.jpg)
 
 可以看出无论是注册服务和获取服务的过程都需要ServiceManager，需要注意的是此处的Service Manager是指Native层的ServiceManager（C++），并非指framework层的ServiceManager(Java)。ServiceManager是整个Binder通信机制的大管家，是Android进程间通信机制Binder的守护进程，Client端和Server端通信时都需要先获取Service Manager接口，才能开始通信服务, 当然查找到目标信息可以缓存起来则不需要每次都向ServiceManager请求。
 
@@ -2070,7 +2070,7 @@ binder_transaction -> binder_thread_read -> IPC.waitForResponse，收到BR_REPLY
 ### 6.1 通信流程
 
 从通信流程角度来看整个过程:
-![binder_ipc_process](../images/binder/binder_start_service/binder_ipc_process.jpg)
+![binder_ipc_process](/images/binder/binder_start_service/binder_ipc_process.jpg)
 
 图解:
 
@@ -2087,7 +2087,7 @@ binder_transaction -> binder_thread_read -> IPC.waitForResponse，收到BR_REPLY
 
 从通信协议的角度来看这个过程:
 
-![binder_transaction](../images/binder/binder_start_service/binder_transaction.jpg)
+![binder_transaction](/images/binder/binder_start_service/binder_transaction.jpg)
 
 - Binder客户端或者服务端向Binder Driver发送的命令都是以BC_开头,例如本文的`BC_TRANSACTION`和`BC_REPLY`, 所有Binder Driver向Binder客户端或者服务端发送的命令则都是以BR_开头, 例如本文中的`BR_TRANSACTION`和`BR_REPLY`.
 - 只有当`BC_TRANSACTION`或者`BC_REPLY`时, 才调用binder_transaction()来处理事务. 并且都会回应调用者一个`BINDER_WORK_TRANSACTION_COMPLETE`事务, 经过binder_thread_read()会转变成`BR_TRANSACTION_COMPLETE`.
@@ -2098,7 +2098,7 @@ binder_transaction -> binder_thread_read -> IPC.waitForResponse，收到BR_REPLY
 
 上图是非oneway通信过程的协议图, 下图则是对于oneway场景下的通信协议图:
 
-![binder_transaction_oneway](../images/binder/binder_start_service/binder_transaction_oneway.jpg)
+![binder_transaction_oneway](/images/binder/binder_start_service/binder_transaction_oneway.jpg)
 
 当收到BR_TRANSACTION_COMPLETE则程序返回,有人可能觉得好奇,为何oneway怎么还要等待回应消息? 我举个例子,你就明白了.
 
@@ -2136,7 +2136,7 @@ oneway与非oneway: 都是需要等待Binder Driver的回应消息BR_TRANSACTION
 
 ### 6.5 数据流
 
-![binder_transaction_data](../images/binder/binder_transaction_data.jpg)
+![binder_transaction_data](/images/binder/binder_transaction_data.jpg)
 
 - [2.1]AMP.startService：组装flat_binder_object对象等组成的Parcel data；
 - [2.9]IPC.writeTransactionData：组装BC_TRANSACTION和binder_transaction_data结构体，写入mOut;

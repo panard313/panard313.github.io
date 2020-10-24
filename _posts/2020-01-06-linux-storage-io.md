@@ -39,12 +39,12 @@ Linux I/O体系是Linux内核的重要组成部分，主要包含网络IO、磁�
 
 我们先看一张总的Linux内核存储栈图片：
 
-![io stakc](../images/io/kernel_io_stack.jpg)
+![io stakc](/images/io/kernel_io_stack.jpg)
 
 
 Linux IO存储栈主要有以下7层：
 
-![io stakc](../images/io/kernel_io_stack_levels.jpg)
+![io stakc](/images/io/kernel_io_stack_levels.jpg)
 
 
 

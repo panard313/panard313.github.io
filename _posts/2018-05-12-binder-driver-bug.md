@@ -17,7 +17,7 @@ tags:
 
 欢迎关注Gityuan的微信公众号：**Android达摩院(AndroidAcademy)**，后续会有更多精彩内容。
 
-![Android达摩院](../images/about-me/damoyuan.jpg)
+![Android达摩院](/images/about-me/damoyuan.jpg)
 
 #### 1.1 工具简介
 
@@ -34,18 +34,18 @@ tags:
 
 Binder IPC是最为整个Android系统跨进程通信的基石，整个系统绝大多数的跨进程都是采用Binder，如果对Binder不太了解看本文会非常吃力，在Gityuan.com博客中有大量讲解关于Binder原理的文章，见https://panard313.github.io/2015/10/31/binder-prepare/。这里不再赘述，简单列两张关于Binder通信架构的图。
 
-![ServiceManager](../images/binder/prepare/IPC-Binder.jpg)
+![ServiceManager](/images/binder/prepare/IPC-Binder.jpg)
 
 Binder通信采用C/S架构，主要包含Client、Server、ServiceManager以及binder驱动部分，其中ServiceManager用于管理系统中的各种服务。Client向Server通信过程图中画的是虚线，是由于它们彼此之间不是直接交互的，而是采用ioctl的方式跟Binder驱动进行交互的，从而实现IPC通信方式。
 
 接下来再以startService为例，展示一次Binder通信过程的方法执行流:
 
-![binder_ipc_process](../images/binder/binder_start_service/binder_ipc_process.jpg)
+![binder_ipc_process](/images/binder/binder_start_service/binder_ipc_process.jpg)
 
 从图中，可见当一次binder call发起后便停在waitForResponse()方法，等待执行完具体工作后才能结束。
 那么什么时机binder call端会退出waitForResponse()方法？见下图：
 
-![binder_waitForRespone](../images/binder/binder_bug/1binder_waitForRespone.png)
+![binder_waitForRespone](/images/binder/binder_bug/1binder_waitForRespone.png)
 
 退出waitForResponse场景说明：
 
@@ -69,7 +69,7 @@ Android 8.0系统用几十台手机连续跑几十个小时Monkey的情况下有
 system_server的所有binder线程以及其中重要现场都在等待AMS锁， 而AMS锁被线程Binder:12635_C所持有；
 Binder:12635_C线程正在执行bindApplication()方法，调用栈如下：
 
-![binder_waitForRespone](../images/binder/binder_bug/2hang_stack.png)
+![binder_waitForRespone](/images/binder/binder_bug/2hang_stack.png)
 
 **终极难题**：attachApplicationLocked()是属于异步binder call，之所以叫异步binder call，就是由于可异步执行而并不会阻塞线程。
 但此处却能阻塞整个系统，这一点基本是毁三观的地方。
@@ -99,7 +99,7 @@ b)如果失败，则会向自己线程thread->todo队列里面放上BINDER_WORK_
 
 先讲解之前，先来补充一点关于CPU解读技巧：
 
-![binder_cpu](../images/binder/binder_bug/3binder_cpu.png)
+![binder_cpu](/images/binder/binder_bug/3binder_cpu.png)
 
 nice值越小则优先级越高。此处nice=-2, 可见优先级还是比较高的;
 
@@ -118,7 +118,7 @@ utm + stm = (12112 + 6554) ×10 ms = 186666ms。
 
 有了以上基础知识，再来看bugreport，由于系统被hang住，watchdog每过一分钟就会输出依次调用栈。我们把每一次调用找的schedstat数据拿出来看一下，如下：
 
-![binder_cpu](../images/binder/binder_bug/4binder_schedstats.png)
+![binder_cpu](/images/binder/binder_bug/4binder_schedstats.png)
 
 可见，Runable时间基本没有变化，也就说明该线程并没有处于CPU等待队列而得不到CPU调度，同时Running时间也几乎没有动。
 所以该线程长时间处于非Runable状态，从而排除CPU优先级反转问题。
@@ -150,7 +150,7 @@ utm + stm = (12112 + 6554) ×10 ms = 186666ms。
 从ramdump中找到当前处于blocked线程的调用栈上的方法binder_ioctl_write_read()， 该方法的的第4个参数指向binder_read结构体，
 采用crash工具便可进一步找到binder_thread的结构体如下：
 
-![rd_binder_thread](../images/binder/binder_bug/5rd_binder_thread.png)
+![rd_binder_thread](/images/binder/binder_bug/5rd_binder_thread.png)
 
 解读：
 
@@ -164,7 +164,7 @@ utm + stm = (12112 + 6554) ×10 ms = 186666ms。
 既然thread→transaction_stack不为空，根据结构体binder_thread的成员transaction_stack = 0xffffffddf1538180，
 则解析出binder_transaction结构体
 
-![6rd_binder_transaction](../images/binder/binder_bug/6rd_binder_transaction.png)
+![6rd_binder_transaction](/images/binder/binder_bug/6rd_binder_transaction.png)
 
 解读：
 
@@ -190,7 +190,7 @@ utm + stm = (12112 + 6554) ×10 ms = 186666ms。
 29189=0x7205代表的是BR_DEAD_REPLY = _IO('r', 5), 则代表return_error=BR_DEAD_REPLY，发生错误行是2916，什么场景下代码会走到2916行呢，
 来看Binder Driver的代码：
 
-![7binder_2916](../images/binder/binder_bug/7binder_2916.png)
+![7binder_2916](/images/binder/binder_bug/7binder_2916.png)
 
 根据return_error=BR_DEAD_REPLY，从2916往回看则推测代码应该是走到2908行代码；
 往上推说明target_node = context→binder_context_mgr_node，这个target_node是指service_manager进程的binder_node。
@@ -199,7 +199,7 @@ utm + stm = (12112 + 6554) ×10 ms = 186666ms。
 
 到此，不得不怀疑推理存在纰漏，甚至怀疑日志输出机制。经过反复验证，才发现原来忽略了2893行的binder_get_node_refs_for_txn()，代码如下：
 
-![8binder_get_node_refs](../images/binder/binder_bug/8binder_get_node_refs.png)
+![8binder_get_node_refs](/images/binder/binder_bug/8binder_get_node_refs.png)
 
 一切就豁然开朗，由于对端进程被杀，那么note→proc==null, 从而有了return_error=BR_DEAD_REPLY。
 
@@ -208,7 +208,7 @@ utm + stm = (12112 + 6554) ×10 ms = 186666ms。
 看完被阻塞的binder线程和事务结构体，接着需要看一下数据情况，调用栈上的binder_ioctl_write_read()方法的第三个参数便指向binder_write_read结构体，
 用crash工具解析后，得到如下信息：
 
-![9rd_binder_write_read](../images/binder/binder_bug/9rd_binder_write_read.png)
+![9rd_binder_write_read](/images/binder/binder_bug/9rd_binder_write_read.png)
 
 解读：
 
@@ -218,7 +218,7 @@ utm + stm = (12112 + 6554) ×10 ms = 186666ms。
 那么什么场景下，会出现write_size等于0，而read_size不等于0呢？
 需要查看用户空间跟内核空间的Binder Driver交互的核心方法talkWithDriver()，代码如下：
 
-![10binder_talkwithdriver](../images/binder/binder_bug/10binder_talkwithdriver.png)
+![10binder_talkwithdriver](/images/binder/binder_bug/10binder_talkwithdriver.png)
 
 从上述代码可知：read_size不等于0，则doReceive=true, needRead=true，从而mIn等于空； 再加上write_size=0则mOut为空。
 也就是说该blocked线程最后一次跟Binder驱动交互时的mIn和mOut都为空。
@@ -235,7 +235,7 @@ IPCThreadState结构体在初始化的时候，分别设置mOut和mIn的size为2
 mOut和mIn是用户空间的数据，并且是IPCThreadState对象的成员变量。程序在用户空间停在IPCThreadState的waitForResponse()过程，
 采用GDB打印出当前线程用户空间的this指针的所有成员，即可找到mOut和mIn
 
-![11gdb_mout_min](../images/binder/binder_bug/11gdb_mout_min.png)
+![11gdb_mout_min](/images/binder/binder_bug/11gdb_mout_min.png)
 
 解读：
 mIn缓存区，mDataSize = 16, mDataPos = 16, 说明最后的talkWithDriver产生了两个BR命令，并且已处理；mOut缓存区，mDataSize = 0, mDataPos = 0，说明BC_XXX都已被消耗
@@ -246,14 +246,14 @@ mIn缓存区中存放都是BR_XXX命令(0x72)；mOut缓存区中存放都是BC_X
 
 **mIn缓存区数据：**
 
-![12gdb_min_data](../images/binder/binder_bug/12gdb_min_data.png)
+![12gdb_min_data](/images/binder/binder_bug/12gdb_min_data.png)
 
 解读：BR_NOOP = 0x720c, BR_CLEAR_DEATH_NOTIFICATION_DONE = 0x7210，可知mIn数据区中最后一次talkWithDriver的过程产生了两个BR命令依次是： BR_NOOP， BR_CLEAR_DEATH_NOTIFICATION_DONE
 
 
 **mOut缓存区数据：**
 
-![13gdb_mout_data.png](../images/binder/binder_bug/13gdb_mout_data.png)
+![13gdb_mout_data.png](/images/binder/binder_bug/13gdb_mout_data.png)
 
 解读：BC_FREE_BUFFER = 0x6303, BC_DEAD_BINDER_DONE = 0x6310，可知mOut数据区最后一次talkWithDriver的过程，所消耗掉的BC命令依次是：BC_FREE_BUFFER, BC_DEAD_BINDER_DONE
 
@@ -277,7 +277,7 @@ Trace、Log、Ramdump推导、Crash工具、GDB工具等十八般武艺都用过
 
 直接拿出结论，真正的第一案发现场如下：在进程刚启动不久，执行到linkToDeath()方法前的瞬间将其杀掉则能复现定屏：
 
-![14binder_ams_linktodeath](../images/binder/binder_bug/14binder_ams_linktodeath.png)
+![14binder_ams_linktodeath](/images/binder/binder_bug/14binder_ams_linktodeath.png)
 
 
 #### 4.2 案卷解读
@@ -285,7 +285,7 @@ Trace、Log、Ramdump推导、Crash工具、GDB工具等十八般武艺都用过
 这个问题的复杂在于，即便找到了第一个案发现场以及复现路径，要完全理解中间的每一次协议转换过程，也是比较复杂的。
 通过如下命令打开binder driver的ftrace信息，用于输出每次binder通信协议与数据。
 
-![15ftrace_on](../images/binder/binder_bug/15ftrace_on.png)
+![15ftrace_on](/images/binder/binder_bug/15ftrace_on.png)
 
 整个binder通信会不断地在用户空间与内核空间之间进行切换, Binder IPC通信过程的数据流向说明：（ BINDER_WORK_XXX简称为BW_XXX）
 
@@ -413,12 +413,12 @@ Trace、Log、Ramdump推导、Crash工具、GDB工具等十八般武艺都用过
 
 将以上信息转换为表格形式来展示案发过程：
 
-![18oneway_binder_call_hang](../images/binder/binder_bug/18oneway_binder_call_hang.jpg)
+![18oneway_binder_call_hang](/images/binder/binder_bug/18oneway_binder_call_hang.jpg)
 
 
 以流程图的方式来展示案发过程：
 
-![16seq_binder](../images/binder/binder_bug/16seq_binder.png)
+![16seq_binder](/images/binder/binder_bug/16seq_binder.png)
 
 过程解读：
 
@@ -446,7 +446,7 @@ Trace、Log、Ramdump推导、Crash工具、GDB工具等十八般武艺都用过
 
 真正分析远比这复杂，鉴于篇幅，文章只讲解其中一个场景，不同的Binder Driver以及不同的Framework代码组合有几种不同的表现与处理流程。不过最本质的问题都是在于在嵌套的binder通信过程，BR_DEAD_REPLY错误地被其他通信所消耗从而导致的异常。我的解决方案是一旦发生错误，则当BW_RETURN_ERROR事务放入到当前线程todo队列头部，则保证自己产生的BW_RETURN_ERROR事务一定会被自己所正确地消耗，解决异步binder通信在嵌套场景下的无限阻塞的问题，优化后的处理流程图：
 
-![17seq_binder_ok](../images/binder/binder_bug/17seq_binder_ok.jpg)
+![17seq_binder_ok](/images/binder/binder_bug/17seq_binder_ok.jpg)
 
 当然还有第二个解决方案就是尽可能避免一切binder嵌套，Google在最新的binder driver驱动里面采用将BW_DEAD_BINDER放入proc的todo队列来避免嵌套问题，这个方案本身也OK，但我认为在执行过程出现了BW_RETURN_ERROR还是应该放到队列头部，第一时间处理error，从而也能避免被错误消耗的BUG，另外后续如果binder新增其他逻辑，也有可能会导致嵌套的出现，那么仍然会有类似的问题。最近跟Google工程师来回多次沟通过这个问题，他们仍然希望保持每次只往thread todo队列尾部添加事务的逻辑，对于嵌套问题希望通过将其放入proc todo队列的方式来解决。对此，我担心后续扩展性方面会忽略或者遗忘，又引发binder嵌套问题，Google工程师表示未来添加新功能，也会杜绝出现嵌套逻辑，保持逻辑与代码的简洁。 
 

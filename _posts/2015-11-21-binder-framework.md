@@ -39,7 +39,7 @@ binder在framework层，采用JNI技术来调用native(C/C++)层的binder架构�
 
 framework Binder架构图：查看[大图](https://panard313.github.io/images/binder/java_binder/java_binder.jpg)
 
-![java_binder](../images/binder/java_binder/java_binder.jpg)
+![java_binder](/images/binder/java_binder/java_binder.jpg)
 
 **图解：**
 
@@ -53,7 +53,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
 
 下面列举framework的binder类关系图：查看[大图](https://panard313.github.io/images/binder/java_binder/class_ServiceManager.jpg)
 
-![class_java_binder](../images/binder/java_binder/class_ServiceManager.jpg)
+![class_java_binder](/images/binder/java_binder/class_ServiceManager.jpg)
 
 图解：(图中浅蓝色都是Interface，其余都是Class)
 
@@ -71,7 +71,7 @@ framework Binder架构图：查看[大图](https://panard313.github.io/images/bi
 
 点击查看[大图](https://panard313.github.io/images/binder/java_binder_framework.jpg)
 
-![java_binder_framework](../images/binder/java_binder_framework.jpg)
+![java_binder_framework](/images/binder/java_binder_framework.jpg)
 
 
 ## 二、初始化

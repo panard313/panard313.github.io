@@ -22,7 +22,7 @@ AMS是Android系统最为核心的服务之一，其职责包括四大核心组�
 
 ### 1.1 WMS全貌
 
-![wms_relation](../images/wms/wms_relation.jpg)
+![wms_relation](/images/wms/wms_relation.jpg)
 
 说明: [点击查看大图](https://panard313.github.io/images/wms/wms_relation.jpg)
 
@@ -42,7 +42,7 @@ AMS是Android系统最为核心的服务之一，其职责包括四大核心组�
  
 ### 2.1 Binder服务
 
-![wms_binder](../images/wms/wms_binder.jpg)
+![wms_binder](/images/wms/wms_binder.jpg)
 
 上图是Window调用过程所涉及的Binder服务：
 

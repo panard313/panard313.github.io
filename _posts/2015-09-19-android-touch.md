@@ -48,7 +48,7 @@ tags:
 [Input系统—进程交互](https://panard313.github.io/2016/12/31/input-ipc/)文章的小节[3.3]已介绍事件分发过程的前期工作.
 当UI主线程收到底层上报的input事件,便会调用InputEventReceiver.dispachInputEvent方法.
 
-![input_event_dispatcher](../images/input/input_event_dispatcher.jpg)
+![input_event_dispatcher](/images/input/input_event_dispatcher.jpg)
 
 
 ### 2.1 DecorView.dispatchTouchEvent
@@ -642,7 +642,7 @@ ViewGroup.dispatchTouchEvent()方法。为了精简篇幅，有些中间函数�
 
 事件分发流程图:
 
-![touch](../images/touch/touch1.jpg)
+![touch](/images/touch/touch1.jpg)
 
 1. `onInterceptTouchEvent`返回值true表示事件拦截， `onTouch/onTouchEvent` 返回值true表示事件消费。
 2. 触摸事件先交由`Activity.dispatchTouchEvent`。再一层层往下分发，当中间的ViewGroup都不拦截时，进入最底层的View后，开始由最底层的`OnTouchEvent`来处理，如果一直不消费，则最后返回到`Activity.OnTouchEvent`。

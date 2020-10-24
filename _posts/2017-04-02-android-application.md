@@ -591,13 +591,13 @@ system_server收到attach操作, 然后再向新创建的进程执行handleBindA
 其application创建过程都创建对象有ActivityThread，Instrumentation, ContextImpl，LoadedApk，Application。
 流程图如下：
 
-![system_application](../images/application/system_application.jpg)
+![system_application](/images/application/system_application.jpg)
 
 (二) app进程 [查看大图](https://panard313.github.io/images/application/app_application.jpg)
 
 其application创建过程都创建对象有ActivityThread，ContextImpl，LoadedApk，Application。
 流程图如下：
 
-![app_application](../images/application/app_application.jpg)
+![app_application](/images/application/app_application.jpg)
 
 App进程的Application创建过程，跟system进程的核心逻辑都差不多。只是app进程多了两次binder调用。

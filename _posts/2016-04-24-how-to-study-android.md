@@ -123,7 +123,7 @@ Android基本书籍，只需一两本即可，没有必要看太多基础书籍�
 
 点击查看[大图](https://panard313.github.io/images/android-process/android-boot.jpg)
 
-![process_status](../images/android-process/android-boot.jpg)
+![process_status](/images/android-process/android-boot.jpg)
 
 **Android系统源码**
 

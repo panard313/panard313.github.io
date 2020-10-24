@@ -23,7 +23,7 @@ tags:
 
 **视图:**
 
-![traceview](../images/android-tools/traceview.png)
+![traceview](/images/android-tools/traceview.png)
 
 **参数说明:**
 

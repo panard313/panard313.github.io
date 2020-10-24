@@ -22,7 +22,7 @@ Android系统中图形系统是相当复杂的，包括WindowManager，SurfaceFl
 
 ### 1.1 图形架构
 
-![surface_rendered](../images/surfaceFlinger/surface_rendered.png)
+![surface_rendered](/images/surfaceFlinger/surface_rendered.png)
 
 图解: 
 
@@ -45,7 +45,7 @@ SurfaceFlinger进程是由init进程创建的，运行在独立的SurfaceFlinger
 
 SurfaceFlinger关系图：点击查看[大图](https://panard313.github.io/images/surfaceFlinger/class_surface.jpg)
 
-![class_surface](../images/surfaceFlinger/class_surface.jpg)
+![class_surface](/images/surfaceFlinger/class_surface.jpg)
 
 Client，SurfaceFlinger这两个Binder服务运行在SurfaceFlinger进程.
 SurfaceComposerClient对象的两个成员变量分别跟着两个Binder服务通信：
@@ -69,7 +69,7 @@ SurfaceComposerClient对象的两个成员变量分别跟着两个Binder服务�
 
 ### 2.1 图形数据流
 
-![graphic_dataflow](../images/surfaceFlinger/graphic_dataflow.png)
+![graphic_dataflow](/images/surfaceFlinger/graphic_dataflow.png)
 
 图中最左侧是指渲染器,用于生产graphics buffers, 比如状态栏,systemUI等. 再来看看图中BufferQueue的工作
 
@@ -77,7 +77,7 @@ SurfaceComposerClient对象的两个成员变量分别跟着两个Binder服务�
 
 ### 2.2 生成者消费者模式
 
-![buffer_queue](../images/surfaceFlinger/buffer_queue.png) 
+![buffer_queue](/images/surfaceFlinger/buffer_queue.png) 
 
 图解:
 
@@ -90,6 +90,6 @@ SurfaceComposerClient对象的两个成员变量分别跟着两个Binder服务�
 
 再从类图的角度来看看：点击查看[大图](https://panard313.github.io/images/surfaceFlinger/class_buffer_queue.jpg)
 
-![class_buffer_queue](../images/surfaceFlinger/class_buffer_queue.jpg)
+![class_buffer_queue](/images/surfaceFlinger/class_buffer_queue.jpg)
 
 再简单讲到这里，后续再展开详细讲解。

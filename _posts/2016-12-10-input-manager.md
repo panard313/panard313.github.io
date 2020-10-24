@@ -53,12 +53,12 @@ InputManagerService作为system_server中的重要服务，继承于IInputManage
 作为Binder服务端，那么Client位于InputManager的内部通过IInputManager.Stub.asInterface()
 获取Binder代理端，C/S两端通信的协议是由IInputManager.aidl来定义的。
 
-![input_binder](../images/input/input_binder.jpg)
+![input_binder](/images/input/input_binder.jpg)
 
 
 Input模块所涉及的重要类的关系如下：
 
-![input_class](../images/input/input_class.jpg)
+![input_class](/images/input/input_class.jpg)
 
 图解:
 

@@ -238,7 +238,7 @@ dump_backtrace等于true代表的是输出backtrace到控制台，否则意味�
 
 通过调用`debuggerd <tid>`命令调用流程图：
 
-![debuggerd_client](../images/debug/debuggerd_client.jpg)
+![debuggerd_client](/images/debug/debuggerd_client.jpg)
 
 执行debuggerd命令最终都是调用send_request()方法，向debuggerd服务端发出`DEBUGGER_ACTION_DUMP_TOMBSTONE`或者`DEBUGGER_ACTION_DUMP_BACKTRACE`请求，那对于debuggerd服务端收到相应命令做了哪些操作呢，要想明白这个过程，接下来看看debuggerd服务端的工作。
 

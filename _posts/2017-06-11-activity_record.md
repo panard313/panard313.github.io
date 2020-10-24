@@ -27,7 +27,7 @@ ServiceRecord本身继承于Binder对象，传递到客户端的代理：
 先以一幅图来展示AMS管理Activity所涉及的相关数据结构：
 [点击查看大图](https://panard313.github.io/images/ams/activity/activity_record.jpg)
 
-![activity_record](../images/ams/activity/activity_record.jpg)
+![activity_record](/images/ams/activity/activity_record.jpg)
 
 
 - ActivityRecord: 记录着Activity信息
@@ -128,7 +128,7 @@ home的栈ID等于0,即HOME_STACK_ID = 0;
 
 Activity栈结构体的组成关系，[点击查看大图](https://panard313.github.io/images/ams/activity/ams_relations.jpg)
 
-![ams_relations](../images/ams/activity/ams_relations.jpg)
+![ams_relations](/images/ams/activity/ams_relations.jpg)
 
 - 一般地，对于没有分屏功能以及虚拟屏的情况下，ActivityStackSupervisor与ActivityDisplay都是系统唯一；
 - ActivityDisplay主要有Home Stack和App Stack这两个栈；
@@ -158,7 +158,7 @@ Activity栈结构体的组成关系，[点击查看大图](https://panard313.git
 
 Activity启动与停止流程，[点击查看大图](https://panard313.github.io/images/ams/activity/Seq_activity.jpg)
 
-![Seq_activity](../images/ams/activity/Seq_activity.jpg)
+![Seq_activity](/images/ams/activity/Seq_activity.jpg)
 
 Activity的pause情况： 
 

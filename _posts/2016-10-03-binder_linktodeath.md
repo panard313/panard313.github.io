@@ -219,7 +219,7 @@ BinderProxy调用linkToDeath()方法是一个native方法, 通过jni进入如下
 
 #### 2.2.1 DeathRecipient关系图
 
-![deathRecipient](../images/binder/deathRecipient.jpg)
+![deathRecipient](/images/binder/deathRecipient.jpg)
 
 Java层的BinderProxy.mOrgue指向DeathRecipientList，而DeathRecipientList记录JavaDeathRecipient对象。
 
@@ -1247,7 +1247,7 @@ binder_deferred_release的主要工作有：
 
 ### 7.1 流程图
 
-![linktodeath.jpg](../images/binder/linktodeath.jpg)
+![linktodeath.jpg](/images/binder/linktodeath.jpg)
 
 图解：[点击查看大图](https://panard313.github.io/images/binder/linktodeath.jpg)
 

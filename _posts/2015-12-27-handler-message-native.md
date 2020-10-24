@@ -33,7 +33,7 @@ tags:
 
 **Native层的关系图**
 
-![native](../images/handler/native.png)
+![native](/images/handler/native.png)
 
 
 ## 二、MessageQueue
@@ -53,7 +53,7 @@ tags:
 
 初始化过程的调用链如下：
 
-![native_init](../images/handler/native_init.png)
+![native_init](/images/handler/native_init.png)
 
 下面来进一步来看看调用链的过程：
 
@@ -159,7 +159,7 @@ MessageQueue是在Java层与Native层有着紧密的联系，但是此次Native�
 
 清理回收的调用链如下：
 
-![native_destroy](../images/handler/native_destroy.png)
+![native_destroy](/images/handler/native_destroy.png)
 
 下面来进一步来看看调用链的过程：
 
@@ -214,7 +214,7 @@ nativeMessageQueue继承自RefBase类，所以decStrong最终调用的是RefBase
 
 nativePollOnce用于提取消息队列中的消息，提取消息的调用链，如下：
 
-![poll_once](../images/handler/poll_once.png)
+![poll_once](/images/handler/poll_once.png)
 
 下面来进一步来看看调用链的过程：
 
@@ -465,7 +465,7 @@ pollInner()方法的处理流程：
 nativeWake用于唤醒功能，在添加消息到消息队列`enqueueMessage()`, 或者把消息从消息队列中全部移除`quit()`，再有需要时都会调用
 `nativeWake`方法。包含唤醒过程的添加消息的调用链，如下：
 
-![native_wake](../images/handler/native_wake.png)
+![native_wake](/images/handler/native_wake.png)
 
 下面来进一步来看看调用链的过程：
 
@@ -682,7 +682,7 @@ SimpleLooperCallback类， 继承于LooperCallback类
 
 其中Looper类的内部定义了Request，Response，MessageEnvelope这3个结构体，关系图如下：
 
-![handler_struct](../images/handler/handler_struct.png)
+![handler_struct](/images/handler/handler_struct.png)
 
 代码如下：
 
@@ -736,7 +736,7 @@ ALooper类 与前面介绍的Looper类，更多的操作是通过ALooper_to_Loop
 
 MessageQueue通过mPtr变量保存NativeMessageQueue对象，从而使得MessageQueue成为Java层和Native层的枢纽，既能处理上层消息，也能处理native层消息；下面列举Java层与Native层的对应图
 
-![handler_arch](../images/handler/handler_arch.png)
+![handler_arch](/images/handler/handler_arch.png)
 
 图解：
 

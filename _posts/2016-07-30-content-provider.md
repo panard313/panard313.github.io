@@ -65,7 +65,7 @@ ContentProvider作为Android四大组件之一，并没有Activity那样复杂�
 ### 1.3 继承关系图
 
 
-![content_provider](../images/contentprovider/content_provider.jpg)
+![content_provider](/images/contentprovider/content_provider.jpg)
 
 - CPP与CPN是一对Binder通信的C/S两端;
 - ACR(ApplicationContentResolver)继承于ContentResolver, 位于ContextImpl的内部类. ACR的实现往往是通过调用其成员变量mMainThread(数据类型为ActivityThread)来完成;
@@ -98,7 +98,7 @@ ContentProvider作为Android四大组件之一，并没有Activity那样复杂�
 
 点击查看[大图](https://panard313.github.io/images/ams/get_content_provider.jpg)
 
-![get_content_provider](../images/ams/get_content_provider.jpg)
+![get_content_provider](/images/ams/get_content_provider.jpg)
 
 getContentProviderImpl()过程返回的对象ContentProviderRecord中有成员变量ContentProviderConnection对象, 这个binder服务端.
 
@@ -1288,7 +1288,7 @@ Provider进程的工作便是完成，接下来便开始执行【2.8】installPr
 
 Provider进程不存在: 当provider进程不存在时,先创建进程并publish相关的provider:
 
-![content_provider_ipc](../images/contentprovider/content_provider_ipc.jpg)
+![content_provider_ipc](/images/contentprovider/content_provider_ipc.jpg)
 
 图解:
 
@@ -1307,7 +1307,7 @@ getContentProvider的结果返回给client进程；
 
 provider未发布: 请求provider时,provider进程存在但provide的记录对象cpr ==null,这时的流程如下:
 
-![content_provider_ipc2](../images/contentprovider/content_provider_ipc2.jpg)
+![content_provider_ipc2](/images/contentprovider/content_provider_ipc2.jpg)
 
 - Client进程在获取provider的过程,发现cpr为空,则调用scheduleInstallProvider来向provider所在进程发出一个oneway的binder请求,并进入wait()状态.
 - provider进程安装完provider信息,则notifyAll()处于等待状态的进程/线程;

@@ -154,7 +154,7 @@ tags:
 
 ### 1.4 原理图
 
-![native_binder](../images/binder/binderSimple/native_binder_demo.jpg)
+![native_binder](/images/binder/binderSimple/native_binder_demo.jpg)
 
 ### 1.5 运行
 
@@ -177,11 +177,11 @@ tags:
 
 服务端：
 
-![native_server](../images/binder/binderSimple/native_server.png)
+![native_server](/images/binder/binderSimple/native_server.png)
 
 客户端：
 
-![native_client](../images/binder/binderSimple/native_client.png)
+![native_client](/images/binder/binderSimple/native_client.png)
 
 ## 二、Framework层Binder
 
@@ -349,7 +349,7 @@ Client端
 
 ### 2.3 原理图
 
-![framework_binder](../images/binder/binderSimple/MyServer_framework_binder.jpg)
+![framework_binder](/images/binder/binderSimple/MyServer_framework_binder.jpg)
 
 ### 2.4 运行
 
@@ -368,8 +368,8 @@ Client端
 
 服务端：
 
-![framework_server](../images/binder/binderSimple/framework_server.png)
+![framework_server](/images/binder/binderSimple/framework_server.png)
 
 客户端：
 
-![framework_client](../images/binder/binderSimple/framework_client.png)
+![framework_client](/images/binder/binderSimple/framework_client.png)
