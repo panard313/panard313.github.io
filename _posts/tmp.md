@@ -144,3 +144,31 @@ fio --readonly -rw=randread -size=350m -bs=4k -name=/vendor/enwik9
 
 
 echo 3 > /proc/sys/vm/drop_caches
+
+
+
+
+SeattleTmo R upgrade:
+
+FR:
+
+9961347    10039119
+kernel/msm-4.19/arch/arm64/configs/vendor
+
+9961554    10039083
+device/tct/seattletmo/seattletmo.mk
+
+9961544    10039087
+frameworks/base/core/java/android/view
+
+9961538    10039109   注意冲突， 使用diff
+frameworks/base/services/core/java/com/android/server/policy/PhoneWindowManager.java
+
+9961568    10039077
+frameworks/base/packages/SystemUI/res/values/config.xml
+
+9961530    10039118    8932722
+device/tct/seattletmo
+
+
+

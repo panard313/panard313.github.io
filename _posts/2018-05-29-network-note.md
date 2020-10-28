@@ -39,6 +39,8 @@ lang: zh-Hans
 
 ###  [Android源码学习笔记](https://blog.csdn.net/column/details/13723.html)
 
+###  [Android源码学习笔记 -1](https://blog.csdn.net/Gaugamela/category_9267470_2.html)
+
 #### [Linux内核工程导论](https://blog.csdn.net/ljy1988123)
 
 #### [存储之道](https://blog.51cto.com/alanwu?type=1)
@@ -98,3 +100,5 @@ lang: zh-Hans
 # debug
 
 ### [google doc](https://source.android.com/devices/tech/debug)
+
+### [如何快速验证sepolicy TE文件修改](http://tjtech.me/how-to-verify-sepolicy-te-file-change.html)
