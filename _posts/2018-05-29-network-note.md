@@ -95,6 +95,7 @@ lang: zh-Hans
 
 ### [如何在Ubuntu18.04编译安装4.19内核](https://www.jianshu.com/p/522bf7f2f5fa)
 
+### [Linux 0.11 实验环境](http://tinylab.org/linux-0.11-lab/)
 
 
 # debug
