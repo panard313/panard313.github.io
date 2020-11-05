@@ -98,6 +98,19 @@ lang: zh-Hans
 ### [Linux 0.11 实验环境](http://tinylab.org/linux-0.11-lab/)
 
 
+# XV6
+
+### [source code](https://github.com/mit-pdos/xv6-public)
+
+### [中文翻译 rev7](https://github.com/ranxian/xv6-chinese)
+
+#### [中文翻译 rev7 git boot](https://th0ar.gitbooks.io/xv6-chinese/content/)
+
+### [中文翻译 -1 ](https://github.com/deyuhua/xv6-book-chinese)
+
+### [debug xv6 with vscode](https://shawnzhong.com/2019/03/25/co-debug-xv6-on-windows-using-vscode/#:~:text=First%2C%20open%20the%20folder%20for%20xv6%20in%20VSCode,and%20copy%20the%20following%20content%20to%20tasks.json%20.)
+
+
 # debug
 
 ### [google doc](https://source.android.com/devices/tech/debug)
