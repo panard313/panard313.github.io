@@ -110,6 +110,14 @@ lang: zh-Hans
 
 ### [debug xv6 with vscode](https://shawnzhong.com/2019/03/25/co-debug-xv6-on-windows-using-vscode/#:~:text=First%2C%20open%20the%20folder%20for%20xv6%20in%20VSCode,and%20copy%20the%20following%20content%20to%20tasks.json%20.)
 
+### [vx6交流群 前两个lab的tips](https://zhuanlan.zhihu.com/p/251366985)
+
+### [6.s081 tools](https://pdos.csail.mit.edu/6.828/2020/tools.html)
+
+### [6.s081 util](https://pdos.csail.mit.edu/6.828/2020/labs/util.html)
+
+### [6.828 git RISC-V](https://pdos.csail.mit.edu/6.828/2019/xv6.html)
+
 
 # debug
 
