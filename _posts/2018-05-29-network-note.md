@@ -118,6 +118,8 @@ lang: zh-Hans
 
 ### [6.828 git RISC-V](https://pdos.csail.mit.edu/6.828/2019/xv6.html)
 
+### [MIT 6.S081 xv6调试不完全指北](https://www.colabug.com/2020/0925/7717718/)
+
 
 # debug
 
