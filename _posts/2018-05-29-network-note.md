@@ -120,6 +120,8 @@ lang: zh-Hans
 
 ### [MIT 6.S081 xv6调试不完全指北](https://www.colabug.com/2020/0925/7717718/)
 
+### [xv6 public x86 debug with clion](https://www.zhihu.com/question/20207347)
+
 
 # debug
 
