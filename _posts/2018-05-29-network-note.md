@@ -97,6 +97,8 @@ lang: zh-Hans
 
 ### [Linux 0.11 实验环境](http://tinylab.org/linux-0.11-lab/)
 
+### [纯干货，PSI 原理解析与应用](https://blog.csdn.net/feelabclihu/article/details/105534140)
+
 
 # XV6
 
