@@ -99,6 +99,8 @@ lang: zh-Hans
 
 ### [纯干货，PSI 原理解析与应用](https://blog.csdn.net/feelabclihu/article/details/105534140)
 
+### [Android 内存分析](https://blog.csdn.net/heng615975867/article/details/51259410)
+
 
 # XV6
 
