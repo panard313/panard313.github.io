@@ -101,6 +101,8 @@ lang: zh-Hans
 
 ### [Android 内存分析](https://blog.csdn.net/heng615975867/article/details/51259410)
 
+### [深入探索Android稳定性优化 ](https://www.sohu.com/a/382944044_465908)
+
 
 # XV6
 
