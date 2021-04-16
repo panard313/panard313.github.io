@@ -1,0 +1,1639 @@
+================
+控制组v2
+================
+
+：日期：2015年10月
+：作者：Tejun Heo <tj@kernel.org>
+
+This is the authoritative documentation on the design, interface and conventions of cgroup v2.  It describes all userland-visible aspects of cgroup including core and specific controller behaviors.  All future changes must be reflected in this document.  Documentation for v1 is available under Documentation/cgroup-v1/.
+这是有关cgroup v2的设计，接口和约定的权威文档。它描述了cgroup的所有用户可见的方面，包括核心和特定的控制器行为。所有将来的更改都必须反映在本文档中。 v1的文档位于Documentation / cgroup-v1 /下。
+
+..目录
+
+   1. Introduction
+   1.简介
+     1-1。术语
+     1-2。什么是cgroup？
+   2.基本操作
+     2-1。安装
+     2-2。组织流程和线程
+       2-2-1。工艺流程
+       2-2-2。线程数
+     2-3。 [未]填充的通知
+     2-4。控制控制器
+       2-4-1。启用和禁用
+       2-4-2。自上而下的约束
+       2-4-3。没有内部过程约束
+     2-5。代表团
+       2-5-1。委托模式
+       2-5-2。委托遏制
+     2-6。指导方针
+       2-6-1。一次组织并控制
+       2-6-2。避免名称冲突
+   3.资源分配模型
+     3-1。重物
+     3-2。限度
+     3-3。保护装置
+     3-4。分配
+   4.接口文件
+     4-1。格式
+     4-2。约定
+     4-3。核心接口文件
+   5.控制器
+     5-1。中央处理器
+       5-1-1。 CPU接口文件
+     5-2。记忆
+       5-2-1。内存接口文件
+       5-2-2。使用指南
+       5-2-3。内存拥有权
+     5-3。 IO
+       5-3-1。 IO接口文件
+       5-3-2。写回
+       5-3-3。 IO延迟
+         5-3-3-1。 IO延迟限制如何工作
+         5-3-3-2。 IO延迟接口文件
+     5-4。 PID
+       5-4-1。 PID接口文件
+     5-5。设备
+     5-6。 RDMA
+       5-6-1。 RDMA接口文件
+     5-7。杂项
+       5-7-1。 perf_event
+     5-N。非规范性信息
+       5-N-1。 CPU控制器根cgroup进程行为
+       5-N-2。 IO控制器根cgroup进程行为
+   6.命名空间
+     6-1。基本
+     6-2。根源与观点
+     6-3。迁移和设置（2）
+     6-4。与其他命名空间的交互
+   P.有关内核编程的信息
+     P-1。文件系统对写回的支持
+   D.不推荐使用的v1核心功能
+   R. v1的问题和v2的原理
+     R-1。多个层次
+     R-2。线程粒度
+     R-3。内部节点与线程之间的竞争
+     R-4其他界面问题
+     R-5。管制员问题和补救措施
+       R-5-1。记忆
+
+
+介绍
+============
+
+术语
+-----------
+
+“ cgroup”代表“控制组”，并且永远不会大写。单数形式用于指定整个功能，也可以用作“ cgroup控制器”中的限定符。当明确提及多个单独的对照组时，使用复数形式“ cgroups”。
+
+
+什么是cgroup？
+---------------
+
+cgroup is a mechanism to organize processes hierarchically and distribute system resources along the hierarchy in a controlled and configurable manner.
+cgroup是一种机制，用于按层次结构组织进程并以可控和可配置的方式沿层次结构分配系统资源。
+
+cgroup is largely composed of two parts - the core and controllers. cgroup core is primarily responsible for hierarchically organizing processes.  A cgroup controller is usually responsible for distributing a specific type of system resource along the hierarchy although there are utility controllers which serve purposes other than resource distribution.
+cgroup主要由两部分组成-核心和控制器。 cgroup核心主要负责按层次组织流程。 cgroup控制器通常负责沿层次结构分配特定类型的系统资源，尽管有实用程序控制器可用于资源分配以外的目的。
+
+cgroups form a tree structure and every process in the system belongs to one and only one cgroup.  All threads of a process belong to the same cgroup.  On creation, all processes are put in the cgroup that the parent process belongs to at the time.  A process can be migrated to another cgroup.  Migration of a process doesn't affect already existing descendant processes.
+cgroup形成树形结构，系统中的每个进程都属于一个cgroup。进程的所有线程都属于同一个cgroup。创建时，所有进程都放入父进程当时所属的cgroup中。可以将一个进程迁移到另一个cgroup。流程的迁移不会影响已经存在的后代流程。
+
+Following certain structural constraints, controllers may be enabled or disabled selectively on a cgroup.  All controller behaviors are hierarchical - if a controller is enabled on a cgroup, it affects all processes which belong to the cgroups consisting the inclusive sub-hierarchy of the cgroup.  When a controller is enabled on a nested cgroup, it always restricts the resource distribution further.  The restrictions set closer to the root in the hierarchy can not be overridden from further away.
+遵循某些结构约束，可以在cgroup上选择性地启用或禁用控制器。所有控制器行为都是分层的-如果在cgroup上启用了控制器，则它将影响属于cgroup的所有进程，这些进程组成了cgroup的包含子层次结构。在嵌套cgroup上启用控制器后，它将始终进一步限制资源分配。设置为更靠近层次结构中的根的限制不能越远越好。
+
+
+基本操作
+================
+
+Mounting
+--------
+
+Unlike v1, cgroup v2 has only single hierarchy.  The cgroup v2 hierarchy can be mounted with the following mount command::
+与v1不同，cgroup v2仅具有单个层次结构。可以使用以下安装命令来安装cgroup v2层次结构：
+
+  # mount -t cgroup2 none $MOUNT_POINT
+
+cgroup2 filesystem has the magic number 0x63677270 ("cgrp").  All controllers which support v2 and are not bound to a v1 hierarchy are automatically bound to the v2 hierarchy and show up at the root. Controllers which are not in active use in the v2 hierarchy can be bound to other hierarchies.  This allows mixing v2 hierarchy with the legacy v1 multiple hierarchies in a fully backward compatible way.
+cgroup2文件系统的幻数为0x63677270（“ cgrp”）。所有支持v2且未绑定到v1层次结构的控制器都将自动绑定到v2层次结构并显示在根目录下。 v2层次结构中未活跃使用的控制器可以绑定到其他层次结构。这允许以完全向后兼容的方式将v2层次结构与旧版v1多个层次结构混合。
+
+A controller can be moved across hierarchies only after the controller is no longer referenced in its current hierarchy.  Because per-cgroup controller states are destroyed asynchronously and controllers may have lingering references, a controller may not show up immediately on the v2 hierarchy after the final umount of the previous hierarchy. Similarly, a controller should be fully disabled to be moved out of the unified hierarchy and it may take some time for the disabled controller to become available for other hierarchies; furthermore, due to inter-controller dependencies, other controllers may need to be disabled too.
+仅在不再在其当前层次结构中引用该控制器之后，才能在该层次结构之间移动控制器。由于每个cgroup控制器状态被异步破坏，并且控制器可能具有缠绵的引用，因此在上一层次的最终卸载之后，控制器可能不会立即显示在v2层次上。同样，应该完全禁用控制器才能将其移出统一层次结构，并且禁用的控制器可能需要一些时间才能用于其他层次结构。此外，由于控制器间的依赖性，也可能需要禁用其他控制器。
+
+While useful for development and manual configurations, moving controllers dynamically between the v2 and other hierarchies is strongly discouraged for production use.  It is recommended to decide the hierarchies and controller associations before starting using the controllers after system boot.
+尽管对于开发和手动配置很有用，但强烈建议不要在v2和其他层次结构之间动态移动控制器以供生产使用。建议在系统引导后开始使用控制器之前，确定层次结构和控制器关联。
+
+During transition to v2, system management software might still automount the v1 cgroup filesystem and so hijack all controllers during boot, before manual intervention is possible. To make testing and experimenting easier, the kernel parameter cgroup_no_v1= allows disabling controllers in v1 and make them always available in v2.
+在过渡到v2期间，系统管理软件可能仍会自动挂载v1 cgroup文件系统，因此在引导期间劫持了所有控制器，然后才可能进行手动干预。为了简化测试和实验，内核参数cgroup_no_v1 =允许在v1中禁用控制器，并使它们在v2中始终可用。
+
+cgroup v2 currently supports the following mount options.
+cgroup v2当前支持以下安装选项。
+
+  nsdelegate
+
+	Consider cgroup namespaces as delegation boundaries.  This option is system wide and can only be set on mount or modified through remount from the init namespace.  The mount option is ignored on non-init namespace mounts.  Please refer to the Delegation section for details.
+将cgroup命名空间视为委托边界。此选项是系统范围的，只能在安装时设置，或通过从init名称空间重新安装来修改。在非初始名称空间安装中，mount选项将被忽略。请参阅“授权”部分以获取详细信息。
+
+Organizing Processes and Threads
+组织流程和线程
+--------------------------------
+
+Processes
+~~~~~~~~~
+
+Initially, only the root cgroup exists to which all processes belong. A child cgroup can be created by creating a sub-directory::
+最初，仅存在所有进程所属的根cgroup。子cgroup可以通过创建子目录来创建：
+
+  # mkdir $CGROUP_NAME
+
+A given cgroup may have multiple child cgroups forming a tree structure.  Each cgroup has a read-writable interface file "cgroup.procs".  When read, it lists the PIDs of all processes which belong to the cgroup one-per-line.  The PIDs are not ordered and the same PID may show up more than once if the process got moved to another cgroup and then back or the PID got recycled while reading.
+给定的cgroup可能具有形成树结构的多个子cgroup。每个cgroup都有一个可读写的接口文件“ cgroup.procs”。读取时，它列出每行一个属于cgroup的所有进程的PID。如果进程被移至另一个cgroup然后又返回或PID在读取时被回收，则PID不会排序，并且同一PID可能会显示多次。
+
+A process can be migrated into a cgroup by writing its PID to the target cgroup's "cgroup.procs" file.  Only one process can be migrated on a single write(2) call.  If a process is composed of multiple threads, writing the PID of any thread migrates all threads of the process.
+通过将进程的PID写入目标cgroup的“ cgroup.procs”文件，可以将其迁移到cgroup。单个write（2）调用只能迁移一个进程。如果一个进程由多个线程组成，则写入任何线程的PID都会迁移该进程的所有线程。
+
+When a process forks a child process, the new process is born into the cgroup that the forking process belongs to at the time of the operation.  After exit, a process stays associated with the cgroup that it belonged to at the time of exit until it's reaped; however, a zombie process does not appear in "cgroup.procs" and thus can't be moved to another cgroup.
+当一个进程派生一个子进程时，新的进程将在操作时分叉到该cgroup中。退出后，进程在退出时仍与它所属的cgroup关联，直到获得收益为止。但是，僵尸进程不会出现在“ cgroup.procs”中，因此无法移动到另一个cgroup。
+
+A cgroup which doesn't have any children or live processes can be destroyed by removing the directory.  Note that a cgroup which doesn't have any children and is associated only with zombie processes is considered empty and can be removed::
+可以通过删除目录来销毁没有任何子进程或活动进程的cgroup。请注意，没有任何子代且仅与僵尸进程相关联的cgroup被认为是空的，可以删除：
+
+  # rmdir $CGROUP_NAME
+
+"/proc/$PID/cgroup" lists a process's cgroup membership.  If legacy cgroup is in use in the system, this file may contain multiple lines, one for each hierarchy.  The entry for cgroup v2 is always in the format "0::$PATH"::
+“ / proc / $ PID / cgroup”列出了进程的cgroup成员资格。如果系统中使用了旧版cgroup，则此文件可能包含多行，每个层次对应一行。 cgroup v2的条目始终采用“ 0 :: $ PATH” ::的格式
+
+  # cat /proc/842/cgroup
+  ...
+  0::/test-cgroup/test-cgroup-nested
+
+If the process becomes a zombie and the cgroup it was associated with is removed subsequently, " (deleted)" is appended to the path::
+如果该进程成为僵尸，并且随后删除了与之关联的cgroup，则将“（（已删除）”）添加到路径：
+
+  # cat /proc/842/cgroup
+  ...
+  0::/test-cgroup/test-cgroup-nested (deleted)
+
+
+Threads
+~~~~~~~
+
+cgroup v2 supports thread granularity for a subset of controllers to support use cases requiring hierarchical resource distribution across the threads of a group of processes.  By default, all threads of a process belong to the same cgroup, which also serves as the resource domain to host resource consumptions which are not specific to a process or thread.  The thread mode allows threads to be spread across a subtree while still maintaining the common resource domain for them.
+cgroup v2支持一部分控制器的线程粒度，以支持需要在一组进程的线程之间进行分层资源分配的用例。默认情况下，进程的所有线程都属于同一个cgroup，该cgroup还用作资源域，以承载非特定于进程或线程的资源消耗。线程模式允许线程在子树中散布，同时仍为其保留公共资源域。
+
+Controllers which support thread mode are called threaded controllers. The ones which don't are called domain controllers.
+支持线程模式的控制器称为线程控制器。那些没有被称为域控制器。
+
+Marking a cgroup threaded makes it join the resource domain of its parent as a threaded cgroup.  The parent may be another threaded cgroup whose resource domain is further up in the hierarchy.  The root of a threaded subtree, that is, the nearest ancestor which is not threaded, is called threaded domain or thread root interchangeably and serves as the resource domain for the entire subtree.
+将cgroup标记为线程使其可以作为线程cgroup加入其父级的资源域。父级可以是另一个线程化cgroup，其资源域在层次结构中位于更上层。线程子树的根，即没有线程的最接近的祖先，可互换地称为线程域或线程根，并用作整个子树的资源域。
+
+Inside a threaded subtree, threads of a process can be put in different cgroups and are not subject to the no internal process constraint - threaded controllers can be enabled on non-leaf cgroups whether they have threads in them or not.
+在线程子树中，进程的线程可以放在不同的cgroup中，并且不受内部进程的限制-可以在非叶子cgroup上启用线程控制器，无论它们中是否有线程。
+
+As the threaded domain cgroup hosts all the domain resource consumptions of the subtree, it is considered to have internal resource consumptions whether there are processes in it or not and can't have populated child cgroups which aren't threaded.  Because the root cgroup is not subject to no internal process constraint, it can serve both as a threaded domain and a parent to domain cgroups.
+由于线程域cgroup承载子树的所有域资源消耗，因此无论是否有进程而且不能填充没有线程的子cgroup都被认为具有内部资源消耗。因为根cgroup不受内部进程约束，所以它既可以用作线程域，又可以用作域cgroup的父级。
+
+The current operation mode or type of the cgroup is shown in the "cgroup.type" file which indicates whether the cgroup is a normal domain, a domain which is serving as the domain of a threaded subtree, or a threaded cgroup.
+cgroup的当前操作模式或类型显示在“ cgroup.type”文件中，该文件指示cgroup是正常域，用作线程子树的域的域还是线程cgroup。
+
+On creation, a cgroup is always a domain cgroup and can be made threaded by writing "threaded" to the "cgroup.type" file.  The operation is single direction::
+创建时，cgroup始终是域cgroup，可以通过将“ threaded”写入“ cgroup.type”文件来使其成为线程。该操作是单向的：
+
+  # echo threaded > cgroup.type
+
+Once threaded, the cgroup can't be made a domain again.  To enable the thread mode, the following conditions must be met.
+一旦线程化，就不能再将cgroup设为域。要启用线程模式，必须满足以下条件。
+
+- As the cgroup will join the parent's resource domain.  The parent must either be a valid (threaded) domain or a threaded cgroup.
+-因为cgroup将加入父级的资源域。父级必须是有效（线程）域或线程cgroup。
+
+- When the parent is an unthreaded domain, it must not have any domain controllers enabled or populated domain children.  The root is exempt from this requirement.
+-当父级是非线程域时，它不得启用任何域控制器或填充域子级。根免于此要求。
+
+Topology-wise, a cgroup can be in an invalid state.  Please consider the following topology::
+在拓扑方面，cgroup可以处于无效状态。请考虑以下拓扑：
+
+  A (threaded domain) - B (threaded) - C (domain, just created)
+
+
+C is created as a domain but isn't connected to a parent which can host child domains.  C can't be used until it is turned into a threaded cgroup.  "cgroup.type" file will report "domain (invalid)" in these cases.  Operations which fail due to invalid topology use EOPNOTSUPP as the errno.
+C被创建为域，但未连接到可以托管子域的父级。在将C转换为线程化cgroup之前，不能使用C。在这种情况下，“ cgroup.type”文件将报告“域（无效）”。由于无效拓扑而失败的操作将使用EOPNOTSUPP作为errno。
+
+
+A domain cgroup is turned into a threaded domain when one of its child cgroup becomes threaded or threaded controllers are enabled in the "cgroup.subtree_control" file while there are processes in the cgroup. A threaded domain reverts to a normal domain when the conditions clear.
+当cgroup中的子进程cgroup中的一个变为线程化时，或者在cgroup中有进程的情况下，在“ cgroup.subtree_control”文件中启用了线程控制器时，域cgroup就会变成线程域。条件清除后，线程域将恢复为普通域。
+
+
+When read, "cgroup.threads" contains the list of the thread IDs of all threads in the cgroup.  Except that the operations are per-thread instead of per-process, "cgroup.threads" has the same format and behaves the same way as "cgroup.procs".  While "cgroup.threads" can be written to in any cgroup, as it can only move threads inside the same threaded domain, its operations are confined inside each threaded subtree.
+读取时，“ cgroup.threads”包含cgroup中所有线程的线程ID列表。除了操作是按线程而不是按进程之外，“ cgroup.threads”具有相同的格式，并且行为方式与“ cgroup.procs”相同。尽管可以在任何cgroup中写入“ cgroup.threads”，但是它只能在同一线程域中移动线程，因此其操作被限制在每个线程子树中。
+
+
+The threaded domain cgroup serves as the resource domain for the whole subtree, and, while the threads can be scattered across the subtree, all the processes are considered to be in the threaded domain cgroup. "cgroup.procs" in a threaded domain cgroup contains the PIDs of all processes in the subtree and is not readable in the subtree proper. However, "cgroup.procs" can be written to from anywhere in the subtree to migrate all threads of the matching process to the cgroup.
+线程域cgroup充当整个子树的资源域，并且尽管线程可以分散在整个子树中，但是所有进程都被视为在线程域cgroup中。线程域cgroup中的“ cgroup.procs”包含子树中所有进程的PID，在子树本身中不可读。但是，可以从子树中的任何位置写入“ cgroup.procs”，以将匹配进程的所有线程迁移到cgroup。
+
+
+Only threaded controllers can be enabled in a threaded subtree.  When a threaded controller is enabled inside a threaded subtree, it only accounts for and controls resource consumptions associated with the threads in the cgroup and its descendants.  All consumptions which aren't tied to a specific thread belong to the threaded domain cgroup.
+只能在线程子树中启用线程控制器。在线程子树中启用线程控制器后，它仅考虑和控制与cgroup及其子代中的线程相关联的资源消耗。所有与特定线程无关的消耗都属于线程域cgroup。
+
+Because a threaded subtree is exempt from no internal process constraint, a threaded controller must be able to handle competition between threads in a non-leaf cgroup and its child cgroups.  Each threaded controller defines how such competitions are handled.
+由于线程子树不受任何内部进程约束，因此线程控制器必须能够处理非叶cgroup及其子cgroup中的线程之间的竞争。每个线程控制器定义如何处理此类竞争。
+
+
+[未]填充的通知
+--------------------------
+
+Each non-root cgroup has a "cgroup.events" file which contains "populated" field indicating whether the cgroup's sub-hierarchy has live processes in it.  Its value is 0 if there is no live process in the cgroup and its descendants; otherwise, 1.  poll and [id]notify events are triggered when the value changes.  This can be used, for example, to start a clean-up operation after all processes of a given sub-hierarchy have exited.  The populated state updates and notifications are recursive.  Consider the following sub-hierarchy where the numbers in the parentheses represent the numbers of processes in each cgroup::
+每个非根cgroup都有一个“ cgroup.events”文件，其中包含“填充”字段，指示cgroup的子层次结构中是否有活动进程。如果cgroup及其子代中没有活动进程，则其值为0；否则，值为1。否则，将在值更改时触发1. poll和[id] notify事件。例如，在退出给定子层次结构的所有进程之后，可以使用它来启动清理操作。填充的状态更新和通知是递归的。考虑以下子层次结构，其中括号中的数字表示每个cgroup中的进程数：
+
+  A（4）-B（0）-C（1）
+              \ D（0）
+
+A, B and C's "populated" fields would be 1 while D's 0.  After the one process in C exits, B and C's "populated" fields would flip to "0" and file modified events will be generated on the "cgroup.events" files of both cgroups.
+A，B和C的“填充”字段将为1，而D的为0。在C中的一个进程退出之后，B和C的“填充”字段将翻转为“ 0”，并且将在“ cgroup.events”上生成文件修改的事件。两个cgroup的文件。
+
+
+控制控制器
+-----------------------
+
+启用和禁用
+~~~~~~~~~~~~~~~~~~~~~~
+
+Each cgroup has a "cgroup.controllers" file which lists all controllers available for the cgroup to enable::
+每个cgroup都有一个“ cgroup.controllers”文件，其中列出了所有可用于cgroup启用的控制器：
+
+  # cat cgroup.controllers
+  cpu io memory
+
+No controller is enabled by default.  Controllers can be enabled and disabled by writing to the "cgroup.subtree_control" file::
+默认情况下未启用任何控制器。可以通过写入“ cgroup.subtree_control”文件来启用和禁用控制器：
+
+  # echo "+cpu +memory -io" > cgroup.subtree_control
+
+Only controllers which are listed in "cgroup.controllers" can be enabled.  When multiple operations are specified as above, either they all succeed or fail.  If multiple operations on the same controller are specified, the last one is effective.
+只能启用“ cgroup.controllers”中列出的控制器。如上所述指定多个操作时，它们全部成功或失败。如果在同一控制器上指定了多个操作，则最后一个有效。
+
+Enabling a controller in a cgroup indicates that the distribution of the target resource across its immediate children will be controlled. Consider the following sub-hierarchy.  The enabled controllers are listed in parentheses::
+在cgroup中启用控制器表示将控制目标资源在其直接子代中的分布。请考虑以下子层次结构。启用的控制器在括号中列出：：
+
+  A(cpu,memory) - B(memory) - C()
+                            \ D()
+
+As A has "cpu" and "memory" enabled, A will control the distribution of CPU cycles and memory to its children, in this case, B.  As B has "memory" enabled but not "CPU", C and D will compete freely on CPU cycles but their division of memory available to B will be controlled.
+由于A启用了“ cpu”和“内存”，因此A将控制向其子代（例如B）的CPU周期和内存的分配。由于B启用了“内存”但未启用“ CPU”，因此C和D将竞争在CPU周期上可以自由使用，但B可用的内存分配将受到控制。
+
+As a controller regulates the distribution of the target resource to the cgroup's children, enabling it creates the controller's interface files in the child cgroups.  In the above example, enabling "cpu" on B would create the "cpu." prefixed controller interface files in C and D.  Likewise, disabling "memory" from B would remove the "memory." prefixed controller interface files from C and D.  This means that the controller interface files - anything which doesn't start with "cgroup." are owned by the parent rather than the cgroup itself.
+当控制器调节目标资源向cgroup子级的分配时，使其能够在子cgroup中创建控制器的接口文件。在上面的示例中，在B上启用“ cpu”将创建“ cpu”。在C和D中为控制器接口文件添加前缀。同样，从B禁用“内存”将删除“内存”。在C和D中加上前缀的控制器接口文件。这意味着控制器接口文件-任何不以“ cgroup”开头的文件。由父级而不是cgroup本身拥有。
+
+
+自上而下的约束
+~~~~~~~~~~~~~~~~~~~
+
+Resources are distributed top-down and a cgroup can further distribute a resource only if the resource has been distributed to it from the parent.  This means that all non-root "cgroup.subtree_control" files can only contain controllers which are enabled in the parent's "cgroup.subtree_control" file.  A controller can be enabled only if the parent has the controller enabled and a controller can't be disabled if one or more children have it enabled.
+资源是自上而下分配的，只有从父级分配给资源的cgroup才能进一步分配资源。这意味着所有非根“ cgroup.subtree_control”文件只能包含在父级的“ cgroup.subtree_control”文件中启用的控制器。只有在父级启用了控制器的情况下才能启用控制器，而在一个或多个子级启用的情况下不能禁用控制器。
+
+
+
+No Internal Process Constraint
+没有内部过程约束
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Non-root cgroups can distribute domain resources to their children only when they don't have any processes of their own.  In other words, only domain cgroups which don't contain any processes can have domain controllers enabled in their "cgroup.subtree_control" files.
+非根cgroup只能在自己没有任何进程的情况下才将域资源分配给其子级。换句话说，只有不包含任何进程的域cgroup才能在其“ cgroup.subtree_control”文件中启用域控制器。
+
+This guarantees that, when a domain controller is looking at the part of the hierarchy which has it enabled, processes are always only on the leaves.  This rules out situations where child cgroups compete against internal processes of the parent.
+这样可以保证，当域控制器查看层次结构中启用了它的部分时，进程始终只在叶子上。这排除了子cgroup与父c内部竞争竞争的情况。
+
+The root cgroup is exempt from this restriction.  Root contains processes and anonymous resource consumption which can't be associated with any other cgroups and requires special treatment from most controllers.  How resource consumption in the root cgroup is governed is up to each controller (for more information on this topic please refer to the Non-normative information section in the Controllers chapter).
+根cgroup不受此限制。根目录包含进程和匿名资源消耗，这些资源和匿名资源消耗不能与任何其他cgroup关联，并且需要大多数控制器进行特殊处理。根cgroup中资源消耗的控制方式取决于每个控制器（有关此主题的更多信息，请参阅“控制器”一章中的“非规范性信息”部分）。
+
+Note that the restriction doesn't get in the way if there is no enabled controller in the cgroup's "cgroup.subtree_control".  This is important as otherwise it wouldn't be possible to create children of a populated cgroup.  To control resource distribution of a cgroup, the cgroup must create children and transfer all its processes to the children before enabling controllers in its "cgroup.subtree_control" file.
+请注意，如果cgroup的“ cgroup.subtree_control”中没有启用的控制器，则限制不会妨碍您。这很重要，因为否则将无法创建已填充cgroup的子级。为了控制cgroup的资源分配，cgroup必须在其“ cgroup.subtree_control”文件中启用控制器之前，必须创建子代并将其所有进程转移到这些子代。
+
+
+Delegation
+----------
+
+Model of Delegation
+委托模式
+~~~~~~~~~~~~~~~~~~~
+
+A cgroup can be delegated in two ways.  First, to a less privileged user by granting write access of the directory and its "cgroup.procs", "cgroup.threads" and "cgroup.subtree_control" files to the user. Second, if the "nsdelegate" mount option is set, automatically to a cgroup namespace on namespace creation.
+可以通过两种方式委派cgroup。首先，通过授予该目录及其“ cgroup.procs”，“ cgroup.threads”和“ cgroup.subtree_control”文件的写访问权限，来授予特权较低的用户。其次，如果设置了“ nsdelegate”安装选项，则在创建名称空间时会自动将其添加到cgroup名称空间。
+
+Because the resource control interface files in a given directory control the distribution of the parent's resources, the delegatee shouldn't be allowed to write to them.  For the first method, this is achieved by not granting access to these files.  For the second, the kernel rejects writes to all files other than "cgroup.procs" and "cgroup.subtree_control" on a namespace root from inside the namespace.
+由于给定目录中的资源控制接口文件控制父级资源的分配，因此不应允许委托人对其进行写入。对于第一种方法，这是通过不授予对这些文件的访问来实现的。第二，内核拒绝从命名空间内部对命名空间根目录下的“ cgroup.procs”和“ cgroup.subtree_control”以外的所有文件进行写入。
+
+The end results are equivalent for both delegation types.  Once delegated, the user can build sub-hierarchy under the directory, organize processes inside it as it sees fit and further distribute the resources it received from the parent.  The limits and other settings of all resource controllers are hierarchical and regardless of what happens in the delegated sub-hierarchy, nothing can escape the resource restrictions imposed by the parent.
+两种委托类型的最终结果均相同。委派后，用户可以在目录下构建子层次结构，根据需要在其中组织进程，并进一步分配从父级收到的资源。所有资源控制器的限制和其他设置都是分层的，并且无论在委派的子层次结构中发生什么，都无法逃脱父级施加的资源限制。
+
+Currently, cgroup doesn't impose any restrictions on the number of cgroups in or nesting depth of a delegated sub-hierarchy; however, this may be limited explicitly in the future.
+当前，cgroup对委派子层次结构中的cgroup数量或嵌套深度不施加任何限制；但是，将来可能会明确限制。
+
+
+Delegation Containment
+委托遏制
+~~~~~~~~~~~~~~~~~~~~~~
+
+A delegated sub-hierarchy is contained in the sense that processes can't be moved into or out of the sub-hierarchy by the delegatee.
+从某种意义上说，委托人不能将流程移入或移出子层次结构，因此包含一个委派的子层次结构。
+
+For delegations to a less privileged user, this is achieved by requiring the following conditions for a process with a non-root euid to migrate a target process into a cgroup by writing its PID to the "cgroup.procs" file.
+对于向特权较低的用户的委派，这是通过为非root euid的进程要求以下条件，以通过将其PID写入目标进程来将目标进程迁移到cgroup来实现的。
+“ cgroup.procs”文件。
+
+- The writer must have write access to the "cgroup.procs" file.
+-编写者必须具有对“ cgroup.procs”文件的写访问权。
+
+- The writer must have write access to the "cgroup.procs" file of the common ancestor of the source and destination cgroups.
+-编写者必须对源cgroup和目标cgroup的公共祖先的“ cgroup.procs”文件具有写访问权。
+
+The above two constraints ensure that while a delegatee may migrate processes around freely in the delegated sub-hierarchy it can't pull in from or push out to outside the sub-hierarchy.
+上面的两个约束条件确保了尽管委托者可以在委托子层次结构中自由地迁移进程，但它不能从子层次结构中移入或移出。
+
+For an example, let's assume cgroups C0 and C1 have been delegated to user U0 who created C00, C01 under C0 and C10 under C1 as follows and all processes under C0 and C1 belong to U0::
+例如，假设将cgroup C0和C1委派给用户U0，该用户U0如下创建C00，C0下的C01和C1下的C10，并且C0和C1下的所有进程都属于U0：
+
+  ~~~~~~~~~~~~~ - C0 - C00
+  ~ cgroup    ~      \ C01
+  ~ hierarchy ~
+  ~~~~~~~~~~~~~ - C1 - C10
+
+Let's also say U0 wants to write the PID of a process which is currently in C10 into "C00/cgroup.procs".  U0 has write access to the file; however, the common ancestor of the source cgroup C10 and the destination cgroup C00 is above the points of delegation and U0 would not have write access to its "cgroup.procs" files and thus the write will be denied with -EACCES.
+假设U0要将当前在C10中的进程的PID写入“ C00 / cgroup.procs”。 U0对文件具有写访问权限；但是，源cgroup C10和目标cgroup C00的公共祖先位于委托点的上方，U0将无法对其“ cgroup.procs”文件进行写访问，因此将使用-EACCES拒绝写操作。
+
+For delegations to namespaces, containment is achieved by requiring that both the source and destination cgroups are reachable from the namespace of the process which is attempting the migration.  If either is not reachable, the migration is rejected with -ENOENT.
+对于名称空间的委派，通过要求源cgroup和目标cgroup都可以从尝试进行迁移的进程的名称空间中进行访问来实现包含。如果任何一个都不可达，则使用-ENOENT拒绝迁移。
+
+
+指导方针
+----------
+
+Organize Once and Control
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Migrating a process across cgroups is a relatively expensive operation and stateful resources such as memory are not moved together with the process.  This is an explicit design decision as there often exist inherent trade-offs between migration and various hot paths in terms of synchronization cost.
+跨cgroup迁移进程是一项相对昂贵的操作，并且诸如内存之类的有状态资源不会与进程一起移动。这是一个明确的设计决策，因为在迁移和各种热路径之间通常存在固有的权衡取舍同步成本。
+
+As such, migrating processes across cgroups frequently as a means to apply different resource restrictions is discouraged.  A workload should be assigned to a cgroup according to the system's logical and resource structure once on start-up.  Dynamic adjustments to resource distribution can be made by changing controller configuration through the interface files.
+因此，不建议在cgroup之间频繁迁移进程，以作为应用不同资源限制的一种手段。启动后，应根据系统的逻辑和资源结构将工作负载分配给cgroup。通过接口文件更改控制器配置，可以对资源分配进行动态调整。
+
+
+
+Avoid Name Collisions
+避免名称冲突
+~~~~~~~~~~~~~~~~~~~~~
+
+Interface files for a cgroup and its children cgroups occupy the same directory and it is possible to create children cgroups which collide with interface files.
+cgroup及其子cgroup的接口文件位于同一目录中，并且可以创建与接口文件冲突的子cgroup。
+
+All cgroup core interface files are prefixed with "cgroup." and each controller's interface files are prefixed with the controller name and a dot.  A controller's name is composed of lower case alphabets and '_'s but never begins with an '_' so it can be used as the prefix character for collision avoidance.  Also, interface file names won't start or end with terms which are often used in categorizing workloads such as job, service, slice, unit or workload.
+所有cgroup核心接口文件均以“ cgroup”为前缀。每个控制器的接口文件均以控制器名称和点作为前缀。控制器的名称由小写字母和“ _”组成，但绝不能以“ _”开头，因此可以用作避免冲突的前缀字符。同样，接口文件名也不会以通常用于对工作负载（例如作业，服务，片，单位或工作负载）进行分类的术语开头或结尾。
+
+cgroup doesn't do anything to prevent name collisions and it's the user's responsibility to avoid them.
+cgroup不会采取任何措施来防止名称冲突，避免这些冲突是用户的责任。
+
+
+Resource Distribution Models
+资源分配模型
+===========================
+
+cgroup controllers implement several resource distribution schemes depending on the resource type and expected use cases.  This section describes major schemes in use along with their expected behaviors.
+cgroup控制器根据资源类型和预期用例实现几种资源分配方案。本节介绍正在使用的主要方案及其预期行为。
+
+
+Weights
+-------
+
+A parent's resource is distributed by adding up the weights of all active children and giving each the fraction matching the ratio of its weight against the sum.  As only children which can make use of the resource at the moment participate in the distribution, this is work-conserving.  Due to the dynamic nature, this model is usually used for stateless resources.
+通过将所有活动子项的权重相加，并为每个子项分配与其权重与总和之比匹配的分数，来分配父项的资源。由于只有目前可以利用资源的孩子参与分发，因此可以节省工作。由于动态性质，此模型通常用于无状态资源。
+
+All weights are in the range [1, 10000] with the default at 100.  This allows symmetric multiplicative biases in both directions at fine enough granularity while staying in the intuitive range.
+所有权重均在[1，10000]范围内，默认值为100。这允许在两个方向上以足够精细的粒度进行对称的乘法偏差，同时保持在直观范围内。
+
+As long as the weight is in range, all configuration combinations are valid and there is no reason to reject configuration changes or process migrations.
+只要权重在范围内，所有配置组合都是有效的，没有理由拒绝配置更改或过程迁移。
+
+"cpu.weight" proportionally distributes CPU cycles to active children and is an example of this type.
+“ cpu.weight”按比例将CPU周期分配给活动的子代，并且是这种类型的示例。
+
+Limits
+------
+
+A child can only consume upto the configured amount of the resource. Limits can be over-committed - the sum of the limits of children can exceed the amount of resource available to the parent.
+子项最多只能消耗配置的资源量。限制可能会过度使用-子级的限制总和可能超过父级可用的资源量。
+
+Limits are in the range [0, max] and defaults to "max", which is noop.
+限制在[0，max]范围内，默认为“ max”（无）。
+
+As limits can be over-committed, all configuration combinations are valid and there is no reason to reject configuration changes or process migrations.
+由于可能会过度使用限制，因此所有配置组合都是有效的，因此没有理由拒绝配置更改或流程迁移。
+
+"io.max" limits the maximum BPS and/or IOPS that a cgroup can consume on an IO device and is an example of this type.
+“ io.max”限制cgroup可以在IO设备上消耗的最大BPS和/或IOPS，并且是这种类型的示例。
+
+
+Protections
+-----------
+
+A cgroup is protected to be allocated upto the configured amount of the resource if the usages of all its ancestors are under their protected levels.  Protections can be hard guarantees or best effort soft boundaries.  Protections can also be over-committed in which case only upto the amount available to the parent is protected among children.
+如果cgroup的所有祖先的使用低于其保护级别，则该cgroup被保护分配给资源的配置数量。保护可以是硬性保证，也可以是尽力而为的软边界。在这种情况下，保护也可能被过度承诺，​​只有在儿童中，父母所能保护的数额才最大。
+
+Protections are in the range [0, max] and defaults to 0, which is noop.
+保护范围为[0，max]，默认为0，即noop。
+
+As protections can be over-committed, all configuration combinations are valid and there is no reason to reject configuration changes or process migrations.
+由于可能会过度使用保护，因此所有配置组合都是有效的，因此没有理由拒绝配置更改或流程迁移。
+
+"memory.low" implements best-effort memory protection and is an example of this type.
+“ memory.low”实现了尽力而为的内存保护，并且是这种类型的示例。
+
+
+Allocations
+-----------
+
+A cgroup is exclusively allocated a certain amount of a finite resource.  Allocations can't be over-committed - the sum of the allocations of children can not exceed the amount of resource available to the parent.
+仅为cgroup分配了一定数量的有限资源。分配不能过量使用-子项分配的总和不能超过父级可用资源的数量。
+
+Allocations are in the range [0, max] and defaults to 0, which is no resource.
+分配在[0，max]范围内，默认为0，这没有资源。
+
+As allocations can't be over-committed, some configuration combinations are invalid and should be rejected.  Also, if the resource is mandatory for execution of processes, process migrations may be rejected.
+由于分配不能过量使用，因此某些配置组合无效，应予以拒绝。同样，如果资源对于执行流程是必不可少的，则可能会拒绝流程迁移。
+
+"cpu.rt.max" hard-allocates realtime slices and is an example of this type.
+“ cpu.rt.max”硬分配实时切片，并且是这种类型的示例。
+
+
+接口文件
+===============
+
+格式
+------
+
+All interface files should be in one of the following formats whenever possible::
+所有接口文件应尽可能采用以下格式之一：
+
+  换行符
+  （一次只能写入一个值时）
+
+VAL0 \ n
+VAL1 \ n
+...
+
+  以空格分隔的值
+  （当只读或多个值可以一次写入时）
+
+VAL0 VAL1 ... \ n
+
+  平键
+
+KEY0 VAL0 \ n
+KEY1 VAL1 \ n
+...
+
+  嵌套键控
+
+KEY0 SUB_KEY0 = VAL00 SUB_KEY1 = VAL01 ...
+KEY1 SUB_KEY0 = VAL10 SUB_KEY1 = VAL11 ...
+...
+
+For a writable file, the format for writing should generally match reading; however, controllers may allow omitting later fields or implement restricted shortcuts for most common use cases.
+对于可写文件，写入格式通常应与读取匹配；但是，对于大多数常见用例，控制器可以允许省略后面的字段或实施受限的快捷方式。
+
+For both flat and nested keyed files, only the values for a single key can be written at a time.  For nested keyed files, the sub key pairs may be specified in any order and not all pairs have to be specified.
+对于平面和嵌套键控文件，一次只能写入单个键的值。对于嵌套的密钥文件，可以以任何顺序指定子密钥对，而不必指定所有对。
+
+
+约定
+-----------
+
+- Settings for a single feature should be contained in a single file.
+-单个功能的设置应包含在一个文件中。
+
+- The root cgroup should be exempt from resource control and thus shouldn't have resource control interface files.  Also, informational files on the root cgroup which end up showing global information available elsewhere shouldn't exist.
+-根cgroup应该不受资源控制，因此不应具有资源控制接口文件。另外，根cgroup上的信息文件最终不显示其他地方可用的全局信息。
+
+- If a controller implements weight based resource distribution, its interface file should be named "weight" and have the range [1, 10000] with 100 as the default.  The values are chosen to allow enough and symmetric bias in both directions while keeping it intuitive (the default is 100%).
+-如果控制器实现基于权重的资源分配，则其接口文件应命名为“ weight”，其范围为[1，10000]，默认值为100。选择这些值以在两个方向上都允许足够且对称的偏置，同时保持直观（默认值为100％）。
+
+- If a controller implements an absolute resource guarantee and/or limit, the interface files should be named "min" and "max" respectively.  If a controller implements best effort resource guarantee and/or limit, the interface files should be named "low" and "high" respectively.
+-如果控制器实现绝对资源保证和/或限制，则接口文件应分别命名为“ min”和“ max”。如果控制器实施尽力而为资源保证和/或限制，则接口文件应分别命名为“低”和“高”。
+
+  In the above four control files, the special token "max" should be used to represent upward infinity for both reading and writing.
+  在上述四个控制文件中，特殊标记“ max”应用于表示读写的向上无穷大。
+
+- If a setting has a configurable default value and keyed specific overrides, the default entry should be keyed with "default" and appear as the first entry in the file.
+-如果设置具有可配置的默认值和键控的特定替代，则应使用“ default”键对默认条目进行键控，并在文件中显示为第一项。
+
+The default value can be updated by writing either "default $VAL" or "$VAL".
+可以通过写入“默认$ VAL”或“ $ VAL”来更新默认值。
+
+When writing to update a specific override, "default" can be used as the value to indicate removal of the override.  Override entries with "default" as the value must not appear when read.
+编写更新特定替代时，可以使用“默认”作为指示已删除替代的值。读取时不得出现以“ default”为值的替代条目。
+
+For example, a setting which is keyed by major:minor device numbers with integer values may look like the following::
+例如，由major：minor设备编号和整数值键入的设置可能如下所示：
+
+    # cat cgroup-example-interface-file
+    default 150
+    8:0 300
+
+  可以通过以下方式更新默认值：
+
+    # echo 125 > cgroup-example-interface-file
+
+  要么：：
+
+    # echo "default 125" > cgroup-example-interface-file
+
+  可以通过以下方式设置替代：
+
+    # echo "8:16 170" > cgroup-example-interface-file
+
+  并通过以下方式清除：:
+
+    # echo "8:0 default" > cgroup-example-interface-file
+    # cat cgroup-example-interface-file
+    default 125
+    8:16 170
+
+- For events which are not very high frequency, an interface file "events" should be created which lists event key value pairs. Whenever a notifiable event happens, file modified event should be generated on the file.
+-对于频率不是很高的事件，应该创建一个接口文件“事件”，其中列出了事件键值对。每当发生可通知事件时，应在文件上生成文件修改事件。
+
+
+
+核心接口文件
+--------------------
+
+All cgroup core files are prefixed with "cgroup."
+所有cgroup核心文件均以“ cgroup”为前缀。
+
+  cgroup.type
+
+A read-write single value file which exists on non-root cgroups.
+非根cgroup上存在的可读写单值文件。
+
+When read, it indicates the current type of the cgroup, which can be one of the following values.
+读取时，它指示cgroup的当前类型，可以是以下值之一。
+
+- "domain" : A normal valid domain cgroup.
+-“域”：正常的有效域cgroup。
+
+- "domain threaded" : A threaded domain cgroup which is serving as the root of a threaded subtree.
+-“ domain threaded”：线程域cgroup，它用作线程化子树的根。
+
+- "domain invalid" : A cgroup which is in an invalid state. It can't be populated or have controllers enabled.  It may be allowed to become a threaded cgroup.
+-“域无效”：处于无效状态的cgroup。不能填充或启用控制器。可以允许它成为线程cgroup。
+
+- "threaded" : A threaded cgroup which is a member of a threaded subtree.
+-“ threaded”：线程cgroup，它是线程子树的成员。
+
+A cgroup can be turned into a threaded cgroup by writing "threaded" to this file.
+通过将“线程”写入此文件，可以将cgroup转换为线程cgroup。
+
+  cgroup.procs
+A read-write new-line separated values file which exists on all cgroups.
+所有cgroup上都存在一个读写换行分隔值文件。
+
+When read, it lists the PIDs of all processes which belong to the cgroup one-per-line.  The PIDs are not ordered and the same PID may show up more than once if the process got moved to another cgroup and then back or the PID got recycled while reading.
+读取时，它列出每行一个属于cgroup的所有进程的PID。如果进程被移至另一个cgroup然后又返回或PID在读取时被回收，则PID不会排序，并且同一PID可能会显示多次。
+
+A PID can be written to migrate the process associated with the PID to the cgroup.  The writer should match all of the following conditions.
+可以编写PID以将与PID关联的过程迁移到cgroup。作者应符合以下所有条件。
+
+- It must have write access to the "cgroup.procs" file.
+-它必须对“ cgroup.procs”文件具有写访问权。
+
+- It must have write access to the "cgroup.procs" file of the common ancestor of the source and destination cgroups.
+-它必须对源cgroup和目标cgroup的公共祖先的“ cgroup.procs”文件具有写访问权。
+
+When delegating a sub-hierarchy, write access to this file should be granted along with the containing directory.
+在委派子层次结构时，应与包含目录一起授予对此文件的写访问权。
+
+In a threaded cgroup, reading this file fails with EOPNOTSUPP as all the processes belong to the thread root.  Writing is supported and moves every thread of the process to the cgroup.
+在线程cgroup中，由于所有进程都属于线程根，因此读取此文件失败并显示EOPNOTSUPP。支持编写，并将进程的每个线程移至cgroup。
+
+  cgroup.threads
+A read-write new-line separated values file which exists on all cgroups.
+所有cgroup上都存在一个读写换行分隔值文件。
+
+When read, it lists the TIDs of all threads which belong to the cgroup one-per-line.  The TIDs are not ordered and the same TID may show up more than once if the thread got moved to another cgroup and then back or the TID got recycled while reading.
+读取时，它将列出每行一个属于cgroup的所有线程的TID。如果线程被移到另一个cgroup然后又返回或在读取时回收了TID，则TID没有排序，并且同一TID可能会显示多次。
+
+A TID can be written to migrate the thread associated with the TID to the cgroup.  The writer should match all of the following conditions.
+可以编写TID以将与TID相关联的线程迁移到cgroup。作者应符合以下所有条件。
+
+- It must have write access to the "cgroup.threads" file.
+-它必须对“ cgroup.threads”文件具有写访问权。
+
+- The cgroup that the thread is currently in must be in the same resource domain as the destination cgroup.
+-线程当前所在的cgroup必须与目标cgroup在同一资源域中。
+
+- It must have write access to the "cgroup.procs" file of the common ancestor of the source and destination cgroups.
+-它必须对源cgroup和目标cgroup的公共祖先的“ cgroup.procs”文件具有写访问权。
+
+When delegating a sub-hierarchy, write access to this file should be granted along with the containing directory.
+在委派子层次结构时，应与包含目录一起授予对此文件的写访问权。
+
+cgroup.controllers
+A read-only space separated values file which exists on all cgroups.
+线路控制器
+所有cgroup上都存在一个只读的以空格分隔的值文件。
+
+
+It shows space separated list of all controllers available to the cgroup.  The controllers are not ordered.
+它显示了cgroup可用的所有控制器的空格分隔列表。控制器未订购。
+
+cgroup.subtree_control
+A read-write space separated values file which exists on all cgroups.  Starts out empty.
+所有cgroup上都存在一个以读写空间分隔的值文件。开始为空。
+
+When read, it shows space separated list of the controllers which are enabled to control resource distribution from the cgroup to its children.
+读取时，它显示了控制器的以空格分隔的列表，这些列表可控制从cgroup到其子级的资源分配。
+
+Space separated list of controllers prefixed with '+' or '-' can be written to enable or disable controllers.  A controller name prefixed with '+' enables the controller and '-' disables.  If a controller appears more than once on the list, the last one is effective.  When multiple enable and disable operations are specified, either all succeed or all fail.
+可以编写以空格分隔的以“ +”或“-”为前缀的控制器列表，以启用或禁用控制器。以“ +”为前缀的控制器名称启用控制器，而以“-”禁用。如果一个控制器在列表中出现多次，则最后一个有效。指定多个启用和禁用操作时，要么全部成功，要么全部失败。
+
+cgroup.events
+A read-only flat-keyed file which exists on non-root cgroups. The following entries are defined.  Unless specified otherwise, a value change in this file generates a file modified event.
+非根cgroup上存在的只读平面键文件。定义了以下条目。除非另有说明，否则此文件中的值更改将生成文件修改事件。
+
+  populated
+	1 if the cgroup or its descendants contains any live processes; otherwise, 0.
+  填充
+1，如果cgroup或其后代包含任何活动进程；否则为0。
+
+cgroup.max.descendants
+A read-write single value files.  The default is "max".
+一个可读写的单值文件。默认值为“最大”。
+
+Maximum allowed number of descent cgroups.
+If the actual number of descendants is equal or larger, an attempt to create a new cgroup in the hierarchy will fail.
+允许的最大下降cgroup数。
+如果后代的实际数量相等或更大，则尝试在层次结构中创建新的cgroup将会失败。
+
+cgroup.max.depth
+A read-write single value files.  The default is "max".
+最大深度
+一个可读写的单值文件。默认值为“最大”。
+
+Maximum allowed descent depth below the current cgroup. If the actual descent depth is equal or larger, an attempt to create a new child cgroup will fail.
+低于当前cgroup的最大允许下降深度。如果实际下降深度等于或更大，则创建新子cgroup的尝试将失败。
+
+cgroup.stat
+A read-only flat-keyed file with the following entries:
+具有以下条目的只读平面键文件：
+
+  nr_descendants
+	Total number of visible descendant cgroups.
+可见后代cgroup的总数。
+
+  nr_dying_descendants
+Total number of dying descendant cgroups. A cgroup becomes dying after being deleted by a user. The cgroup will remain in dying state for some time undefined time (which can depend on system load) before being completely destroyed.
+即将死去的后代cgroup的总数。 cgroup被用户删除后将死掉。在完全销毁之前，cgroup将在濒临死亡的状态中保留未定义的时间（可能取决于系统负载）。
+
+A process can't enter a dying cgroup under any circumstances, a dying cgroup can't revive.
+在任何情况下，进程都无法进入即将死亡的cgroup，即将死亡的cgroup无法恢复。
+
+A dying cgroup can consume system resources not exceeding limits, which were active at the moment of cgroup deletion.
+垂死的cgroup可以消耗不超过限制的系统资源，该资源在删除cgroup时处于活动状态。
+
+
+控制器
+===========
+
+中央处理器
+---
+
+The "cpu" controllers regulates distribution of CPU cycles.  This controller implements weight and absolute bandwidth limit models for normal scheduling policy and absolute bandwidth allocation model for realtime scheduling policy.
+“ cpu”控制器调节CPU周期的分配。该控制器为常规调度策略实现权重和绝对带宽限制模型，为实时调度策略实现绝对带宽分配模型。
+
+WARNING: cgroup2 doesn't yet support control of realtime processes and the cpu controller can only be enabled when all RT processes are in the root cgroup.  Be aware that system management software may already have placed RT processes into nonroot cgroups during the system boot process, and these processes may need to be moved to the root cgroup before the cpu controller can be enabled.
+警告：cgroup2尚不支持实时进程控制，并且仅当所有RT进程都在根cgroup中时才能启用cpu控制器。请注意，系统管理软件在系统引导过程中可能已经将RT进程放入了非根cgroup中，并且在启用cpu控制器之前，可能需要将这些进程移到根cgroup中。
+
+
+CPU接口文件
+~~~~~~~~~~~~~~~~~~~
+
+All time durations are in microseconds.
+所有持续时间均以微秒为单位。
+
+  cpu.stat
+A read-only flat-keyed file which exists on non-root cgroups. This file exists whether the controller is enabled or not.
+非根cgroup上存在的只读平面键文件。无论是否启用控制器，此文件都存在。
+
+It always reports the following three stats:
+它始终报告以下三个状态：
+
+-Usage_usec
+-user_usec
+-system_usec
+
+and the following three when the controller is enabled:
+以及启用控制器后的以下三个：
+
+- nr_periods
+- nr_throttled
+- throttled_usec
+
+cpu.weight
+A read-write single value file which exists on non-root cgroups.  The default is "100".
+非根cgroup上存在的可读写单值文件。默认值为“ 100”。
+
+The weight in the range [1, 10000].
+重量在[1，10000]范围内。
+
+cpu.weight.nice
+A read-write single value file which exists on non-root cgroups.  The default is "0".
+非根cgroup上存在的可读写单值文件。默认值为“ 0”。
+
+The nice value is in the range [-20, 19].
+好的值是在[-20，19]范围内。
+
+This interface file is an alternative interface for "cpu.weight" and allows reading and setting weight using the same values used by nice(2).  Because the range is smaller and granularity is coarser for the nice values, the read value is the closest approximation of the current weight.
+该接口文件是“ cpu.weight”的备用接口，并允许使用nice（2）使用的相同值读取和设置权重。因为对于nice值，范围较小，并且粒度较粗，所以读取的值是当前权重的最近似值。
+
+cpu.max
+A read-write two value file which exists on non-root cgroups. The default is "max 100000".
+非根cgroup上存在可读写的两个值文件。默认值为“最大100000”。
+
+The maximum bandwidth limit.  It's in the following format::
+最大带宽限制。格式如下：
+
+  $MAX $PERIOD
+
+which indicates that the group may consume upto $MAX in each $PERIOD duration.  "max" for $MAX indicates no limit.  If only one number is written, $MAX is updated.
+这表示该组在每个$ PERIOD持续时间内最多可消费$ MAX。 $ MAX的“ max”表示没有限制。如果只写一个数字，则更新$ MAX。
+
+cpu.pressure
+A read-only nested-key file which exists on non-root cgroups.
+非根cgroup上存在的只读嵌套密钥文件。
+
+Shows pressure stall information for CPU. See Documentation/accounting/psi.txt for details.
+显示CPU的压力失速信息。有关详细信息，请参见Documentation / accounting / psi.txt。
+
+
+Memory
+------
+
+The "memory" controller regulates distribution of memory.  Memory is stateful and implements both limit and protection models.  Due to the intertwining between memory usage and reclaim pressure and the stateful nature of memory, the distribution model is relatively complex.
+“内存”控制器调节内存的分配。内存是有状态的，并实现限制和保护模型。由于内存使用和回收压力之间的相互缠绕以及内存的有状态性，分布模型相对复杂。
+
+While not completely water-tight, all major memory usages by a given cgroup are tracked so that the total memory consumption can be accounted and controlled to a reasonable extent.  Currently, the following types of memory usages are tracked.
+尽管不完全防水，但是可以跟踪给定cgroup的所有主要内存使用情况，以便可以合理地计算和控制总内存消耗。当前，跟踪以下类型的内存使用情况。
+
+- Userland memory - page cache and anonymous memory.
+-Userland内存-页面缓存和匿名内存。
+
+- Kernel data structures such as dentries and inodes.
+-内核数据结构，例如牙科和inode。
+
+- TCP socket buffers.
+-TCP套接字缓冲区。
+
+The above list may expand in the future for better coverage.
+上面的列表可能会在将来扩展，以获得更好的覆盖范围。
+
+
+内存接口文件
+~~~~~~~~~~~~~~~~~~~~~~
+
+All memory amounts are in bytes.  If a value which is not aligned to PAGE_SIZE is written, the value may be rounded up to the closest PAGE_SIZE multiple when read back.
+所有内存量以字节为单位。如果写入的值与PAGE_SIZE不对齐，则回读时，该值可能会四舍五入到最接近的PAGE_SIZE倍数。
+
+  memory.current
+A read-only single value file which exists on non-root cgroups.
+非根cgroup上存在的只读单值文件。
+
+The total amount of memory currently being used by the cgroup and its descendants.
+cgroup及其子代当前正在使用的内存总量。
+
+  memory.min
+A read-write single value file which exists on non-root cgroups.  The default is "0".
+非根cgroup上存在的可读写单值文件。默认值为“ 0”。
+
+Hard memory protection.  If the memory usage of a cgroup is within its effective min boundary, the cgroup's memory won't be reclaimed under any conditions. If there is no unprotected reclaimable memory available, OOM killer is invoked.
+硬内存保护。如果cgroup的内存使用量在其有效的最小边界内，则在任何情况下都不会回收cgroup的内存。如果没有可用的不受保护的可回收内存，则将调用OOM杀手。
+
+       Effective min boundary is limited by memory.min values of all ancestor cgroups. If there is memory.min overcommitment (child cgroup or cgroups are requiring more protected memory than parent will allow), then each child cgroup will get the part of parent's protection proportional to its actual memory usage below memory.min.
+       有效最小边界受所有祖先cgroup的memory.min值限制。如果存在memory.min过量使用（子cgroup或cgroup需要比父级允许的更多的受保护内存），则每个子cgroup都将得到其父级保护的一部分，该部分与其在memory.min以下的实际内存使用量成比例。
+
+Putting more memory than generally available under this protection is discouraged and may lead to constant OOMs.
+不建议在此保护下放置比通常可用的内存更多的内存，这可能会导致OOM持续不断。
+
+If a memory cgroup is not populated with processes, its memory.min is ignored.
+如果未使用进程填充内存cgroup，则将忽略其memory.min。
+
+memmory.low
+A read-write single value file which exists on non-root cgroups.  The default is "0".
+非根cgroup上存在的可读写单值文件。默认值为“ 0”。
+
+Best-effort memory protection.  If the memory usage of a cgroup is within its effective low boundary, the cgroup's memory won't be reclaimed unless memory can be reclaimed from unprotected cgroups.
+尽力而为的内存保护。如果cgroup的内存使用量在其有效的下限之内，则除非可以从不受保护的cgroup回收内存，否则不会回收cgroup的内存。
+
+Effective low boundary is limited by memory.low values of all ancestor cgroups. If there is memory.low overcommitment (child cgroup or cgroups are requiring more protected memory than parent will allow), then each child cgroup will get the part of parent's protection proportional to its actual memory usage below memory.low.
+有效的低边界受所有祖先cgroup的memory.low值限制。如果存在memory.low过量使用（子cgroup或cgroup需要比父级允许更多的受保护内存），则每个子cgroup都将得到其父级保护的一部分，与其在memory.low以下的实际内存使用成比例。
+
+Putting more memory than generally available under this protection is discouraged.
+不建议在此保护下放置比通常可用的内存更多的内存。
+
+memory.high
+A read-write single value file which exists on non-root cgroups.  The default is "max".
+非根cgroup上存在的可读写单值文件。默认值为“最大”。
+
+Memory usage throttle limit.  This is the main mechanism to control memory usage of a cgroup.  If a cgroup's usage goes over the high boundary, the processes of the cgroup are throttled and put under heavy reclaim pressure.
+内存使用限制。这是控制cgroup内存使用的主要机制。如果cgroup的使用率超出上限，则cgroup的进程将受到限制，并承受较大的回收压力。
+
+Going over the high limit never invokes the OOM killer and under extreme conditions the limit may be breached.
+超过最高限制永远不会调用OOM杀手，在极端情况下，可能会违反该限制。
+
+memory.max
+A read-write single value file which exists on non-root cgroups.  The default is "max".
+非根cgroup上存在的可读写单值文件。默认值为“最大”。
+
+Memory usage hard limit.  This is the final protection mechanism.  If a cgroup's memory usage reaches this limit and can't be reduced, the OOM killer is invoked in the cgroup. Under certain circumstances, the usage may go over the limit temporarily.
+内存使用硬限制。这是最终的保护机制。如果cgroup的内存使用量达到此限制且无法减少，则在cgroup中调用OOM杀手。在某些情况下，使用量可能会暂时超过限制。
+
+This is the ultimate protection mechanism.  As long as the high limit is used and monitored properly, this limit's utility is limited to providing the final safety net.
+这是最终的保护机制。只要正确使用并监控了上限，此限制的用途仅限于提供最终的安全网。
+
+memory.oom.group
+A read-write single value file which exists on non-root cgroups.  The default value is "0".
+非根cgroup上存在的可读写单值文件。默认值为“ 0”。
+
+Determines whether the cgroup should be treated as an indivisible workload by the OOM killer. If set, all tasks belonging to the cgroup or to its descendants (if the memory cgroup is not a leaf cgroup) are killed together or not at all. This can be used to avoid partial kills to guarantee workload integrity.
+确定cgroup是否应被OOM杀手视为不可分割的工作负载。如果设置了该选项，则属于cgroup或其子孙的所有任务（如果内存cgroup不是叶cgroup）将一起杀死或完全消失。这可用于避免部分终止以保证工作负载的完整性。
+
+Tasks with the OOM protection (oom_score_adj set to -1000) are treated as an exception and are never killed.
+具有OOM保护（oom_score_adj设置为-1000）的任务被视为异常，并且永远不会被杀死。
+
+If the OOM killer is invoked in a cgroup, it's not going to kill any tasks outside of this cgroup, regardless memory.oom.group values of ancestor cgroups.
+如果在cgroup中调用OOM杀手，则不会杀死该cgroup之外的任何任务，无论祖先cgroup的memory.oom.group值如何。
+
+memory.events
+A read-only flat-keyed file which exists on non-root cgroups. The following entries are defined.  Unless specified otherwise, a value change in this file generates a file modified event.
+非根cgroup上存在的只读平面键文件。定义了以下条目。除非另有说明，否则此文件中的值更改将生成文件修改事件。
+
+The number of times the cgroup is reclaimed due to high memory pressure even though its usage is under the low boundary.  This usually indicates that the low boundary is over-committed.
+  low
+即使内存使用量处于较低范围内，由于内存压力过大，cgroup被回收的次数。这通常表明下边界已被过量使用。
+
+  high
+The number of times processes of the cgroup are throttled and routed to perform direct memory reclaim because the high memory boundary was exceeded.  For a cgroup whose memory usage is capped by the high limit rather than global memory pressure, this event's occurrences are expected.
+由于超出了高内存边界，因此限制了cgroup的进程并路由其执行直接内存回收的次数。对于内存使用量受上限（而不是全局内存压力）限制的cgroup，预计会发生此事件。
+
+  max
+The number of times the cgroup's memory usage was about to go over the max boundary.  If direct reclaim fails to bring it down, the cgroup goes to OOM state.
+cgroup的内存使用量即将超过最大边界的次数。如果直接回收无法解决该问题，则cgroup进入OOM状态。
+
+  oom
+The number of time the cgroup's memory usage was reached the limit and allocation was about to fail.
+cgroup的内存使用量达到限制且分配即将失败的次数。
+
+Depending on context result could be invocation of OOM killer and retrying allocation or failing allocation.
+取决于上下文，结果可能是调用OOM杀手，然后重试分配或分配失败。
+
+Failed allocation in its turn could be returned into userspace as -ENOMEM or silently ignored in cases like disk readahead.  For now OOM in memory cgroup kills tasks iff shortage has happened inside page fault.
+反过来，失败的分配又可以作为-ENOMEM返回给用户空间，或者在磁盘预读等情况下被静默忽略。目前，内存cgroup中的OOM会在页面错误内部发生短缺的情况下终止任务。
+
+  oom_kill
+The number of processes belonging to this cgroup killed by any kind of OOM killer.
+任何OOM杀手杀死的属于此cgroup的进程数。
+
+memory.stat
+A read-only flat-keyed file which exists on non-root cgroups.
+非根cgroup上存在的只读平面键文件。
+
+This breaks down the cgroup's memory footprint into different types of memory, type-specific details, and other information on the state and past events of the memory management system.
+这会将cgroup的内存占用空间分解为不同类型的内存，特定于类型的详细信息以及有关内存管理系统的状态和过去事件的其他信息。
+
+All memory amounts are in bytes.
+所有内存量以字节为单位。
+
+The entries are ordered to be human readable, and new entries can show up in the middle. Don't rely on items remaining in a fixed position; use the keys to look up specific values!
+条目被排序为易于阅读，并且新条目可以显示在中间。不要依靠固定位置的物品；使用键查找特定值！
+
+  anon
+Amount of memory used in anonymous mappings such as brk(), sbrk(), and mmap(MAP_ANONYMOUS)
+匿名映射（例如brk（），sbrk（）和mmap（MAP_ANONYMOUS））中使用的内存量
+
+  file
+Amount of memory used to cache filesystem data, including tmpfs and shared memory.
+用于缓存文件系统数据的内存量，包括tmpfs和共享内存。
+
+  kernel_stack
+	Amount of memory allocated to kernel stacks.
+分配给内核堆栈的内存量。
+
+  slab
+	Amount of memory used for storing in-kernel data structures.
+用于存储内核数据结构的内存量。
+
+  sock
+	Amount of memory used in network transmission buffers
+网络传输缓冲区中使用的内存量
+
+  shmem
+	Amount of cached filesystem data that is swap-backed, such as tmpfs, shm segments, shared anonymous mmap()s
+交换支持的缓存文件系统数据量，例如tmpfs，shm段，共享的匿名mmap（）
+
+  file_mapped
+	Amount of cached filesystem data mapped with mmap()
+使用mmap（）映射的缓存文件系统数据量
+
+  file_dirty
+	Amount of cached filesystem data that was modified but not yet written back to disk
+已修改但尚未写回到磁盘的缓存文件系统数据量
+
+  file_writeback
+	Amount of cached filesystem data that was modified and is currently being written back to disk
+已修改且当前正在写回到磁盘的缓存文件系统数据量
+
+  inactive_anon，active_anon，inactive_file，active_file，无法清除的，页面回收算法所使用的内部内存管理列表上的交换支持和文件系统支持的内存量
+
+  slab_reclaimable
+	Part of "slab" that might be reclaimed, such as dentries and inodes.
+可以回收的“平板”的一部分，例如牙科和inode。
+
+  slab_unreclaimable
+	Part of "slab" that cannot be reclaimed on memory pressure.
+无法通过内存压力回收的“平板”的一部分。
+
+  pgfault
+	Total number of page faults incurred
+发生页面错误总数
+
+  pgmajfault
+	Number of major page faults incurred
+发生的主要页面错误数
+
+  workingset_refault
+
+	Number of refaults of previously evicted pages
+先前撤离的页面的拒命数
+
+  workingset_activate
+
+	Number of refaulted pages that were immediately activated
+立即激活的被重新整理的页面数
+
+  workingset_nodereclaim
+
+	Number of times a shadow node has been reclaimed
+回收影子节点的次数
+
+  pgrefill
+
+	Amount of scanned pages (in an active LRU list)
+扫描页数（在活动的LRU列表中）
+
+  pgscan
+
+	Amount of scanned pages (in an inactive LRU list)
+扫描页数（在无效的LRU列表中）
+
+  pgsteal
+
+	Amount of reclaimed pages
+回收页数
+
+  pgactivate
+
+	Amount of pages moved to the active LRU list
+移至活动LRU列表的页面数量
+
+  pgdeactivate
+
+	Amount of pages moved to the inactive LRU lis
+转移到无效LRU lis的页面数量
+
+  pglazyfree
+
+	Amount of pages postponed to be freed under memory pressure
+在内存压力下推迟释放的页面量
+
+  pglazyfreed
+
+	Amount of reclaimed lazyfree pages
+回收的lazyfree页面数量
+
+memory.swap.current
+A read-only single value file which exists on non-root cgroups.
+非根cgroup上存在的只读单值文件。
+
+The total amount of swap currently being used by the cgroup and its descendants.
+cgroup及其子代当前正在使用的交换总量。
+
+memory.swap.max
+A read-write single value file which exists on non-root cgroups.  The default is "max".
+非根cgroup上存在的可读写单值文件。默认值为“最大”。
+
+Swap usage hard limit.  If a cgroup's swap usage reaches this limit, anonymous memory of the cgroup will not be swapped out.
+交换使用硬限制。如果cgroup的交换使用量达到此限制，则不会交换cgroup的匿名内存。
+
+memory.swap.events
+A read-only flat-keyed file which exists on non-root cgroups. The following entries are defined.  Unless specified otherwise, a value change in this file generates a file modified event.
+非根cgroup上存在的只读平面键文件。定义了以下条目。除非另有说明，否则此文件中的值更改将生成文件修改事件。
+
+  max
+The number of times the cgroup's swap usage was about to go over the max boundary and swap allocation failed.
+cgroup的交换使用将要超过最大边界且交换分配失败的次数。
+
+  fail
+The number of times swap allocation failed either because of running out of swap system-wide or max limit.
+交换分配失败的原因是由于用尽了整个系统的交换限制或最大限制。
+
+When reduced under the current usage, the existing swap entries are reclaimed gradually and the swap usage may stay higher than the limit for an extended period of time.  This reduces the impact on the workload and memory management.
+在当前使用量下减少时，将逐渐回收现有的交换条目，并且交换使用量可能会在一段时间内高于限制。这样可以减少对工作负载和内存管理的影响。
+
+memory.pressure
+A read-only nested-key file which exists on non-root cgroups.
+非根cgroup上存在的只读嵌套密钥文件。
+
+Shows pressure stall information for memory. See Documentation/accounting/psi.txt for details.
+显示压力失速信息以供记忆。有关详细信息，请参见Documentation / accounting / psi.txt。
+
+
+使用指南
+~~~~~~~~~~~~~~~~
+
+"memory.high" is the main mechanism to control memory usage. Over-committing on high limit (sum of high limits > available memory) and letting global memory pressure to distribute memory according to usage is a viable strategy.
+“ memory.high”是控制内存使用率的主要机制。过度使用上限（上限的总和>可用内存），让全局内存压力根据使用情况分配内存是一种可行的策略。
+
+Because breach of the high limit doesn't trigger the OOM killer but throttles the offending cgroup, a management agent has ample opportunities to monitor and take appropriate actions such as granting more memory or terminating the workload.
+由于违反上限并不会触发OOM杀手，但会限制有问题的cgroup，因此管理代理程序有足够的机会来监视和采取适当的操作，例如授予更多内存或终止工作负载。
+
+Determining whether a cgroup has enough memory is not trivial as memory usage doesn't indicate whether the workload can benefit from more memory.  For example, a workload which writes data received from network to a file can use all available memory but can also operate as performant with a small amount of memory.  A measure of memory pressure - how much the workload is being impacted due to lack of memory - is necessary to determine whether a workload needs more memory; unfortunately, memory pressure monitoring mechanism isn't implemented yet.
+确定cgroup是否有足够的内存并不是一件容易的事，因为内存使用情况并不表示工作负荷是否可以从更多的内存中受益。例如，将从网络接收的数据写入文件的工作负载可以使用所有可用内存，但也可以以少量内存充当执行者。需要一种内存压力度量（由于缺少内存而导致工作负载受到多少影响），以确定工作负载是否需要更多内存；不幸的是，内存压力监视机制尚未实现。
+
+
+内存拥有权
+~~~~~~~~~~~~~~~~
+
+A memory area is charged to the cgroup which instantiated it and stays charged to the cgroup until the area is released.  Migrating a process to a different cgroup doesn't move the memory usages that it instantiated while in the previous cgroup to the new cgroup.
+内存区域将被实例化的cgroup充电，并保持充电到cgroup直到该区域被释放。将进程迁移到其他cgroup不会将在前一个cgroup中实例化的内存使用情况移到新的cgroup中。
+
+A memory area may be used by processes belonging to different cgroups. To which cgroup the area will be charged is in-deterministic; however, over time, the memory area is likely to end up in a cgroup which has enough memory allowance to avoid high reclaim pressure.
+属于不同cgroup的进程可以使用存储区。将向哪个cgroup收取费用是不确定的；但是，随着时间的流逝，存储区域很可能会以cgroup结尾，该cgroup具有足够的存储余量来避免较高的回收压力。
+
+If a cgroup sweeps a considerable amount of memory which is expected to be accessed repeatedly by other cgroups, it may make sense to use POSIX_FADV_DONTNEED to relinquish the ownership of memory areas belonging to the affected files to ensure correct memory ownership.
+如果一个cgroup扫描了预期将被其他cgroup重复访问的大量内存，则可以使用POSIX_FADV_DONTNEED放弃属于受影响文件的内存区域的所有权，以确保正确的内存所有权。
+
+
+IO
+-
+
+The "io" controller regulates the distribution of IO resources.  This controller implements both weight based and absolute bandwidth or IOPS limit distribution; however, weight based distribution is available only if cfq-iosched is in use and neither scheme is available for blk-mq devices.
+“ io”控制器调节IO资源的分配。该控制器可实现基于权重的和绝对带宽或IOPS限制分配；但是，仅在使用cfq-iosched,且两种方案都不适用于blk-mq设备时，才可以使用基于权重的分配。
+
+
+IO接口文件
+~~~~~~~~~~~~~~~~~~
+
+  io.stat
+	A read-only nested-keyed file which exists on non-root cgroups.
+非根cgroup上存在的只读嵌套键文件。
+
+	Lines are keyed by $MAJ:$MIN device numbers and not ordered. The following nested keys are defined.
+行由$ MAJ：$ MIN设备号键入，但未排序。定义了以下嵌套键。
+
+	  ======	=====================
+	  rbytes	Bytes read
+	  wbytes	Bytes written
+	  rios		Number of read IOs
+	  wios		Number of write IOs
+	  dbytes	Bytes discarded
+	  dios		Number of discard IOs
+	  ======	=====================
+
+读取输出示例如下：
+
+	  8:16 rbytes=1459200 wbytes=314773504 rios=192 wios=353 dbytes=0 dios=0
+	  8:0 rbytes=90430464 wbytes=299008000 rios=8950 wios=1252 dbytes=50331648 dios=3021
+
+  io.weight
+	A read-write flat-keyed file which exists on non-root cgroups.The default is "default 100".
+非根cgroup上存在的可读写平面键控文件。默认值为“默认100”。
+
+	The first line is the default weight applied to devices without specific override.  The rest are overrides keyed by $MAJ:$MIN device numbers and not ordered.  The weights are in the range [1, 10000] and specifies the relative amount IO time the cgroup can use in relation to its siblings.
+第一行是应用于没有特定替代的设备的默认权重。其余的是由$ MAJ：$ MIN设备号键入的优先顺序，并且没有排序。权重在[1，10000]范围内，并指定cgroup与其兄弟姐妹可以使用的相对时间IO。
+
+	The default weight can be updated by writing either "default $WEIGHT" or simply "$WEIGHT".  Overrides can be set by writing "$MAJ:$MIN $WEIGHT" and unset by writing "$MAJ:$MIN default".
+可以通过编写“默认$ WEIGHT”或简单地“ $ WEIGHT”来更新默认权重。可以通过编写“ $ MAJ：$ MIN $ WEIGHT”来设置覆盖，而通过编写“ $ MAJ：$ MIN default”来取消覆盖。
+
+	An example read output follows::
+读取输出示例如下：
+
+	  default 100
+	  8:16 200
+	  8:0 50
+
+  io.max
+	A read-write nested-keyed file which exists on non-root cgroups.
+非根cgroup上存在的可读写嵌套键文件。
+
+	BPS and IOPS based IO limit.  Lines are keyed by $MAJ:$MIN device numbers and not ordered.  The following nested keys are defined.
+基于BPS和IOPS的IO限制。行由$ MAJ：$ MIN设备号键入，但没有排序。定义了以下嵌套键。
+
+	  =====		==================================
+	  rbps		Max read bytes per second
+	  wbps		Max write bytes per second
+	  riops		Max read IO operations per second
+	  wiops		Max write IO operations per second
+	  =====		==================================
+
+	When writing, any number of nested key-value pairs can be specified in any order.  "max" can be specified as the value to remove a specific limit.  If the same key is specified multiple times, the outcome is undefined.
+编写时，可以按任何顺序指定任意数量的嵌套键/值对。可以将“ max”指定为消除特定限制的值。如果多次指定相同的键，则结果是不确定的。
+
+	BPS and IOPS are measured in each IO direction and IOs are delayed if limit is reached.  Temporary bursts are allowed.
+在每个IO方向上测量BPS和IOPS，如果达到极限，则IO会延迟。允许临时爆发。
+
+	Setting read limit at 2M BPS and write at 120 IOPS for 8:16::
+将读取限制设置为2M BPS，并以120 IOPS的速度写入8:16 ::
+
+	  echo "8:16 rbps=2097152 wiops=120" > io.max
+
+	Reading returns the following::
+阅读返回以下内容：
+
+	  8:16 rbps=2097152 wbps=max riops=max wiops=120
+
+	Write IOPS limit can be removed by writing the following::
+写入IOPS限制可以通过以下操作来消除：
+
+	  echo "8:16 wiops=max" > io.max
+
+	Reading now returns the following::
+现在阅读返回以下内容：
+
+	  8:16 rbps=2097152 wbps=max riops=max wiops=max
+
+  io.pressure
+	A read-only nested-key file which exists on non-root cgroups.
+非根cgroup上存在的只读嵌套密钥文件。
+
+	Shows pressure stall information for IO. See Documentation/accounting/psi.txt for details.
+显示IO的压力失速信息。有关详细信息，请参见Documentation / accounting / psi.txt。
+
+
+Writeback
+~~~~~~~~~
+
+Page cache is dirtied through buffered writes and shared mmaps and written asynchronously to the backing filesystem by the writeback mechanism.  Writeback sits between the memory and IO domains and regulates the proportion of dirty memory by balancing dirtying and write IOs.
+页面缓存通过缓冲的写操作和共享的mmap被弄脏，并通过写回机制异步写入支持文件系统。写回位于内存和IO域之间，并通过平衡脏和写IO来调节脏内存的比例。
+
+The io controller, in conjunction with the memory controller, implements control of page cache writeback IOs.  The memory controller defines the memory domain that dirty memory ratio is calculated and maintained for and the io controller defines the io domain which writes out dirty pages for the memory domain.  Both system-wide and per-cgroup dirty memory states are examined and the more restrictive of the two is enforced.
+io控制器与内存控制器一起，实现对页面缓存写回IO的控制。内存控制器定义用于计算和维护脏内存比率的内存域，而io控制器定义io域，该域为内存域写出脏页。系统范围和每个cgroup的脏内存状态都将被检查，并且对这两个内存的状态进行更严格的限制。
+
+cgroup writeback requires explicit support from the underlying filesystem.  Currently, cgroup writeback is implemented on ext2, ext4 and btrfs.  On other filesystems, all writeback IOs are attributed to the root cgroup.
+cgroup回写需要底层文件系统的显式支持。当前，cgroup回写是在ext2，ext4和btrfs上实现的。在其他文件系统上，所有回写IO都归属于根cgroup。
+
+There are inherent differences in memory and writeback management which affects how cgroup ownership is tracked.  Memory is tracked per page while writeback per inode.  For the purpose of writeback, an inode is assigned to a cgroup and all IO requests to write dirty pages from the inode are attributed to that cgroup.
+内存和回写管理存在固有差异，这会影响cgroup所有权的跟踪方式。每个页面跟踪内存，而每个索引节点写回。出于回写的目的，将一个索引节点分配给一个cgroup，并将所有从该索引节点写入脏页的IO请求都归属于该cgroup。
+
+As cgroup ownership for memory is tracked per page, there can be pages which are associated with different cgroups than the one the inode is associated with.  These are called foreign pages.  The writeback constantly keeps track of foreign pages and, if a particular foreign cgroup becomes the majority over a certain period of time, switches the ownership of the inode to that cgroup.
+由于每页跟踪内存的cgroup所有权，因此可能存在与与索引节点相关联的cgroup不同的页面相关联的页面。这些称为外国页面。回写不断跟踪外部页面，如果特定的外部cgroup在特定时间段内占多数，则将索引节点的所有权切换到该cgroup。
+
+While this model is enough for most use cases where a given inode is mostly dirtied by a single cgroup even when the main writing cgroup changes over time, use cases where multiple cgroups write to a single inode simultaneously are not supported well.  In such circumstances, a significant portion of IOs are likely to be attributed incorrectly. As memory controller assigns page ownership on the first use and doesn't update it until the page is released, even if writeback strictly follows page ownership, multiple cgroups dirtying overlapping areas wouldn't work as expected.  It's recommended to avoid such usage patterns.
+尽管此模型足以满足大多数用例的需求，即使主写入cgroup随时间变化，但给定的inode大部分都被单个cgroup弄脏了，但不能很好地支持多个cgroup同时写入单个inode的用例。在这种情况下，很可能会错误地分配大量的IO。由于内存控制器在首次使用时会分配页面所有权，并且直到页面释放后才更新页面所有权，即使回写严格遵循页面所有权，多个弄脏重叠区域的cgroup也无法按预期工作。建议避免这种使用方式。
+
+The sysctl knobs which affect writeback behavior are applied to cgroup writeback as follows.
+影响写回行为的sysctl旋钮如下应用于cgroup写回。
+
+  vm.dirty_background_ratio，vm.dirty_ratio
+  These ratios apply the same to cgroup writeback with the amount of available memory capped by limits imposed by the memory controller and system-wide clean memory.
+  这些比率适用于cgroup写回，可用内存量由内存控制器和系统范围内的干净内存所施加的限制所限制。
+
+  vm.dirty_background_bytes，vm.dirty_bytes
+For cgroup writeback, this is calculated into ratio against total available memory and applied the same way as vm.dirty[_background]_ratio.
+对于cgroup回写，这将计算为总可用内存的比率，并以与vm.dirty [_background] _ratio相同的方式应用。
+
+
+IO Latency
+~~~~~~~~~~
+
+This is a cgroup v2 controller for IO workload protection.  You provide a group with a latency target, and if the average latency exceeds that target the controller will throttle any peers that have a lower latency target than the protected workload.
+这是用于IO工作负载保护的cgroup v2控制器。您为组提供了一个延迟目标，如果平均延迟超过该目标，则控制器将限制延迟目标低于受保护工作负载的所有对等方。
+
+The limits are only applied at the peer level in the hierarchy.  This means that in the diagram below, only groups A, B, and C will influence each other, and groups D and F will influence each other.  Group G will influence nobody.
+限制仅应用于层次结构中的对等级别。这意味着在下图中，只有A，B和C组会互相影响，而D和F组会互相影响。 G组不会影响任何人。
+
+			[root]
+		/	   |		\
+		A	   B		C
+	       /  \        |
+	      D    F	   G
+
+
+So the ideal way to configure this is to set io.latency in groups A, B, and C. Generally you do not want to set a value lower than the latency your device supports.  Experiment to find the value that works best for your workload. Start at higher than the expected latency for your device and watch the avg_lat value in io.stat for your workload group to get an idea of the latency you see during normal operation.  Use the avg_lat value as a basis for your real setting, setting at 10-15% higher than the value in io.stat.
+因此，配置此设置的理想方法是在A，B和C组中设置io.latency。通常，您不希望将其设置为低于设备支持的延迟的值。尝试找到最适合您的工作量的价值。从高于设备预期延迟的时间开始，并查看io.stat中工作负载组的avg_lat值，以了解正常操作期间看到的延迟。将avg_lat值用作实际设置的基础，该值比io.stat中的值高10-15％。
+
+How IO Latency Throttling Works
+IO延迟限制如何工作
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+io.latency is work conserving; so as long as everybody is meeting their latency target the controller doesn't do anything.  Once a group starts missing its target it begins throttling any peer group that has a higher target than itself. This throttling takes 2 forms:
+io.latency是节约工作；因此只要每个人都达到他们的延迟目标，控制器就不会做任何事情。一旦某个组开始失去其目标，它将开始限制目标比其自身更高的任何对等组。节流有两种形式：
+
+- Queue depth throttling.  This is the number of outstanding IO's a group is allowed to have.  We will clamp down relatively quickly, starting at no limit and going all the way down to 1 IO at a time.
+-队列深度限制。这是一个组允许拥有的未完成IO的数量。我们将相对迅速地降低压力，从无限制开始，一次降低到1 IO。
+
+- Artificial delay induction.  There are certain types of IO that cannot be throttled without possibly adversely affecting higher priority groups.  This includes swapping and metadata IO.  These types of IO are allowed to occur normally, however they are "charged" to the originating group.  If the originating group is being throttled you will see the use_delay and delay fields in io.stat increase.  The delay value is how many microseconds that are being added to any process that runs in this group.  Because this number can grow quite large if there is a lot of swapping or metadata IO occurring we limit the individual delay events to 1 second at a time.
+-人工延迟感应。某些类型的IO在不影响优先级较高的组的情况下就无法调节。这包括交换和元数据IO。允许这些类型的IO正常发生，但是会将它们“收费”给始发组。如果正在限制原始组，则io.stat中的use_delay和delay字段将增加。延迟值是要添加到该组中运行的任何进程的微秒数。因为如果发生大量交换或元数据IO，此数字可能会变得非常大，因此我们将单个延迟事件一次限制为1秒。
+
+Once the victimized group starts meeting its latency target again it will start unthrottling any peer groups that were throttled previously.  If the victimized group simply stops doing IO the global counter will unthrottle appropriately.
+一旦受害组再次开始达到其延迟目标，它将开始限制以前受限制的所有对等组。如果受害群体只是停止执行IO，则全局计数器将适当地节流。
+
+IO延迟接口文件
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  io.latency
+	This takes a similar format as the other controllers.
+这采用与其他控制器类似的格式。
+
+		"MAJOR:MINOR target=<target time in microseconds"
+
+  io.stat
+	If the controller is enabled you will see extra stats in io.stat in addition to the normal ones.
+如果启用了控制器，则除常规状态外，您还将在io.stat中看到其他状态。
+
+depth
+		This is the current queue depth for the group.
+这是该组的当前队列深度。
+
+avg_lat
+		This is an exponential moving average with a decay rate of 1/exp bound by the sampling interval.  The decay rate interval can be calculated by multiplying the win value in io.stat by the corresponding number of samples based on the win value.
+这是一个指数移动平均值，衰减速率为1 / exp（受采样间隔限制）。可以通过将io.stat中的获胜值乘以基于获胜值的相应样本数来计算衰减率间隔。
+
+win
+		The sampling window size in milliseconds.  This is the minimum duration of time between evaluation events.  Windows only elapse with IO activity.  Idle periods extend the most recent window.
+采样窗口大小（以毫秒为单位）。这是两次评估事件之间的最短时间。 Windows仅随着IO活动消逝。空闲时间段扩展了最近的窗口。
+
+PID
+---
+
+进程号控制器用于允许cgroup在达到指定限制后停止任何新任务被fork（）或clone（）进行。
+
+cgroup中的任务数量可以用其他控制器无法阻止的方式用尽，因此可以保证拥有自己的控制器。例如，叉子炸弹可能会在达到内存限制之前耗尽任务的数量。
+
+请注意，此控制器中使用的PID是指TID，即内核使用的进程ID。
+
+
+PID Interface Files
+~~~~~~~~~~~~~~~~~~~
+
+  pids.max
+非根cgroup上存在的可读写单值文件。默认值为“最大”。
+
+硬性限制进程数。
+
+  pids.current
+所有cgroup上都存在一个只读的单值文件。
+
+cgroup及其子代中当前的进程数。
+
+组织操作不受cgroup策略的阻止，因此可以使pids.current> pids.max。可以通过将限制设置为小于pids.current或将足够多的进程附加到cgroup以使pids.current大于pids.max来完成此操作。但是，不可能通过fork（）或clone（）违反cgroup PID策略。如果创建新进程将导致违反cgroup策略，则这些命令将返回-EAGAIN。
+
+
+Device controller
+-----------------
+
+设备控制器管理对设备文件的访问。它包括创建新设备文件（使用mknod）和访问现有设备文件。
+
+Cgroup v2设备控制器没有接口文件，并且在cgroup BPF之上实现。为了控制对设备文件的访问，用户可以创建BPF_CGROUP_DEVICE类型的bpf程序并将其附加到cgroup。尝试访问设备文件时，将执行相应的BPF程序，并根据返回值使用-EPERM成功或失败。
+
+BPF_CGROUP_DEVICE程序获取指向bpf_cgroup_dev_ctx结构的指针，该结构描述了设备访问尝试：访问类型（mknod /读/写）和设备（类型，主要和次要数字）。如果程序返回0，则尝试-EPERM失败，否则成功。
+
+BPF_CGROUP_DEVICE程序的一个示例可以在tools / testing / selftests / bpf / dev_cgroup.c文件的内核源代码树中找到。
+
+
+RDMA
+----
+
+“ rdma”控制器调节RDMA资源的分配和计费。
+
+RDMA接口文件
+~~~~~~~~~~~~~~~~~~~~
+
+  rdma.max
+除根目录以外，所有cgroup都存在一个读写嵌套键文件，该文件描述了RDMA / IB设备当前配置的资源限制。
+
+线路以设备名称作为键，没有顺序。
+每行包含用空格分隔的资源名称及其可以分发的已配置限制。
+
+定义了以下嵌套键。
+
+	  ==========	=============================
+	  hca_handle	Maximum number of HCA Handles
+	  hca_object 	Maximum number of HCA Objects
+	  ==========	=============================
+
+mlx4和ocrdma设备的示例如下：
+
+	  mlx4_0 hca_handle=2 hca_object=2000
+	  ocrdma1 hca_handle=3 hca_object=max
+
+  rdma.current
+一个描述当前资源使用情况的只读文件。
+除root以外的所有cgroup都存在。
+
+mlx4和ocrdma设备的示例如下：
+
+	  mlx4_0 hca_handle=1 hca_object=20
+	  ocrdma1 hca_handle=1 hca_object=23
+
+
+Misc
+----
+
+perf_event
+~~~~~~~~~~~
+
+perf_event控制器（如果未安装在旧式层次结构上）将在v2层次结构上自动启用，以便始终可以通过cgroup v2路径过滤perf事件。在填充v2层次结构后，仍可以将控制器移至旧层次结构。
+
+
+非规范性信息
+-------------------------
+
+本部分包含的信息不视为稳定内核API的一部分，因此可能会随时更改。
+
+
+CPU控制器根cgroup进程行为
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+在根cgroup中分配CPU周期时，该cgroup中的每个线程都被视为托管在根cgroup的单独子cgroup中。该子cgroup的权重取决于其线程正常级别。
+
+有关此映射的详细信息，请参阅kernel / sched / core.c文件中的sched_prio_to_weight数组（该数组中的值应适当缩放，以使中性-nice 0-值为100而不是1024）。
+
+
+IO控制器根cgroup进程行为
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+根cgroup进程托管在隐式叶子节点中。分配IO资源时，会将此隐式子节点考虑在内，就好像它是根cgroup的普通子cgroup，权重值为200。
+
+
+Namespace
+=========
+
+基本
+------
+
+cgroup命名空间提供了一种虚拟化“ / proc / $ PID / cgroup”文件和cgroup挂载视图的机制。 CLONE_NEWCGROUP克隆标志可以与clone（2）和unshare（2）一起使用，以创建新的cgroup命名空间。在cgroup名称空间中运行的进程将其“ / proc / $ PID / cgroup”输出限制为cgroupns根目录。 cgroupns根是创建cgroup名称空间时进程的cgroup。
+
+如果没有cgroup命名空间，则“ / proc / $ PID / cgroup”文件将显示进程cgroup的完整路径。在一组cgroup和名称空间旨在隔离进程的容器设置中，“ / proc / $ PID / cgroup”文件可能会将潜在的系统级信息泄漏给隔离的进程。例如：：
+
+  # cat /proc/self/cgroup
+  0::/batchjobs/container_id1
+
+路径“ / batchjobs / container_id1”可以视为系统数据，不希望暴露给隔离的进程。 cgroup命名空间可用于限制此路径的可见性。例如，在创建一个cgroup命名空间之前，将看到：
+
+  # ls -l /proc/self/ns/cgroup
+  lrwxrwxrwx 1 root root 0 2014-07-15 10:37 /proc/self/ns/cgroup -> cgroup:[4026531835]
+  # cat /proc/self/cgroup
+  0::/batchjobs/container_id1
+
+取消共享新的名称空间后，视图将更改：：
+
+  # ls -l /proc/self/ns/cgroup
+  lrwxrwxrwx 1 root root 0 2014-07-15 10:35 /proc/self/ns/cgroup -> cgroup:[4026532183]
+  # cat /proc/self/cgroup
+  0::/
+
+当多线程进程中的某个线程取消共享其cgroup名称空间时，新的cgroupns将应用于整个进程（所有线程）。对于v2层次结构，这是很自然的。但是，对于旧的层次结构，这可能是意外的。
+
+只要内部有进程或将其固定，cgroup命名空间都将保持活动状态。最后一次使用消失时，cgroup命名空间将被销毁。 cgroupns根，实际的cgroup保留。
+
+
+根源与观点
+------------------
+
+cgroup名称空间的“ cgroupns根”是运行unshare（2）的进程在其中运行的cgroup。例如，如果/ batchjobs / container_id1 cgroup中的进程调用取消共享，则cgroup / batchjobs / container_id1将成为cgroupns根目录。对于init_cgroup_ns，这是真实的根（'/'）cgroup。
+
+cgroupns根cgroup不会更改，即使名称空间创建者进程稍后移至其他cgroup ::
+
+  # ~/unshare -c # unshare cgroupns in some cgroup
+  # cat /proc/self/cgroup
+  0::/
+  # mkdir sub_cgrp_1
+  # echo 0 > sub_cgrp_1/cgroup.procs
+  # cat /proc/self/cgroup
+  0::/sub_cgrp_1
+
+每个进程都获得其特定于名称空间的视图“ / proc / $ PID / cgroup”
+
+在cgroup名称空间中运行的进程将只能在其根cgroup内部看到cgroup路径（在/ proc / self / cgroup中）。在非共享的cgroupns中：：
+
+  # sleep 100000 &
+  [1] 7353
+  # echo 7353 > sub_cgrp_1/cgroup.procs
+  # cat /proc/7353/cgroup
+  0::/sub_cgrp_1
+
+从初始的cgroup名称空间中，真正的cgroup路径将可见：
+
+  $ cat /proc/7353/cgroup
+  0::/batchjobs/container_id1/sub_cgrp_1
+
+从同级cgroup名称空间（即，根于其他cgroup的名称空间）中，将显示相对于其自身cgroup名称空间根目录的cgroup路径。例如，如果PID 7353的cgroup名称空间根目录位于'/ batchjobs / container_id2'，则它将看到：
+
+  # cat /proc/7353/cgroup
+  0::/../container_id2/sub_cgrp_1
+
+请注意，相对路径始终以“ /”开头，以表示其相对于调用者的cgroup名称空间根目录。
+
+
+迁移和设置（2）
+
+如果cgroup名称空间内部的进程具有对外部cgroup的正确访问权限，则它们可以移入和移出名称空间根。例如，从cgroupns根位于/ batchjobs / container_id1的命名空间中，并假定仍可以在cgroupns内部访问全局层次结构：
+
+  # cat /proc/7353/cgroup
+  0::/sub_cgrp_1
+  # echo 7353 > batchjobs/container_id2/cgroup.procs
+  # cat /proc/7353/cgroup
+  0::/../container_id2
+
+请注意，不鼓励这种设置。 cgroup名称空间中的任务应仅公开给自己的cgroupns层次结构。
+
+在以下情况下，允许将setns（2）设置为另一个cgroup命名空间：
+
+（a）该进程针对其当前用户名称空间具有CAP_SYS_ADMIN
+（b）该进程针对目标cgroup具有CAP_SYS_ADMIN
+    命名空间的用户
+
+附加到另一个cgroup命名空间不会发生隐式cgroup更改。期望有人将附加过程移至目标cgroup名称空间根目录下。
+
+
+与其他命名空间的交互
+---------------------------------
+
+特定于名称空间的cgroup层次结构可以由在非初始cgroup名称空间中运行的进程挂载：
+
+  # mount -t cgroup2 none $MOUNT_POINT
+
+这将使用cgroupns root作为文件系统root装入统一的cgroup层次结构。该进程需要针对其用户和安装名称空间的CAP_SYS_ADMIN。
+
+/ proc / self / cgroup文件的虚拟化与通过命名空间专用cgroupfs挂载限制cgroup层次结构的视图结合在一起，在容器内部提供了一个正确隔离的cgroup视图。
+
+
+有关内核编程的信息
+================================
+
+本节包含需要与cgroup交互的区域中的内核编程信息。 cgroup核心和控制器不包括在内。
+
+
+文件系统对写回的支持
+--------------------------------
+
+文件系统可以通过更新address_space_operations-> writepage [s]（）来支持cgroup写回，以使用以下两个函数来注释bio。
+
+  wbc_init_bio（@wbc，@bio）
+应该为每个带有回写数据的生物调用该生物，并将该生物与inode的所有者cgroup相关联。可以在生物分配和提交之间的任何时间调用。
+
+  wbc_account_io（@wbc，@page，@bytes）应该为每个要写出的数据段调用。尽管此函数并不确切地在写回会话中何时调用它，但是将数据段添加到生物中时，调用它是最简单，最自然的方法。
+
+带有注释回写bio的注释，可以通过在-> s_iflags中设置SB_I_CGROUPWB来为每个super_block启用cgroup支持。这允许有选择地禁用cgroup回写支持，这在某些文件系统功能（例如，日记数据模式，不兼容。
+
+wbc_init_bio（）将指定的bio绑定到其cgroup。取决于配置，可以以较低的优先级执行bio，如果回写会话持有共享资源，例如日记帐分录可能会导致优先级倒置。对于这一问题，没有一个简单的解决方案。文件系统可以通过跳过wbc_init_bio（）或直接使用bio_associate_blkcg（）来尝试解决特定的问题。
+
+
+v1弃用的核心功能
+==========================
+
+-不支持多个层次结构，包括命名层次结构。
+
+-不支持所有v1挂载选项。
+
+-删除了“任务”文件，并且未对“ cgroup.procs”进行排序。
+
+-删除了“ cgroup.clone_children”。
+
+-/ proc / cgroups对于v2没有意义。在根目录下使用“ cgroup.controllers”文件。
+
+
+v1的问题和v2的基本原理
+===================================
+
+多个层次
+--------------------
+
+
+cgroup v1 allowed an arbitrary number of hierarchies and each hierarchy could host any number of controllers.  While this seemed to provide a high level of flexibility, it wasn't useful in practice.
+cgroup v1允许任意数量的层次结构，并且每个层次结构可以承载任意数量的控制器。尽管这似乎提供了很高的灵活性，但在实践中并没有用。
+
+For example, as there is only one instance of each controller, utility type controllers such as freezer which can be useful in all hierarchies could only be used in one.  The issue is exacerbated by the fact that controllers couldn't be moved to another hierarchy once hierarchies were populated.  Another issue was that all controllers bound to a hierarchy were forced to have exactly the same view of the hierarchy.  It wasn't possible to vary the granularity depending on the specific controller.
+例如，由于每个控制器只有一个实例，因此可以在所有层次结构中使用的实用程序类型的控制器（例如冷冻机）只能在一个中使用。一旦填充了层次结构，就无法将控制器移至另一个层次结构，这使问题更加严重。另一个问题是，绑定到层次结构的所有控制器都必须具有完全相同的层次结构视图。无法根据特定控制器来更改粒度。
+
+In practice, these issues heavily limited which controllers could be put on the same hierarchy and most configurations resorted to putting each controller on its own hierarchy.  Only closely related ones, such as the cpu and cpuacct controllers, made sense to be put on the same hierarchy.  This often meant that userland ended up managing multiple similar hierarchies repeating the same steps on each hierarchy whenever a hierarchy management operation was necessary.
+实际上，这些问题严重限制了可以将哪些控制器置于相同的层次结构，并且大多数配置都将每个控制器置于其自己的层次结构中。仅将密切相关的控制器（例如cpu和cpuacct控制器）放在同一个层次结构中才有意义。这通常意味着用户级最终需要管理多个相似的层次结构，每当需要进行层次结构管理操作时，在每个层次结构上重复相同的步骤。
+
+Furthermore, support for multiple hierarchies came at a steep cost. It greatly complicated cgroup core implementation but more importantly the support for multiple hierarchies restricted how cgroup could be used in general and what controllers was able to do.
+此外，对多个层次结构的支持付出了高昂的代价。它极大地复杂了cgroup核心的实现，但更重要的是，对多个层次结构的支持限制了cgroup的总体使用方式以及控制器的功能。
+
+There was no limit on how many hierarchies there might be, which meant that a thread's cgroup membership couldn't be described in finite length.  The key might contain any number of entries and was unlimited in length, which made it highly awkward to manipulate and led to addition of controllers which existed only to identify membership, which in turn exacerbated the original problem of proliferating number of hierarchies.
+对可以有多少个层次结构没有限制，这意味着不能以有限的长度描述线程的cgroup成员资格。密钥可能包含任意数量的条目，并且长度不受限制，这使操作变得很尴尬，并导致添加了仅用于标识成员身份的控制器，这又加剧了原有的层次结构数量激增的问题。
+
+Also, as a controller couldn't have any expectation regarding the topologies of hierarchies other controllers might be on, each controller had to assume that all other controllers were attached to completely orthogonal hierarchies.  This made it impossible, or at least very cumbersome, for controllers to cooperate with each other.
+另外，由于一个控制器对其他控制器可能处于的层次结构的拓扑没有任何期望，因此每个控制器都必须假定所有其他控制器都附加到完全正交的层次结构中。这使得控制器之间无法或至少非常麻烦地进行协作。
+
+In most use cases, putting controllers on hierarchies which are completely orthogonal to each other isn't necessary.  What usually is called for is the ability to have differing levels of granularity depending on the specific controller.  In other words, hierarchy may be collapsed from leaf towards root when viewed from specific controllers.  For example, a given configuration might not care about how memory is distributed beyond a certain level while still wanting to control how CPU cycles are distributed.
+在大多数使用情况下，无需将控制器放在彼此完全正交的层次结构上。通常需要根据特定的控制器具有不同级别的粒度的能力。换句话说，从特定控制器查看时，层次结构可能从叶向根折叠。例如，给定的配置可能不关心如何将内存分配到某个级别以上，而仍然希望控制CPU周期的分配方式。
+
+
+线程粒度
+------------------
+
+
+cgroup v1 allowed threads of a process to belong to different cgroups. This didn't make sense for some controllers and those controllers ended up implementing different ways to ignore such situations but much more importantly it blurred the line between API exposed to individual applications and system management interface.
+cgroup v1允许进程的线程属于不同的cgroup。这对于某些控制器没有意义，并且这些控制器最终采用了不同的方式来忽略这种情况，但更重要的是，它模糊了暴露给各个应用程序的API与系统管理接口之间的界限。
+
+Generally, in-process knowledge is available only to the process itself; thus, unlike service-level organization of processes, categorizing threads of a process requires active participation from the application which owns the target process.
+通常，过程中知识仅对过程本身可用；因此，与进程的服务级别组织不同，对进程的线程进行分类需要拥有目标进程的应用程序的积极参与。
+
+cgroup v1 had an ambiguously defined delegation model which got abused in combination with thread granularity.  cgroups were delegated to individual applications so that they can create and manage their own sub-hierarchies and control resource distributions along them.  This effectively raised cgroup to the status of a syscall-like API exposed to lay programs.
+cgroup v1有一个模糊定义的委托模型，该模型与线程粒度结合使用。 cgroup被委派给各个应用程序，以便它们可以创建和管理自己的子层次结构并控制它们的资源分配。这有效地将cgroup提升为暴露于外行程序的类似于syscall的API的状态。
+
+First of all, cgroup has a fundamentally inadequate interface to be exposed this way.  For a process to access its own knobs, it has to extract the path on the target hierarchy from /proc/self/cgroup, construct the path by appending the name of the knob to the path, open and then read and/or write to it.  This is not only extremely clunky and unusual but also inherently racy.  There is no conventional way to define transaction across the required steps and nothing can guarantee that the process would actually be operating on its own sub-hierarchy.
+首先，cgroup根本没有足够的接口可以通过这种方式公开。为了使进程能够访问其自身的旋钮，它必须从/ proc / self / cgroup中提取目标层次结构上的路径，通过将旋钮的名称附加到路径来构造路径，打开然后进行读取和/或写入它。这不仅笨拙和不寻常，而且本质上是不道德的。没有常规的方法来定义所需步骤之间的事务，并且没有任何方法可以保证该过程实际上将在其自己的子层次结构上运行。
+
+cgroup controllers implemented a number of knobs which would never be accepted as public APIs because they were just adding control knobs to system-management pseudo filesystem.  cgroup ended up with interface knobs which were not properly abstracted or refined and directly revealed kernel internal details.  These knobs got exposed to individual applications through the ill-defined delegation mechanism effectively abusing cgroup as a shortcut to implementing public APIs without going through the required scrutiny.
+cgroup控制器实现了许多旋钮，因为它们只是将控制旋钮添加到系统管理伪文件系统中，所以它们永远不会被公共API接受。 cgroup的界面旋钮没有得到适当的抽象或改进，无法直接显示内核内部细节。这些旋钮通过定义不明确的委托机制暴露给各个应用程序，从而有效滥用cgroup作为实现公共API的捷径，而无需进行必要的审查。
+
+This was painful for both userland and kernel.  Userland ended up with misbehaving and poorly abstracted interfaces and kernel exposing and locked into constructs inadvertently.
+这对于用户区和内核都是痛苦的。 Userland最终表现为行为不当，接口抽象差，内核暴露并无意中锁定了结构。
+
+
+Competition Between Inner Nodes and Threads
+内部节点与线程之间的竞争
+-------------------------------------------
+
+cgroup v1 allowed threads to be in any cgroups which created an interesting problem where threads belonging to a parent cgroup and its children cgroups competed for resources.  This was nasty as two different types of entities competed and there was no obvious way to settle it.  Different controllers did different things.
+cgroup v1允许线程位于任何cgroup中，这产生了一个有趣的问题，其中属于父cgroup及其子cgroup的线程竞争资源。这是令人讨厌的，因为两种不同类型的实体竞争，并且没有明显的解决方法。不同的控制器执行不同的操作。
+
+The cpu controller considered threads and cgroups as equivalents and mapped nice levels to cgroup weights.  This worked for some cases but fell flat when children wanted to be allocated specific ratios of CPU cycles and the number of internal threads fluctuated - the ratios constantly changed as the number of competing entities fluctuated. There also were other issues.  The mapping from nice level to weight wasn't obvious or universal, and there were various other knobs which simply weren't available for threads.
+cpu控制器将线程和cgroup视为等效项，并将不错的级别映射到cgroup权重。这在某些情况下有效，但是当孩子想要分配特定的CPU周期比率并且内部线程数波动时，情况就变得平坦了-随着竞争实体数的波动，比率不断变化。还有其他问题。从好水平到重量的映射并不明显或通用，并且还有其他各种旋钮，这些旋钮根本无法用于线程。
+
+The io controller implicitly created a hidden leaf node for each cgroup to host the threads.  The hidden leaf had its own copies of all the knobs with ``leaf_`` prefixed.  While this allowed equivalent control over internal threads, it was with serious drawbacks.  It always added an extra layer of nesting which wouldn't be necessary otherwise, made the interface messy and significantly complicated the implementation.
+io控制器为每个cgroup隐式创建一个隐藏的叶节点来托管线程。隐藏的叶子具有所有带有``leaf_''前缀的旋钮的副本。尽管这允许对内部线程进行等效控制，但它具有严重的缺陷。它总是添加了额外的嵌套层，否则就没有必要了，这会使接口变得混乱，并使实现复杂得多。
+
+The memory controller didn't have a way to control what happened between internal tasks and child cgroups and the behavior was not clearly defined.  There were attempts to add ad-hoc behaviors and knobs to tailor the behavior to specific workloads which would have led to problems extremely difficult to resolve in the long term.
+内存控制器没有办法控制内部任务和子cgroup之间发生的事情，并且行为没有明确定义。尝试添加临时行为和旋钮以使行为适应于特定的工作负载，这将导致长期难以解决的问题。
+
+Multiple controllers struggled with internal tasks and came up with different ways to deal with it; unfortunately, all the approaches were severely flawed and, furthermore, the widely different behaviors made cgroup as a whole highly inconsistent.
+多个控制者都在努力处理内部任务，并提出了不同的处理方式。不幸的是，所有方法都存在严重缺陷，此外，行为差异也很大，这使得cgroup总体上非常不一致。
+
+This clearly is a problem which needs to be addressed from cgroup core in a uniform way.
+显然，这是一个问题，需要从cgroup核心以统一的方式解决。
+
+
+Other Interface Issues
+其他界面问题
+----------------------
+
+cgroup v1 grew without oversight and developed a large number of idiosyncrasies and inconsistencies.  One issue on the cgroup core side was how an empty cgroup was notified - a userland helper binary was forked and executed for each event.  The event delivery wasn't recursive or delegatable.  The limitations of the mechanism also led to in-kernel event delivery filtering mechanism further complicating the interface.
+cgroup v1在不受监督的情况下发展壮大，并发展出大量的特质和不一致之处。 cgroup核心方面的一个问题是如何通知空的cgroup-为每个事件派生并执行一个userland helper二进制文件。事件交付不是递归或可委托的。该机制的局限性还导致内核内事件传递过滤机制进一步使接口复杂化。
+
+Controller interfaces were problematic too.  An extreme example is controllers completely ignoring hierarchical organization and treating all cgroups as if they were all located directly under the root cgroup.  Some controllers exposed a large amount of inconsistent implementation details to userland.
+控制器接口也有问题。一个极端的例子是，控制器完全忽略了层次结构，并把所有cgroup都当作位于根cgroup的正下方。一些控制器向用户区暴露了大量不一致的实现细节。
+
+There also was no consistency across controllers.  When a new cgroup was created, some controllers defaulted to not imposing extra restrictions while others disallowed any resource usage until explicitly configured.  Configuration knobs for the same type of control used widely differing naming schemes and formats.  Statistics and information knobs were named arbitrarily and used different formats and units even in the same controller.
+各个控制器之间也没有一致性。创建新的cgroup时，某些控制器默认情况下不施加额外的限制，而其他控制器则在明确配置之前不允许使用任何资源。用于同一类型控件的配置旋钮使用了不同的命名方案和格式。统计和信息旋钮是任意命名的，即使在同一控制器中也使用不同的格式和单位。
+
+cgroup v2 establishes common conventions where appropriate and updates controllers so that they expose minimal and consistent interfaces.
+cgroup v2在适当的地方建立通用约定，并更新控制器，以便它们公开最少和一致的接口。
+
+
+Controller Issues and Remedies
+管制员问题和补救措施
+------------------------------
+
+Memory
+~~~~~~
+
+The original lower boundary, the soft limit, is defined as a limit that is per default unset.  As a result, the set of cgroups that global reclaim prefers is opt-in, rather than opt-out.  The costs for optimizing these mostly negative lookups are so high that the implementation, despite its enormous size, does not even provide the basic desirable behavior.  First off, the soft limit has no hierarchical meaning.  All configured groups are organized in a global rbtree and treated like equal peers, regardless where they are located in the hierarchy.  This makes subtree delegation impossible.  Second, the soft limit reclaim pass is so aggressive that it not just introduces high allocation latencies into the system, but also impacts system performance due to overreclaim, to the point where the feature becomes self-defeating.
+原始下边界（软限制）定义为默认情况下未设置的限制。结果，全局回收首选的一组cgroup是选择加入的，而不是选择退出的。优化这些通常为负数的查找的成本非常高，以至于尽管实现规模巨大，但该实现甚至无法提供基本的期望行为。首先，软限制没有层次意义。所有配置的组均在全局rbtree中组织，并且被视为同等的对等体，无论它们在层次结构中的位置如何。这使得不可能进行子树委托。其次，软限制回收过程非常激进，以至于它不仅在系统中引入了高分配延迟，而且由于过度回收而影响了系统性能，以至于该功能变得自毁。
+
+The memory.low boundary on the other hand is a top-down allocated reserve.  A cgroup enjoys reclaim protection when it's within its low, which makes delegation of subtrees possible.
+另一方面，memory.low边界是自上而下分配的储备。当cgroup处于其低位时，它享有回收保护，这使得子树的委派成为可能。
+
+The original high boundary, the hard limit, is defined as a strict limit that can not budge, even if the OOM killer has to be called. But this generally goes against the goal of making the most out of the available memory.  The memory consumption of workloads varies during runtime, and that requires users to overcommit.  But doing that with a strict upper limit requires either a fairly accurate prediction of the working set size or adding slack to the limit.  Since working set size estimation is hard and error prone, and getting it wrong results in OOM kills, most users tend to err on the side of a looser limit and end up wasting precious resources.
+原始的高边界（硬限制）定义为即使必须调用OOM杀手也不能屈服的严格限制。但这通常与充分利用可用内存的目标背道而驰。工作负载的内存消耗在运行期间会有所不同，这需要用户过量使用。但是，要使用严格的上限进行操作，就需要对工作集大小进行相当准确的预测，或者需要增加限制。由于工作集大小估计很困难且容易出错，并且出错会导致OOM崩溃，因此大多数用户倾向于在宽松的限制方面犯错误，并最终浪费了宝贵的资源。
+
+The memory.high boundary on the other hand can be set much more conservatively.  When hit, it throttles allocations by forcing them into direct reclaim to work off the excess, but it never invokes the OOM killer.  As a result, a high boundary that is chosen too aggressively will not terminate the processes, but instead it will lead to gradual performance degradation.  The user can monitor this and make corrections until the minimal memory footprint that still gives acceptable performance is found.
+另一方面，memory.high边界可以更保守地设置。当被击中时，它通过迫使它们直接回收以抵消多余的资源来限制分配，但是它从不调用OOM杀手。结果，过于激进地选择较高的边界不会终止进程，而是会导致性能逐渐下降。用户可以对其进行监视并进行纠正，直到找到仍然可以接受的性能所需的最小内存占用为止。
+
+In extreme cases, with many concurrent allocations and a complete breakdown of reclaim progress within the group, the high boundary can be exceeded.  But even then it's mostly better to satisfy the allocation from the slack available in other groups or the rest of the system than killing the group.  Otherwise, memory.max is there to limit this type of spillover and ultimately contain buggy or even malicious applications.
+在极端情况下，由于许多并发分配以及组内回收进度的完整细分，可能会超出上限。但是即使那样，从其他组或系统其余部分的可用空闲中满足分配也要比杀死该组更好。否则，memory.max会限制这种类型的溢出，并最终包含错误甚至恶意应用程序。
+
+Setting the original memory.limit_in_bytes below the current usage was subject to a race condition, where concurrent charges could cause the limit setting to fail. memory.max on the other hand will first set the limit to prevent new charges, and then reclaim and OOM kill until the new limit is met - or the task writing to memory.max is killed.
+将原始memory.limit_in_bytes设置为低于当前使用量会受到争用条件的影响，在这种情况下，并发充电可能会导致限制设置失败。另一方面，memory.max将首先设置限制以防止产生新的费用，然后回收并终止OOM，直到达到新的限制-否则写入memory.max的任务将被终止。
+
+The combined memory+swap accounting and limiting is replaced by real control over swap space.
+内存+交换记帐和限制的组合已由对交换空间的实际控制所取代。
+
+The main argument for a combined memory+swap facility in the original cgroup design was that global or parental pressure would always be able to swap all anonymous memory of a child group, regardless of the child's own (possibly untrusted) configuration.  However, untrusted groups can sabotage swapping by other means - such as referencing its anonymous memory in a tight loop - and an admin can not assume full swappability when overcommitting untrusted jobs.
+在最初的cgroup设计中，组合使用内存+交换功能的主要论据是，全局或家长压力将始终能够交换子组的所有匿名内存，而不管孩子自己（可能是不受信任的）配置如何。但是，不受信任的组可以通过其他方式破坏交换（例如，在紧密的循环中引用其匿名内存），并且管理员在过量使用不受信任的作业时不能承担完全的可交换性。
+
+For trusted jobs, on the other hand, a combined counter is not an intuitive userspace interface, and it flies in the face of the idea that cgroup controllers should account and limit specific physical resources.  Swap space is a resource like all others in the system, and that's why unified hierarchy allows distributing it separately.
+另一方面，对于受信任的作业，组合计数器不是直观的用户空间界面，并且面对cgroup控制器应考虑并限制特定物理资源的想法。交换空间是系统中所有其他资源的资源，因此，统一的层次结构允许对其进行单独分配。

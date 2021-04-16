@@ -310,3 +310,347 @@ sleep 9600;cd PortoTmo-R;cd amss_nicobar_la2.0.1;TCT_EFUSE=false ANTI_ROLLBACK=2
 ###%%%Merge to Global:NO 
 ###%%%Pre_build:YES 
 Change-Id: I27e2080ca6c6ea47e618eae9c83e1f03835572bd
+
+
+bc360:
+我们查看了bc360几个进程的内存占用情况:
+27,275K: com.bc360.control (pid 26346 / activities)
+13,641K: com.bc360.android.service:remote (pid 26479)
+ 8,131K: com.bc360.android.service (pid 3743)
+
+三个进程总共占用内存48M左右；(PS: 当前并未能确认音效是否已生效)
+去除共享库部分, 实际的内存开销应该在40M左右.
+
+未完装三方应用且未登陆gms的机器开机剩余内存约1.2G, 我们认为bc360对机器的内存压力不大. 
+若需要避免bc360的service被系统kill, 可以在系统中做一些保活处理, 避免非极端状态下kill掉相应进程.
+
+
+We checked the memory usage of several processes in bc360
+
+The total memory occupied by the three processes is about 48m; (PS: we can't confirm whether the sound effect is effective at present.)
+
+Excluding the shared library, the actual memory cost should be about 40m.
+
+
+
+We think that the memory pressure of bc360 is not too big.
+
+If it is necessary to prevent bc360 service from being killed by the system, we can do some live keeping processing in the system to avoid killing the corresponding process in non critical state.
+
+
+绩效管理系统陈雄   注销
+系统首页
+我的CTS2
+返回     /表单详情
+[陈雄]2020年第四季度绩效考核 - 员工自评
+目标设定
+主管审核
+员工自评
+主管绩效评估
+绩效结果确认
+绩效面谈完成
+目标类型	指标/目标	衡量标准/关键结果	权重
+ KO	
+KO项：
+1, 继续erofs的移植/研究/debug， 尽可能达到稳定。
+2, 继续cgroup v2 io部分的研究，完成cgroup v2在android上的启用并测试实际效果。
+自评
+
+KO项措施有效性，最高分100分
+１. 优化明显且普适　100-120分
+ 2. 对比数据有提升且能够适用大部分场景　85-99分
+ 3. 没有明显优化，但能够输出详细文档并指明原因　60-84分
+４. 无法按时完成且无有效输出　0-59分
+ 
+自评内容(最长3500个字符)
+%
+50
+ KO	
+"文档输出和分享：
+1. 模块深入研究并形成文档并分享。
+2. 对问题的解决过程总结形成文档并组内分享。
+3. 业界性能功耗稳定性有关的技术文档分享"
+自评
+
+1. 最高分100分
+2. 1篇模块研究文档+40分，分享培训+20分
+3. 1篇总结文档及分享+20分，周会上分享+5分
+4. 1篇业界技术文档并组内分享+10分"
+ 
+自评内容(最长3500个字符)
+%
+5
+ KPI	
+Performance问题解决
+1.及时解决SeattleTMO/PortoTMO/TokyoLiteTMO/Thor84GVZW/Apollo84GTMO等项目的defect
+2.项目TA的时候进行TA点检
+自评
+
+任务(PR或者其他任务)在要求时间内完成的比例：
+1.前10%：100-120分
+2.前50%：85-99分
+3.前95%：60-84分
+4.后4%：1-59分
+说明：解决重要疑难问题不受解决数量限制，重要问题以DM/TM/XPM认可为准作为参考
+ 
+自评内容(最长3500个字符)
+%
+20
+ KPI	
+TOP FR/Solution导入
+1. 继续完成SeattleTMO项目TOP FR/Solution导入
+2. 每个项目FC前点检，发布report给val进行测试
+3. 如有问题支持val测试
+自评
+
+任务(PR或者其他任务)在要求时间内完成的比例：
+1.前10%：100-120分
+2.前50%：85-99分
+3.前95%：60-84分
+4.后4%：1-59分
+说明：解决重要疑难问题不受解决数量限制，重要问题以DM/TM/XPM认可为准作为参考
+ 
+自评内容(最长3500个字符)
+%
+25
+
+
+MTK defect:
+10436522
+
+2020-0245368
+D44131194560
+8200921626009
+
+
+10017150,10104877
+
+
+wfc:
+
+从bugreport看, 未见内存状态异常, 系统负载较高:Load: 4.98 / 4.61 / 4.05, 可能是引起anr的主要原因.
+anr直接原因为inputdispatcher没有焦点窗口超时, 当前porttom项目有遇到几个类似问题, 正在查找是否存在共性原因.
+
+从log可以看到一些可能导致负载高的点, 可以针对性优化一下试试:
+1, ActivityManager: Sending non-protected broadcast action_wfc_summary_change from system 3382:com.android.phone/1001 pkg com.android.phone
+这个广播可以加入白名单, 减小系统开销
+2, 还是这个广播, 发送太过频繁, 能否通过一些机制去减缓发送?例如一秒内有多个状态改变消息, 仅发送最后一个, 其它丢弃?
+3, WfcSummary对wifi状态检测太过频繁, 间隔有的短到了几ms, 是否可以加大一下间隔或者注册广播?
+
+以上, 应当可以减小phone和wfc产生的负载, 减小同情景下的anr概率
+
+input事件时间点:
+12-29 14:34:26.450左右
+
+中间发生了一些错误日志, 不清楚是否会影响phone或者wfc:
+12-29 14:34:26.583  1286  1286 E Diag_Lib:  Diag_LSM_Init: Failed to open handle to diag driver, error = 13
+
+超时丢弃事件:
+12-29 14:34:31.441  1878  2402 W InputDispatcher: Still no focused window. Will drop the event in 4999ms
+
+产生anr:
+12-29 14:34:31.485  1878 19470 I am_anr  : [0,3330,com.tct.wfcmanager,814267981,Input dispatching timed out (ActivityRecord{15ffbff u0 com.tct.wfcmanager/.sprint.settings.              TctWifiCallingSettingsActivity t100} does not have a focused window)]
+
+
+
+我并不了解你说的the issue “frequent failures of launched software”发生在什么时候.
+在调试保活机制时发现,  进程"com.bc360.android.service:remote" 会被系统系统杀掉以释放内存(这是正常机制, 此进程的优先级是可以被杀掉的). 当此进程再次启动时, 进程状态会有数秒处于阻塞状态, 这段时间内通过coltroller去设置音效时, 会导致崩溃, 不知道你所说的是不是这个问题.
+而我所做的修改就是保证"com.bc360.android.service"和"com.bc360.android.service:remote"这两个进程不会被系统杀掉. 实测重载压力测试36小时, 它们的进程号并未改变, log显示未被杀掉. 且随机去设置音效, 均可顺利设置成功.
+
+
+
+
+R:
+
+Total RAM: 3,676,904K (status normal)
+ Free RAM: 1,601,314K (  580,122K cached pss +   910,928K cached kernel +   110,264K free)
+      ION:    85,912K (    5,336K mapped +    80,576K unmapped +         0K pools)
+ Used RAM: 2,069,542K (1,554,118K used pss +   515,424K kernel)
+ Lost RAM:   108,346K
+     ZRAM:    44,920K physical used for   170,388K in swap (2,097,148K total swap)
+   Tuning: 256 (large 512), oom   322,560K, restore limit    80,640K (high-end-gfx)
+
+unknown:/ # sysctl -a 2>/dev/null |grep vm.dirty
+vm.dirty_background_bytes = 0
+vm.dirty_background_ratio = 5
+vm.dirty_bytes = 0
+vm.dirty_expire_centisecs = 200
+vm.dirty_ratio = 20
+vm.dirty_writeback_centisecs = 500
+vm.dirtytime_expire_seconds = 43200
+
+
+Q:
+
+Total RAM: 3,719,952K (status normal)
+ Free RAM: 1,345,262K (  351,742K cached pss +   916,020K cached kernel +    77,500K free)
+ Used RAM: 2,329,325K (1,449,889K used pss +   879,436K kernel)
+ Lost RAM:   198,848K
+     ZRAM:    51,752K physical used for   215,156K in swap (2,097,148K total swap)
+   Tuning: 256 (large 512), oom   322,560K, restore limit    80,640K (high-end-gfx)
+
+adb shell sysctl -a 2>/dev/null |grep vm.dirty
+vm.dirty_background_bytes = 0
+vm.dirty_background_ratio = 5
+vm.dirty_bytes = 0
+vm.dirty_expire_centisecs = 200
+vm.dirty_ratio = 20
+vm.dirty_writeback_centisecs = 500
+vm.dirtytime_expire_seconds = 43200
+
+
+
+[07bfa4415] fat: work around race with userspace's read via blockdev while mounting <hirofumi@mail.parknet.co.jp> OGAWA Hirofumi (2019-09-23 22:32:53)
+- dir.c fatent.c
+[bd8309de0d60838eef6fb575b0c4c7e95841cf73] fs/fat/file.c: issue flush after the writeback of FAT
+- file.c
+[c0d0e3512] fat: fix using uninitialized fields of fat_inode/fsinfo_inode <hirofumi@mail.parknet.co.jp> OGAWA Hirofumi (2017-03-10 00:17:37)
+inode.c
+[265b81a52] fat: fix uninit-memory access for partial initialized inode <hirofumi@mail.parknet.co.jp> OGAWA Hirofumi
+
+
+
+
+Defect 10445294: [SD Card IOT]The transfer rate is slowly when from PC to Memory card
+
+问题发生在<=32GB容量的tf卡, 通过mtp拷贝时速度只有9.5MB/s, 而同机型Q版本上约15MB/s.
+
+排查过程:
+1, 在ubuntu上通过gvfs往挂载的手机外置sd卡上使用time cp拷贝200M左右的文件, 因文件系统缓存的问题导致出现误判, 将原因归在了fuse上面.
+后来测试时一律使用sync;echo 3 > /proc/sys/vm/drop_caches来清空缓存, 然后再拷贝大一些的文件, 使测试写入速度较为准确.
+
+2, 每次测试前先执行sync;echo 3 > /proc/sys/vm/drop_caches以排除page cache影响, 测得结果稳定且排除了fuse的影响
+tips: 在开发者选项---> feature flags ----> settings_fuse 可以直接开关fuse, 重启生效.
+
+把其它项目上用的iozone直接拿来测试, 结果与cp命令测接近, 进一步证明测试方法ok.
+
+    做了以下测试:
+        测试条件:
+        1,所有测试圴先执行sync;echo 3 > /proc/sys/vm/drop_caches以排除page cache影响
+        2, 同一张tf卡, 未在手机上格式化(借的, 不方便格式化)
+        测试数据:
+        1, time cp -tvf /sdcard/500m /storage/0403-0201/
+            Q: 35.97s
+            R: fuse 54.25s
+            no-fuse 53.45s
+        2, iozone -i 0 -s 500m -w -f /storage/0403-0201/500m
+            Q:  15577 KB/s
+                15306 KB/s
+            R: fuse 11809 KB/s
+                    11336 KB/s
+            no-fuse  10573 KB/s
+                        10574 KB/s
+    其中测试1的结果与mtp文件复制的时间基本一致.
+    ps:
+        iozone directio模式在Q上运行异常, 并未统计directio的数据
+    
+    从以上结果来看, R版本上外置tf卡的写速度似乎就比Q慢一些, 并且与fuse无关. 已经对比过R与Q的mmc1 clock, 均为202M.
+
+3, 海望建议测试一下直接写块设备节点, 看一下在文件系统层之上的写入速度, 以排除文件系统影响
+测试命令:
+    iozone -i 0 -s 500m -w -f /dev/block/vold/165:79
+
+    对比下来R上约22MB/s, Q上约15MB/s, 也就是说sdmmc总线的写入速度方面R并不弱于Q, 可以排除总线/tf卡兼容性问题, 区别就只能在文件系统.
+
+4, 对比了Q和R的kernel/fs/fat, 只有四个文件有差异, 而且看提交信息都是安全/bugfix, 看起来没有什么和性能相关的. 直接用Q的fs/fat覆盖了R的, 编译内核测试, 写入能到22MB/s, 与直接写block设备速度相符, 是使用尽了写入带宽的表现, 因此可以确定就是这几个提交的问题.
+
+5, 逐个恢复提交, 编译内核测, 定位到了相应的提交.
+[07bfa4415] fat: work around race with userspace's read via blockdev while mounting <hirofumi@mail.parknet.co.jp> OGAWA Hirofumi (2019-09-23 22:32:53)
+
+6, 评估回退此提交可能会小概率导致坏卡, 交由spm权衡后决定保留.
+
+
+思路:
+
+排除pagecache, 加大测试文件size, 保证测试方法准确 ----> 对比Q版本, 开关fuse测试, 排除了fuse影响 ----> 直接测试写块设备, 排除文件系统影响(直接写块设备会破坏文件系统) ----> 对比文件系统差异, 定位提交记录
+
+PS:
+1, 32G及以下tf卡与64G及以上使用的文件系统不一致, 需要区分
+2, 在开发者选项---> feature flags ----> settings_fuse 可以直接开关fuse, 重启生效.
+
+
+Go
+com.google.android.setupwizard/.carrier.SimMissingActivity------686]
+com.google.android.setupwizard/.network.NetworkActivity------612]
+com.google.android.gms/.setupservices.GoogleServicesActivity------3050]
+com.android.settings/.password.SetupChooseLockPassword------3027]
+com.android.settings/.faceunlock.SetupWizardFaceUnlockActivity------295]
+com.google.android.setupwizard/.user.LoadLauncherLayout------241]
+com.tcl.fota.system/.SetUpWizardScheduleAutoUpdateActivity------1010]
+com.tct.setupwizard/.SetupWizardEndActivity------296]
+com.tmobile.pr.mytmobile/.oobe.OOBEActivity------2665]
+com.android.launcher3/.uioverrides.QuickstepLauncher------3400]
+com.android.settings/.Settings------1605]
+com.android.settings/.SubSettings------464]
+com.android.settings/.SubSettings------425]
+com.android.settings/.SubSettings------434]
+com.android.dialer/.main.impl.MainActivity------1800]
+com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity------1102]
+com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity------1312]
+com.debug.loggerui/.settings.SettingsActivity------249]
+com.android.settings/.Settings$WifiSettings2Activity------1048]
+com.android.settings/.SubSettings------441]
+com.tmobile.rsuapp/.MainActivity------1882]
+com.google.android.setupwizard/.carrier.SimMissingActivity------686]
+com.google.android.setupwizard/.network.NetworkActivity------612]
+com.google.android.gms/.setupservices.GoogleServicesActivity------3050]
+com.android.settings/.password.SetupChooseLockPassword------3027]
+com.android.settings/.faceunlock.SetupWizardFaceUnlockActivity------295]
+com.google.android.setupwizard/.user.LoadLauncherLayout------241]
+com.tcl.fota.system/.SetUpWizardScheduleAutoUpdateActivity------1010]
+com.tct.setupwizard/.SetupWizardEndActivity------296]
+com.tmobile.pr.mytmobile/.oobe.OOBEActivity------2665]
+com.android.launcher3/.uioverrides.QuickstepLauncher------3400]
+com.android.settings/.Settings------1605]
+com.android.settings/.SubSettings------464]
+com.android.settings/.SubSettings------425]
+com.android.settings/.SubSettings------434]
+com.android.dialer/.main.impl.MainActivity------1800]
+com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity------1102]
+com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity------1312]
+com.debug.loggerui/.settings.SettingsActivity------249]
+com.android.settings/.Settings$WifiSettings2Activity------1048]
+com.android.settings/.SubSettings------441]
+com.tmobile.rsuapp/.MainActivity------1882]
+
+jiuyu.cui gapp,fota
+
+
+at android.graphics.HardwareRenderer.nSyncAndDrawFrame(Native method)
+at android.graphics.HardwareRenderer.syncAndDrawFrame(HardwareRenderer.java:433)
+at android.view.ThreadedRenderer.draw(ThreadedRenderer.java:658)
+at android.view.ViewRootImpl.draw(ViewRootImpl.java:4172)
+at android.view.ViewRootImpl.performDraw(ViewRootImpl.java:3899)
+at android.view.ViewRootImpl.performTraversals(ViewRootImpl.java:3156)
+
+
+02-20 22:27:58.823 radio  2678  2992 W TelephonyPermissions: reportAccessDeniedToReadIdentifiers:com.tencent.mm:getSubscriberId:1
+02-20 22:27:58.846 10235  4737  5743 I chatty  : uid=10235(com.tencent.mm) expire 3 lines
+02-20 22:27:58.856 10235  4737  7849 I chatty  : uid=10235(com.tencent.mm) expire 2 lines
+02-20 22:27:58.857 10235  4737  6084 I chatty  : uid=10235(com.tencent.mm) expire 2 lines
+02-20 22:27:58.907  1000   886  1100 D SurfaceFlinger: assign a empty target
+02-20 22:27:58.938  1000  1921  2168 D ConnectivityService: releasing NetworkRequest [ TRACK_DEFAULT id=637, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED Uid: 10235                  AdministratorUids: [] RequestorUid: 10235 RequestorPackageName: com.tencent.mm] ] (release request)
+02-20 22:27:59.642 10202  2266  2266 D ViewRootImpl[NavigationBar0]: Caller's package : com.android.systemui
+02-20 22:28:00.004 10202  2266  2266 D KeyguardUpdateMonitor: received broadcast android.intent.action.TIME_TICK
+02-20 22:28:00.004 10202  2266  2266 D KeyguardUpdateMonitor: handleTimeUpdate
+02-20 22:28:00.341 10202  2266  2266 D ViewRootImpl[NavigationBar0]: Caller's package : com.android.systemui
+02-20 22:28:00.795 10235  5454 13261 I chatty  : uid=10235 com.tencent.mm:push expire 2 lines
+02-20 22:28:00.891 10202  2266  2266 D ViewRootImpl[NavigationBar0]: Caller's package : com.android.systemui
+02-20 22:28:03.114 10202  2266  2266 D ViewRootImpl[NavigationBar0]: Caller's package : com.android.systemui
+02-20 22:28:03.509 10202  2266  2266 D CarrierTextController: isCDMA:false cdmaRoamingName:null mCdmaRoamingName:null
+
+
+
+http://sz.gerrit.tclcom.com:8080/#/c/TCTROM/apps_R/+/317654/
+http://sz.gerrit.tclcom.com:8080/#/c/qualcomm/platform/frameworks/base/+/317653/
+http://sz.gerrit.tclcom.com:8080/#/c/TCTROM/tcl/frameworks/+/317652/
+http://sz.gerrit.tclcom.com:8080/#/c/TCTROM/tcl/device/+/317651/
+http://sz.gerrit.tclcom.com:8080/#/c/TCTROM/tcl/build/+/317650/
+
+
+- [ ] 拿val的机器跑auto-perf, 尽量挂5v5
+- [ ] 用5j版本退掉那几个提交, 编个版本, 跑auto perf
+- [ ] Transformor vzw feature确认
+- [ ] Transformor vzw 可移除的进程确认
+- [ ] portotmo/seattletmo 应用被杀的问题跟进
+- [ ] update crosscheck list

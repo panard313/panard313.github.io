@@ -12,6 +12,15 @@
     - TODO: **需要设计一个测试，记录request层每秒的吞吐量，证实有没有降低？**
 
 
+Organize Once and Control
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Migrating a process across cgroups is a relatively expensive operation and stateful resources such as memory are not moved together with the process.  This is an explicit design decision as there often exist inherent trade-offs between migration and various hot paths in terms of synchronization cost.
+跨cgroup迁移进程是一项相对昂贵的操作，并且诸如内存之类的有状态资源不会与进程一起移动。这是一个明确的设计决策，因为在迁移和各种热路径之间通常存在固有的权衡取舍同步成本。
+
+As such, migrating processes across cgroups frequently as a means to apply different resource restrictions is discouraged.  A workload should be assigned to a cgroup according to the system's logical and resource structure once on start-up.  Dynamic adjustments to resource distribution can be made by changing controller configuration through the interface files.
+因此，不建议在cgroup之间频繁迁移进程，以作为应用不同资源限制的一种手段。启动后，应根据系统的逻辑和资源结构将工作负载分配给cgroup。通过接口文件更改控制器配置，可以对资源分配进行动态调整
+
 # 代码调用栈
 
 ## readahead 调用栈 (from page_fault)
@@ -146,7 +155,7 @@ vfs_read
 
 
 
-## vfs_read to lkcg_iolatency_throttle 调用栈
+## vfs_read to blkcg_iolatency_throttle 调用栈
 /*****************************************************************/
 blkcg_iolatency_throttle(struct rq_qos * rqos, struct bio * bio, spinlock_t * lock) (/home/panard/linux-4.19.100/block/blk-iolatency.c:436)
 rq_qos_throttle(struct request_queue * q, struct bio * bio, spinlock_t * lock) (/home/panard/linux-4.19.100/block/blk-rq-qos.c:77)
